@@ -3,8 +3,8 @@
   "short_name": "Euskara",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFF9EC",
-  "theme_color": "#C8281F",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "lang": "es",
   "icons": [
     {
