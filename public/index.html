@@ -36,13 +36,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .app>*{animation:rise .22s ease-out both}
 /* botones: una etiqueta (euskera); el apoyo solo en .bi */
-.btn{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;min-height:52px;padding:12px 18px;border:var(--bw) solid transparent;background:var(--ink);color:var(--cream);font-family:var(--display);font-weight:700;font-size:17px;line-height:1.15;text-align:center;border-radius:var(--r);transition:transform .12s,box-shadow .2s,opacity .2s}
-.btn small{display:none;font-family:var(--body);font-size:12px;font-weight:500;color:var(--on-color);margin-top:2px}
+.btn{display:flex;flex-direction:row;flex-wrap:wrap;gap:0 8px;align-items:center;justify-content:center;width:100%;min-height:52px;padding:12px 18px;border:var(--bw) solid transparent;background:var(--ink);color:var(--cream);font-family:var(--display);font-weight:700;font-size:17px;line-height:1.15;text-align:center;border-radius:var(--r);transition:transform .12s,box-shadow .2s,opacity .2s}
+.btn small{display:none;flex-basis:100%;font-family:var(--body);font-size:12px;font-weight:500;color:var(--on-color);margin-top:2px}
+.btn svg{width:20px;height:20px;flex:none}
+.qbtn svg,.help svg,.nextrow svg{width:20px;height:20px}
 .btn.bi small{display:block}
 .btn.red{background:var(--red);box-shadow:var(--sh-primary)}
 .btn.green{background:var(--green)}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line2);box-shadow:none} .btn.ghost small{color:var(--muted)}
-.btn.sm{min-height:40px;padding:8px 14px;font-size:15px;width:auto;display:inline-flex;flex-direction:row;gap:8px}
+.btn.sm{min-height:40px;padding:8px 14px;font-size:15px;width:auto;display:inline-flex;flex-wrap:nowrap;gap:8px} .btn.sm small{flex-basis:auto}
 .btn:disabled{opacity:.35;box-shadow:none}
 .btn:active:not(:disabled){transform:scale(.985)}
 @media (prefers-color-scheme:dark){ .btn{background:#FFF9EC;color:#141414} .btn small{color:#5A5A5A} .btn.red,.btn.green{color:#FFF9EC} .btn.red small,.btn.green small{color:var(--on-color)} .btn.ghost{color:var(--ink)} }
@@ -90,7 +92,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .lrow .ring{flex:none}
 .ring{display:inline-block}
 .mod{display:flex;align-items:center;gap:12px;padding:6px 2px 2px;margin-top:8px}
-.mod .mn{width:36px;height:36px;flex:none;display:grid;place-items:center;border-radius:999px;background:var(--ink);color:var(--cream);font-family:var(--display);font-weight:700;font-size:15px}
+.mod .mn{width:36px;height:36px;flex:none;display:grid;place-items:center;border-radius:999px;background:var(--ink);color:var(--bg);font-family:var(--display);font-weight:700;font-size:15px}
 .mod .mn svg{width:18px;height:18px}
 .mod.done .mn{background:var(--green)} .mod.locked .mn{background:var(--soft);color:var(--muted)}
 .mod .mt{flex:1;min-width:0} .mod .mt b{display:block;font-family:var(--display);font-weight:700;font-size:18px;line-height:1.2} .mod .mt small{display:block;font-size:12px;color:var(--muted)}
@@ -568,7 +570,7 @@ async function renderToday(){
     : firstTime?`<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">${T("Kaixo! Así funciona:")}</p></div></div><p>${T("1 · Abres una lección: lees, escuchas y miras la estructura.")}</p><p>${T("2 · Pulsas <b>Ikasi</b>: te presento unas pocas frases, eliges su significado y las copias. Sin examen el primer día.")}</p><p>${T("3 · Al día siguiente, aquí en <b>Gaur</b>, te las pido de memoria. Lo que aciertas se aleja en el calendario; lo que fallas vuelve mañana.")}</p><button class="btn red" id="golesson">${esc(T(LESSONS[0].title))}<small>${T("Empezar por la lección 1")}</small></button></div>`
     : total?`<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">Gaurko txanda</p><p class="ts">${due.length} esaldi berrikusteko${nNew?` · ${nNew} berri`:""}</p><p class="ts">≈ ${mins} min</p></div></div><button class="btn red" id="start">${ic("play")} Hasi</button></div>`
     : `<div class="card today"><div class="who"><div class="olen">${OLEN("happy",52)}</div><div><p class="tt">Gaurkoa eginda</p><p class="ts">${T("lo de hoy está hecho")}${upcoming.length?` · ${dueLabel(upcoming[0])}`:""}</p></div></div><button class="btn" id="free" ${ITEMS.length<4?"disabled":""}>${ic("shuffle")} Txanda librea</button></div>`;
-  app.innerHTML=header(sub)+`
+  app.innerHTML=header(firstTime?sub:"")+`
    <div class="stack pad cols" style="padding-top:20px"><div class="col">
     ${todayCard}
     ${firstTime?"":`<div class="quick">${(total||pend)?`<button class="qbtn" id="free" ${ITEMS.length<4?"disabled":""}><span class="ic" style="color:var(--blue)">${ic("shuffle")}</span>Txanda librea</button>`:""}<button class="qbtn" id="hardb" ${hard.length<3?"disabled":""}><span class="ic" style="color:var(--ochre-ink)">${ic("bulb")}</span>Zailenak · ${hard.length}</button></div>`}
