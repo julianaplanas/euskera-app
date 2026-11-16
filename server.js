@@ -49,6 +49,23 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS challenges_to ON challenges (to_id, status);
 `);
 
+// Migraciones: añade columnas que falten en bases creadas con esquemas anteriores.
+(function migrate() {
+  const cols = () => db.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+  if (!cols().includes("email")) {
+    // Tabla de la época nombre+PIN: incompatible (salt/hash obligatorios). Se aparta y se crea la nueva.
+    db.exec("ALTER TABLE users RENAME TO users_old_pin");
+    db.exec(`CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
+      xp INTEGER NOT NULL DEFAULT 0, streak INTEGER NOT NULL DEFAULT 0, last_day TEXT,
+      weak TEXT NOT NULL DEFAULT '[]', profile TEXT NOT NULL DEFAULT '{}', last_seen TEXT, lang TEXT NOT NULL DEFAULT 'es',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')))`);
+    console.log("Migración: tabla users antigua (PIN) apartada como users_old_pin.");
+  }
+  const want = { weak: "TEXT NOT NULL DEFAULT '[]'", profile: "TEXT NOT NULL DEFAULT '{}'", last_seen: "TEXT", lang: "TEXT NOT NULL DEFAULT 'es'" };
+  for (const [c, def] of Object.entries(want)) if (!cols().includes(c)) { db.exec(`ALTER TABLE users ADD COLUMN ${c} ${def}`); console.log("Migración: columna users." + c); }
+})();
+
 const SECRET = process.env.APP_SECRET || "dev-secret-change-me";
 const hashCode = (email, code) => crypto.createHmac("sha256", SECRET).update(email + ":" + code).digest("hex");
 const normEmail = (e) => String(e || "").trim().toLowerCase();
