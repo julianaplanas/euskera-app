@@ -280,12 +280,13 @@ input.ans.ok{border-color:var(--green);background:var(--green-soft)} input.ans.b
 <div class="app" id="app"></div>
 <div class="sheet" id="sheet"><div class="in" id="sh-in"></div></div>
 <nav class="tabs" id="tabs" hidden><div class="in">
- <button class="tab" data-tab="gaur"><span class="eu"><svg viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor"><path d="M50 50 A25 25 0 0 1 50 0 A12.5 12.5 0 0 1 50 25 A12.5 12.5 0 0 0 50 50Z"/><path d="M50 50 A25 25 0 0 1 100 50 A12.5 12.5 0 0 1 75 50 A12.5 12.5 0 0 0 50 50Z"/><path d="M50 50 A25 25 0 0 1 50 100 A12.5 12.5 0 0 1 50 75 A12.5 12.5 0 0 0 50 50Z"/><path d="M50 50 A25 25 0 0 1 0 50 A12.5 12.5 0 0 1 25 50 A12.5 12.5 0 0 0 50 50Z"/></g></svg>Gaur</span><span class="es">Hoy</span></button>
- <button class="tab" data-tab="ikasgaiak"><span class="eu">Ikasgaiak</span><span class="es">Lecciones</span></button>
- <button class="tab" data-tab="taldea"><span class="eu">Taldea</span><span class="es">Grupo</span><span class="badge" id="tbadge" hidden></span></button>
- <button class="tab" data-tab="datuak"><span class="eu">Datuak</span><span class="es">Datos</span></button>
+ <button class="tab" data-tab="gaur"><span class="eu"><svg viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor"><path d="M50 50 A25 25 0 0 1 50 0 A12.5 12.5 0 0 1 50 25 A12.5 12.5 0 0 0 50 50Z"/><path d="M50 50 A25 25 0 0 1 100 50 A12.5 12.5 0 0 1 75 50 A12.5 12.5 0 0 0 50 50Z"/><path d="M50 50 A25 25 0 0 1 50 100 A12.5 12.5 0 0 1 50 75 A12.5 12.5 0 0 0 50 50Z"/><path d="M50 50 A25 25 0 0 1 0 50 A12.5 12.5 0 0 1 25 50 A12.5 12.5 0 0 0 50 50Z"/></g></svg>Gaur</span><span class="es" data-t="Hoy">Hoy</span></button>
+ <button class="tab" data-tab="ikasgaiak"><span class="eu">Ikasgaiak</span><span class="es" data-t="Lecciones">Lecciones</span></button>
+ <button class="tab" data-tab="taldea"><span class="eu">Taldea</span><span class="es" data-t="Grupo">Grupo</span><span class="badge" id="tbadge" hidden></span></button>
+ <button class="tab" data-tab="datuak"><span class="eu">Datuak</span><span class="es" data-t="Datos">Datos</span></button>
 </div></nav>
 
+<script src="i18n.js"></script>
 <script src="lessons.js"></script>
 <script>
 const app=document.getElementById("app"), tabs=document.getElementById("tabs");
@@ -318,18 +319,18 @@ const todayStr=()=>P&&P.today||new Date().toISOString().slice(0,10);
 let VOICE=false, AUDIO=null;
 async function checkVoice(){ try{ const r=await fetch("/api/tts/status"); const d=await r.json(); VOICE=!!d.ok; }catch(e){ VOICE=false; } }
 let SLOW=false; try{ SLOW=localStorage.getItem("euskara.slow")==="1"; }catch(e){}
-function speak(text, onEnd, slow){ if(!VOICE) return false; try{ if(AUDIO){ AUDIO.pause(); AUDIO.onended=null; } AUDIO=new Audio("/api/tts?text="+encodeURIComponent(text)); const rate=(slow===undefined?SLOW:slow)?0.7:1; AUDIO.preservesPitch=true; AUDIO.mozPreservesPitch=true; AUDIO.webkitPreservesPitch=true; AUDIO.playbackRate=rate; if(onEnd) AUDIO.onended=onEnd; AUDIO.onerror=()=>{ VOICE=false; toast("Audio no disponible"); }; AUDIO.play().then(()=>{ AUDIO.playbackRate=rate; }).catch(()=>{}); return true; }catch(e){ return false; } }
+function speak(text, onEnd, slow){ if(!VOICE) return false; try{ if(AUDIO){ AUDIO.pause(); AUDIO.onended=null; } AUDIO=new Audio("/api/tts?text="+encodeURIComponent(text)); const rate=(slow===undefined?SLOW:slow)?0.7:1; AUDIO.preservesPitch=true; AUDIO.mozPreservesPitch=true; AUDIO.webkitPreservesPitch=true; AUDIO.playbackRate=rate; if(onEnd) AUDIO.onended=onEnd; AUDIO.onerror=()=>{ VOICE=false; toast(T("Audio no disponible")); }; AUDIO.play().then(()=>{ AUDIO.playbackRate=rate; }).catch(()=>{}); return true; }catch(e){ return false; } }
 function speakSeq(list,slow){ let k=0; const go=()=>{ if(k<list.length) speak(list[k++],()=>setTimeout(go,450),slow); }; go(); }
 function preload(texts){ if(!VOICE) return; for(const t of texts.slice(0,12)) fetch("/api/tts?text="+encodeURIComponent(t)).catch(()=>{}); }
-const spkBtn=(t,cls="")=>VOICE?`<button class="speak ${cls}" data-say="${esc(t)}" aria-label="Escuchar">${SPK}</button>`:"";
+const spkBtn=(t,cls="")=>VOICE?`<button class="speak ${cls}" data-say="${esc(t)}" aria-label="${T("Escuchar")}">${SPK}</button>`:"";
 // toque: velocidad normal (o la del ajuste) · mantener pulsado: lento 🐢
 function wireSpeak(root=app){ root.querySelectorAll("[data-say]").forEach(b=>{ let timer=null, held=false;
-  const down=()=>{ held=false; timer=setTimeout(()=>{ held=true; speak(b.dataset.say,null,true); toast("🐢 Poliki · despacio"); },450); };
+  const down=()=>{ held=false; timer=setTimeout(()=>{ held=true; speak(b.dataset.say,null,true); toast("🐢 Poliki · "+T("despacio")); },450); };
   const up=ev=>{ clearTimeout(timer); if(!held){ ev.preventDefault(); speak(b.dataset.say); } };
   b.onpointerdown=down; b.onpointerup=up; b.onpointerleave=()=>clearTimeout(timer); b.oncontextmenu=ev=>ev.preventDefault(); b.onclick=ev=>ev.stopPropagation(); }); }
 
 // ---------- API y estado ----------
-async function api(path,body){ const r=await fetch("/api/"+path, body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:{}); const d=await r.json().catch(()=>({error:"Error de red."})); if(!r.ok) throw Object.assign(new Error(d.error||"Error"),d); return d; }
+async function api(path,body){ const r=await fetch("/api/"+path, body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:{}); const d=await r.json().catch(()=>({error:T("Error de red.")})); if(!r.ok) throw Object.assign(new Error(d.error||"Error"),d); return d; }
 let P=null, ITEMS=[], TAB="gaur";
 const imap=()=>Object.fromEntries(ITEMS.map(i=>[i.key,i]));
 async function loadItems(){ ITEMS=await api("items"); }
@@ -339,17 +340,17 @@ function locIn(p){ const w=p.trim(); if(!w) return ""; const last=w.slice(-1).to
 function locFrom(p){ const w=p.trim(); if(!w) return ""; const l=w.toLowerCase(); const last=l.slice(-1); return l.endsWith("n")? l+"goa" : /[aeiou]/.test(last)? l+"koa" : l+"ekoa"; }
 function personalItems(){
   const pr=P.profile||{}; const out=[]; const Name=P.name[0].toUpperCase()+P.name.slice(1);
-  out.push({key:"me:naiz",eu:`Ni ${Name} naiz`,es:`Yo soy ${Name}`,lesson_id:"me",emoji:"🙋"});
-  out.push({key:"me:izena",eu:`Nire izena ${Name} da`,es:`Mi nombre es ${Name}`,lesson_id:"me",emoji:"✍️"});
+  out.push({key:"me:naiz",eu:`Ni ${Name} naiz`,es:L2(`Yo soy ${Name}`,`I am ${Name}`),lesson_id:"me",emoji:"🙋"});
+  out.push({key:"me:izena",eu:`Nire izena ${Name} da`,es:L2(`Mi nombre es ${Name}`,`My name is ${Name}`),lesson_id:"me",emoji:"✍️"});
   if(pr.age){ out.push({key:"me:adina",eu:`${numEu(pr.age)} urte ditut`,es:`Tengo ${pr.age} años`,lesson_id:"me",emoji:"🎂"}); }
-  if(pr.town){ out.push({key:"me:bizi",eu:`Ni ${locIn(pr.town)} bizi naiz`,es:`Yo vivo en ${pr.town}`,lesson_id:"me",emoji:"🏠"}); }
-  if(pr.origin){ out.push({key:"me:nongoa",eu:`Ni ${locFrom(pr.origin)} naiz`,es:`Yo soy de ${pr.origin}`,lesson_id:"me",emoji:"🌍"}); }
+  if(pr.town){ out.push({key:"me:bizi",eu:`Ni ${locIn(pr.town)} bizi naiz`,es:L2(`Yo vivo en ${pr.town}`,`I live in ${pr.town}`),lesson_id:"me",emoji:"🏠"}); }
+  if(pr.origin){ out.push({key:"me:nongoa",eu:`Ni ${locFrom(pr.origin)} naiz`,es:L2(`Yo soy de ${pr.origin}`,`I am from ${pr.origin}`),lesson_id:"me",emoji:"🌍"}); }
   if(pr.gender){
     const bro=pr.gender==="neska"?"neba":"anaia", sis=pr.gender==="neska"?"ahizpa":"arreba", mix=pr.gender==="neska"?"neba-arrebak":"anai-arrebak";
     const parts=[]; if(pr.nebak) parts.push(`${bro} ${numEu(pr.nebak)}`); if(pr.ahizpak) parts.push(`${sis} ${numEu(pr.ahizpak)}`);
     const n=(pr.nebak||0)+(pr.ahizpak||0);
     if(n===0) out.push({key:"me:anai",eu:"Ez dut anai-arrebarik",es:"No tengo hermanos",lesson_id:"me",emoji:"🚫"});
-    else out.push({key:"me:anai",eu:`${parts.join(" eta ")} ${n===1?"dut":"ditut"}`,es:`Tengo ${[pr.nebak?`${pr.nebak} hermano${pr.nebak>1?"s":""}`:"",pr.ahizpak?`${pr.ahizpak} hermana${pr.ahizpak>1?"s":""}`:""].filter(Boolean).join(" y ")}`,lesson_id:"me",emoji:"👨‍👩‍👧‍👦"});
+    else out.push({key:"me:anai",eu:`${parts.join(" eta ")} ${n===1?"dut":"ditut"}`,es:L2(`Tengo ${[pr.nebak?`${pr.nebak} hermano${pr.nebak>1?"s":""}`:"",pr.ahizpak?`${pr.ahizpak} hermana${pr.ahizpak>1?"s":""}`:""].filter(Boolean).join(" y ")}`,`I have ${[pr.nebak?`${pr.nebak} brother${pr.nebak>1?"s":""}`:"",pr.ahizpak?`${pr.ahizpak} sister${pr.ahizpak>1?"s":""}`:""].filter(Boolean).join(" and ")}`),lesson_id:"me",emoji:"👨‍👩‍👧‍👦"});
     out.push({key:"me:genero",eu:pr.gender==="neska"?"Ni neska naiz":"Ni mutila naiz",es:pr.gender==="neska"?"Yo soy chica":"Yo soy chico",lesson_id:"me",emoji:pr.gender==="neska"?"👧":"👦"});
     out.push({key:"me:mix",eu:mix,es:"hermanos (como lo digo yo)",lesson_id:"me",emoji:"👫"});
   }
@@ -366,8 +367,8 @@ function lessonOf(id){ return LESSONS.find(l=>l.id===id); }
 
 function header(sub,mood="wave"){
   return `<header class="head pad"><div class="lb">${LAUBURU}</div><div class="mascot">${OLEN(mood,84)}</div>
-    <div class="row"><button class="avatar" id="avbtn" aria-label="Perfil">${esc(P.name[0].toUpperCase())}</button><div style="min-width:0;flex:1"><h1>Kaixo, ${esc(P.name)}</h1><p style="font-size:12px;font-weight:600;color:var(--on-color)">Hola, ${esc(P.name[0].toUpperCase()+P.name.slice(1))}</p></div>
-    <span class="pill" title="Firmes"><span style="display:inline-flex;width:14px;height:14px">${LAUBURU}</span>${P.items.consolidated}</span><span class="pill">${P.xp} XP</span></div>
+    <div class="row"><button class="avatar" id="avbtn" aria-label="${T("Perfil")}">${esc(P.name[0].toUpperCase())}</button><div style="min-width:0;flex:1"><h1>Kaixo, ${esc(P.name)}</h1><p style="font-size:12px;font-weight:600;color:var(--on-color)">${T("Hola")}, ${esc(P.name[0].toUpperCase()+P.name.slice(1))}</p></div>
+    <span class="pill" title="${T("Firmes")}"><span style="display:inline-flex;width:14px;height:14px">${LAUBURU}</span>${P.items.consolidated}</span><span class="pill">${P.xp} XP</span></div>
     ${sub?`<p class="sub">${sub}</p>`:""}</header>`;
 }
 function setTab(t){ document.onkeydown=null; TAB=t; tabs.hidden=false; document.body.classList.remove("notabs"); tabs.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.tab===t)); const bd=document.getElementById("tbadge"); bd.hidden=!(P&&P.pendingChallenges); bd.textContent=P?P.pendingChallenges:""; ({gaur:renderToday,ikasgaiak:renderLessons,taldea:renderTeam,datuak:renderStats})[t](); const av=document.getElementById("avbtn"); if(av) av.onclick=()=>renderProfile(); window.scrollTo(0,0); }
@@ -376,82 +377,85 @@ function noTabs(){ tabs.hidden=true; document.body.classList.add("notabs"); }
 
 // ---------- LOGIN: email + código de 6 cifras ----------
 const EMAIL_KEY="euskara.email";
-function loginHead(t1,t2){ return `<div class="head pad" style="padding-bottom:26px"><div class="lb">${LAUBURU}</div><div class="row" style="gap:18px;position:relative"><div class="olen">${OLEN("wave",80)}</div><div><p class="eyebrow" data-es="Práctica de euskera">Euskara praktika</p><h1>${t1}</h1><p style="color:var(--on-color);font-weight:600;font-size:13px">${t2}</p></div></div></div>`; }
+function loginHead(t1,t2){ return `<div class="head pad" style="padding-bottom:26px"><div class="lb">${LAUBURU}</div><div class="row" style="gap:18px;position:relative"><div class="olen">${OLEN("wave",80)}</div><div><p class="eyebrow" data-es="${T("Práctica de euskera")}">Euskara praktika</p><h1>${t1}</h1><p style="color:var(--on-color);font-weight:600;font-size:13px">${t2}</p></div></div></div>`; }
 function renderLogin(){
   noTabs(); let saved=""; try{ saved=localStorage.getItem(EMAIL_KEY)||""; }catch(e){}
-  app.innerHTML=loginHead("Kaixo!","Entra o crea tu cuenta con tu correo")+`
-   <div class="stack pad" style="padding-top:22px"><p class="muted">Te mandamos un código de 6 cifras al correo. Sin contraseñas: la sesión se queda abierta en este dispositivo.</p>
-    <form id="f" class="stack"><input class="ans" id="email" type="email" placeholder="tu@correo.com" autocomplete="email" autocapitalize="none" inputmode="email" required value="${esc(saved)}"><p class="err" id="err"></p><button class="btn red" type="submit">Bidali kodea<small>Enviar código</small></button></form>
-    <p class="hint" style="text-align:center">Al entrar aceptas la <a href="privacy.html" target="_blank" rel="noopener">política de privacidad</a>.</p></div>`;
+  app.innerHTML=loginHead("Kaixo!",T("Entra o crea tu cuenta con tu correo"))+`
+   <div class="stack pad" style="padding-top:22px"><p class="muted">${T("Te mandamos un código de 6 cifras al correo. Sin contraseñas: la sesión se queda abierta en este dispositivo.")}</p>
+    <form id="f" class="stack"><input class="ans" id="email" type="email" placeholder="${T("tu@correo.com")}" autocomplete="email" autocapitalize="none" inputmode="email" required value="${esc(saved)}"><p class="err" id="err"></p><button class="btn red" type="submit">Bidali kodea<small>${T("Enviar código")}</small></button></form>
+    <p class="hint" style="text-align:center">${T("Al entrar aceptas la")} <a href="privacy.html" target="_blank" rel="noopener">${T("política de privacidad")}</a>. <button class="link" id="chlang" type="button" style="font-size:13px">🌐 ${L2("English","Castellano")}</button></p></div>`;
   document.getElementById("f").onsubmit=async e=>{ e.preventDefault(); const email=document.getElementById("email").value.trim().toLowerCase(); const err=document.getElementById("err"); err.textContent=""; const btn=e.target.querySelector("button"); btn.disabled=true;
-    try{ const r=await api("auth/request",{email}); try{ localStorage.setItem(EMAIL_KEY,email); }catch(x){} renderCode(email,r); }catch(ex){ err.textContent=ex.message; btn.disabled=false; } };
+    try{ const r=await api("auth/request",{email,lang:LANG}); try{ localStorage.setItem(EMAIL_KEY,email); }catch(x){} renderCode(email,r); }catch(ex){ err.textContent=ex.message; btn.disabled=false; } };
 }
 function renderCode(email,info={}){
   noTabs();
-  app.innerHTML=loginHead("Zure kodea","Tu código")+`
-   <div class="stack pad" style="padding-top:22px"><p class="muted">Hemos enviado un código de 6 cifras a <b>${esc(email)}</b>. Mira también la carpeta de spam.</p>
-    ${info.devCode?`<div class="note"><b>Modo pruebas</b> (el envío de correo no está configurado): tu código es <b style="font-size:20px;letter-spacing:3px">${esc(info.devCode)}</b></div>`:""}
+  app.innerHTML=loginHead("Zure kodea",T("Tu código"))+`
+   <div class="stack pad" style="padding-top:22px"><p class="muted">${T("Hemos enviado un código de 6 cifras a")} <b>${esc(email)}</b>. ${T("Mira también la carpeta de spam.")}</p>
+    ${info.devCode?`<div class="note"><b>${T("Modo pruebas")}</b> ${T("(el envío de correo no está configurado): tu código es")} <b style="font-size:20px;letter-spacing:3px">${esc(info.devCode)}</b></div>`:""}
     <form id="f" class="stack"><input class="ans" id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="000 000" maxlength="7" style="text-align:center;font-size:28px;letter-spacing:6px" autofocus>
-    ${info.exists?"":`<p class="eyebrow" data-es="Tu nombre, como quieres que te vean los demás">Nola duzu izena?</p><input class="ans" id="newname" placeholder="Nombre" autocomplete="nickname" maxlength="30">`}
-    <p class="err" id="err"></p><button class="btn red" type="submit">Sartu<small>Entrar</small></button></form>
-    <div class="row" style="justify-content:space-between"><button class="link" id="again">Otro correo</button><button class="link" id="resend">Reenviar código</button></div></div>`;
+    ${info.exists?"":`<p class="eyebrow" data-es="${T("Tu nombre, como quieres que te vean los demás")}">Nola duzu izena?</p><input class="ans" id="newname" placeholder="${T("Nombre")}" autocomplete="nickname" maxlength="30">`}
+    <p class="err" id="err"></p><button class="btn red" type="submit">Sartu<small>${T("Entrar")}</small></button></form>
+    <div class="row" style="justify-content:space-between"><button class="link" id="again">${T("Otro correo")}</button><button class="link" id="resend">${T("Reenviar código")}</button></div></div>`;
   const code=document.getElementById("code"); code.focus();
   code.oninput=()=>{ const d=code.value.replace(/\D/g,"").slice(0,6); code.value=d.length>3?d.slice(0,3)+" "+d.slice(3):d; };
   document.getElementById("again").onclick=()=>renderLogin();
-  document.getElementById("resend").onclick=async()=>{ try{ const r=await api("auth/request",{email}); toast("Kodea bidalita · código reenviado"); if(r.devCode) renderCode(email,r); }catch(e){ toast(e.message); } };
+  document.getElementById("resend").onclick=async()=>{ try{ const r=await api("auth/request",{email,lang:LANG}); toast("Kodea bidalita · "+T("código reenviado")); if(r.devCode) renderCode(email,r); }catch(e){ toast(e.message); } };
   document.getElementById("f").onsubmit=async e=>{ e.preventDefault(); const err=document.getElementById("err"); err.textContent=""; const name=(document.getElementById("newname")||{}).value||"";
-    try{ const r=await api("auth/verify",{email,code:code.value,name}); if(r.needName){ err.textContent="Dinos cómo te llamas (al menos 2 letras)."; (document.getElementById("newname")||code).focus(); return; }
-      P=r; await Promise.all([loadItems(),checkVoice()]); if(!P.profile.gender) renderProfile(true); else setTab("gaur"); }
+    try{ const r=await api("auth/verify",{email,code:code.value,name,lang:LANG}); if(r.needName){ err.textContent=T("Dinos cómo te llamas (al menos 2 letras)."); (document.getElementById("newname")||code).focus(); return; }
+      P=r; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); if(!P.profile.gender) renderProfile(true); else setTab("gaur"); }
     catch(ex){ err.textContent=ex.message; if(ex.expired) document.getElementById("resend").focus(); } };
 }
 
 // ---------- PERFIL (personalización) ----------
 function renderProfile(first=false){
   noTabs(); const pr=P.profile||{};
-  app.innerHTML=`<div class="top pad"><button id="back" aria-label="Volver" style="font-size:22px;color:var(--muted)">${first?"":"‹"}</button><div style="flex:1"><p class="eyebrow" data-es="Mi perfil">Nire profila</p><h2>Zu zeu · sobre ti</h2></div></div>
+  app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}" style="font-size:22px;color:var(--muted)">${first?"":"‹"}</button><div style="flex:1"><p class="eyebrow" data-es="${T("Mi perfil")}">Nire profila</p><h2>Zu zeu · ${T("sobre ti")}</h2></div></div>
    <div class="stack pad" style="flex:1">
-    <p class="muted">Con esto la app crea frases sobre ti (tu edad, tus hermanos…). Lo que dices de ti mismo se recuerda mucho mejor que lo de Ane y Mikel.</p>
-    <p class="eyebrow" data-es="Tu nombre, como lo ven los demás">Izena</p><input class="ans" id="pname" placeholder="Nombre" maxlength="30" autocomplete="nickname" value="${esc(P.name||"")}">
-    <p class="eyebrow" data-es="¿Chica o chico?">Neska ala mutila?</p>
-    <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-g="neska" aria-pressed="${pr.gender==="neska"}">👧 Neska<br><small class="muted">chica · neba / ahizpa</small></button><button class="opt" data-g="mutila" aria-pressed="${pr.gender==="mutila"}">👦 Mutila<br><small class="muted">chico · anaia / arreba</small></button></div>
-    <p class="eyebrow" data-es="¿Cuántos años tienes?">Zenbat urte dituzu?</p><input class="ans" id="age" type="number" inputmode="numeric" min="1" max="119" placeholder="Edad" value="${pr.age||""}">
-    <p class="eyebrow" data-es="¿Dónde vives? (ciudad, en su forma habitual)">Non bizi zara?</p><input class="ans" id="town" placeholder="Bilbo, Madril, Donostia…" autocomplete="off" value="${esc(pr.town||"")}">
-    <p class="eyebrow" data-es="¿De dónde eres? (ciudad o país)">Nongoa zara?</p><input class="ans" id="origin" placeholder="Bilbo, Argentina, Peru…" autocomplete="off" value="${esc(pr.origin||"")}">
-    <p class="eyebrow" data-es="Hermanos">Anai-arrebak</p>
-    <div class="row"><label style="flex:1">Hermanos<input class="ans" id="nebak" type="number" inputmode="numeric" min="0" max="9" value="${pr.nebak||0}"></label><label style="flex:1">Hermanas<input class="ans" id="ahizpak" type="number" inputmode="numeric" min="0" max="9" value="${pr.ahizpak||0}"></label></div>
-    <p class="eyebrow" data-es="Avisos en el móvil">Jakinarazpenak</p>
+    <p class="muted">${T("Con esto la app crea frases sobre ti (tu edad, tus hermanos…). Lo que dices de ti mismo se recuerda mucho mejor que lo de Ane y Mikel.")}</p>
+    <p class="eyebrow" data-es="${T("Idioma de apoyo")}">Hizkuntza</p>
+    <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-lang="es" aria-pressed="${LANG!=="en"}">🇪🇸 Castellano</button><button class="opt" data-lang="en" aria-pressed="${LANG==="en"}">🇬🇧 English</button></div>
+    <p class="eyebrow" data-es="${T("Tu nombre, como lo ven los demás")}">Izena</p><input class="ans" id="pname" placeholder="${T("Nombre")}" maxlength="30" autocomplete="nickname" value="${esc(P.name||"")}">
+    <p class="eyebrow" data-es="${T("¿Chica o chico?")}">Neska ala mutila?</p>
+    <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-g="neska" aria-pressed="${pr.gender==="neska"}">👧 Neska<br><small class="muted">${T("chica · neba / ahizpa")}</small></button><button class="opt" data-g="mutila" aria-pressed="${pr.gender==="mutila"}">👦 Mutila<br><small class="muted">${T("chico · anaia / arreba")}</small></button></div>
+    <p class="eyebrow" data-es="${T("¿Cuántos años tienes?")}">Zenbat urte dituzu?</p><input class="ans" id="age" type="number" inputmode="numeric" min="1" max="119" placeholder="${T("Edad")}" value="${pr.age||""}">
+    <p class="eyebrow" data-es="${T("¿Dónde vives? (ciudad, en su forma habitual)")}">Non bizi zara?</p><input class="ans" id="town" placeholder="Bilbo, Madril, Donostia…" autocomplete="off" value="${esc(pr.town||"")}">
+    <p class="eyebrow" data-es="${T("¿De dónde eres? (ciudad o país)")}">Nongoa zara?</p><input class="ans" id="origin" placeholder="Bilbo, Argentina, Peru…" autocomplete="off" value="${esc(pr.origin||"")}">
+    <p class="eyebrow" data-es="${T("Hermanos")}">Anai-arrebak</p>
+    <div class="row"><label style="flex:1">${T("Hermanos (varones)")}<input class="ans" id="nebak" type="number" inputmode="numeric" min="0" max="9" value="${pr.nebak||0}"></label><label style="flex:1">${T("Hermanas")}<input class="ans" id="ahizpak" type="number" inputmode="numeric" min="0" max="9" value="${pr.ahizpak||0}"></label></div>
+    <p class="eyebrow" data-es="${T("Avisos en el móvil")}">Jakinarazpenak</p>
     <div class="card stack" id="pushbox" style="gap:10px"><p class="hint">Kargatzen…</p></div>
     <p class="eyebrow" data-es="Audio">Audioa</p>
-    <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-sp="0" aria-pressed="${!SLOW}">🔊 Normala<br><small class="muted">Normal</small></button><button class="opt" data-sp="1" aria-pressed="${SLOW}">🐢 Poliki<br><small class="muted">Lento</small></button></div>
-    <p class="hint">${VOICE?"En cualquier altavoz, mantén pulsado para oírlo despacio aunque esté en normal.":"🔇 El audio no está disponible ahora mismo; los dictados se omiten."}</p>
-    ${first?"":`<p class="hint" style="text-align:center">Sesión de <b>${esc(P.email||"")}</b></p><button class="link" id="logout" style="align-self:center">Salir de la cuenta</button>
-    <details class="card" style="margin-top:8px"><summary class="muted" style="cursor:pointer">Kontua ezabatu · Borrar mi cuenta</summary>
-      <p class="hint" style="margin-top:10px">Se borran tu cuenta, tu progreso, tus retos y tus avisos. No se puede deshacer. Escribe tu correo para confirmar.</p>
-      <input class="ans" id="delmail" type="email" placeholder="tu@correo.com" autocomplete="off" style="margin-top:8px">
-      <button class="btn" id="delacc" style="margin-top:8px">Ezabatu betiko<small>Borrar para siempre</small></button>
+    <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-sp="0" aria-pressed="${!SLOW}">🔊 Normala<br><small class="muted">${T("Normal")}</small></button><button class="opt" data-sp="1" aria-pressed="${SLOW}">🐢 Poliki<br><small class="muted">${T("Lento")}</small></button></div>
+    <p class="hint">${VOICE?T("En cualquier altavoz, mantén pulsado para oírlo despacio aunque esté en normal."):T("🔇 El audio no está disponible ahora mismo; los dictados se omiten.")}</p>
+    ${first?"":`<p class="hint" style="text-align:center">${T("Sesión de")} <b>${esc(P.email||"")}</b></p><button class="link" id="logout" style="align-self:center">${T("Salir de la cuenta")}</button>
+    <details class="card" style="margin-top:8px"><summary class="muted" style="cursor:pointer">Kontua ezabatu · ${T("Borrar mi cuenta")}</summary>
+      <p class="hint" style="margin-top:10px">${T("Se borran tu cuenta, tu progreso, tus retos y tus avisos. No se puede deshacer. Escribe tu correo para confirmar.")}</p>
+      <input class="ans" id="delmail" type="email" placeholder="${T("tu@correo.com")}" autocomplete="off" style="margin-top:8px">
+      <button class="btn" id="delacc" style="margin-top:8px">Ezabatu betiko<small>${T("Borrar para siempre")}</small></button>
       <p class="hint" id="delmsg"></p>
-      <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Pribatutasuna · Política de privacidad</a></p>
+      <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Pribatutasuna · ${T("Política de privacidad")}</a></p>
     </details>`}
    </div>
-   <div class="bottom pad"><button class="btn red" id="save">Gorde<small>Guardar</small></button></div>`;
+   <div class="bottom pad"><button class="btn red" id="save">Gorde<small>${T("Guardar")}</small></button></div>`;
   const lo=document.getElementById("logout"); if(lo) lo.onclick=async()=>{ await api("logout",{}); P=null; renderLogin(); };
-  const da=document.getElementById("delacc"); if(da) da.onclick=async()=>{ const email=document.getElementById("delmail").value; const m=document.getElementById("delmsg"); if(!email){ m.textContent="Escribe tu correo."; return; } if(!confirm("¿Borrar tu cuenta y todo tu progreso? No se puede deshacer.")) return; try{ await api("account/delete",{email}); P=null; try{ localStorage.clear(); }catch(e){} renderLogin(); }catch(e){ m.textContent=e.message||"No se pudo borrar."; } };
+  const da=document.getElementById("delacc"); if(da) da.onclick=async()=>{ const email=document.getElementById("delmail").value; const m=document.getElementById("delmsg"); if(!email){ m.textContent=T("Escribe tu correo."); return; } if(!confirm(T("¿Borrar tu cuenta y todo tu progreso? No se puede deshacer."))) return; try{ await api("account/delete",{email}); P=null; try{ localStorage.clear(); }catch(e){} renderLogin(); }catch(e){ m.textContent=e.message||T("No se pudo borrar."); } };
   renderPushBox();
   app.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{ SLOW=b.dataset.sp==="1"; try{ localStorage.setItem("euskara.slow",SLOW?"1":"0"); }catch(e){} app.querySelectorAll("[data-sp]").forEach(x=>x.setAttribute("aria-pressed",(x.dataset.sp==="1")===SLOW)); if(VOICE) speak("Kaixo, zer moduz?"); });
+  app.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ setLang(b.dataset.lang); applyStatic(); renderProfile(first); });
   let g=pr.gender||null;
   app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ g=b.dataset.g; app.querySelectorAll("[data-g]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.g===g)); });
   document.getElementById("back").onclick=()=>first?null:setTab("gaur");
   document.getElementById("save").onclick=async()=>{
-    const body={name:document.getElementById("pname").value.trim(),gender:g,age:+document.getElementById("age").value||null,nebak:+document.getElementById("nebak").value||0,ahizpak:+document.getElementById("ahizpak").value||0,town:document.getElementById("town").value.trim(),origin:document.getElementById("origin").value.trim()};
-    try{ const pr=await api("profile",body); P.name=pr.name; delete pr.name; P.profile=pr; await api("items/introduce",{items:personalItems()}); await loadItems(); P=await api("me"); if(first&&!seenWelcome()) renderWelcome(); else setTab("gaur"); }catch(e){ toast(e.message); }
+    const body={name:document.getElementById("pname").value.trim(),lang:LANG,gender:g,age:+document.getElementById("age").value||null,nebak:+document.getElementById("nebak").value||0,ahizpak:+document.getElementById("ahizpak").value||0,town:document.getElementById("town").value.trim(),origin:document.getElementById("origin").value.trim()};
+    try{ const pr=await api("profile",body); P.name=pr.name; P.lang=pr.lang; delete pr.name; delete pr.lang; P.profile=pr; await api("items/introduce",{items:personalItems()}); await loadItems(); P=await api("me"); if(first&&!seenWelcome()) renderWelcome(); else setTab("gaur"); }catch(e){ toast(e.message); }
   };
 }
 
 // Etapa de una frase: 🌱 nueva (no introducida) · 🌿 en estudio · 🌳 firme (intervalo ≥ 7 días)
-function stage(it){ if(!it) return {k:"seed",em:"🌱",t:"nueva"}; if(it.interval>=7) return {k:"tree",em:`<span style="display:inline-flex;width:1em;height:1em;vertical-align:-2px">${LAUBURU}</span>`,t:"firme"}; return {k:"sprout",em:"🌿",t:"en estudio"}; }
+function stage(it){ if(!it) return {k:"seed",em:"🌱",t:T("nueva")}; if(it.interval>=7) return {k:"tree",em:`<span style="display:inline-flex;width:1em;height:1em;vertical-align:-2px">${LAUBURU}</span>`,t:T("firme")}; return {k:"sprout",em:"🌿",t:T("en estudio")}; }
 function daysUntil(due){ const a=new Date(todayStr()+"T12:00:00"), b=new Date(due+"T12:00:00"); return Math.round((b-a)/86400000); }
-function dueLabel(it){ const d=daysUntil(it.due); return d<=0?"toca repasar hoy":d===1?"la verás mañana":`la verás en ${d} días`; }
-function stageBar(items,m){ const c={seed:0,sprout:0,tree:0}; for(const it of items) c[stage(m[it.key]).k]++; const n=items.length||1; return `<div class="sbar" title="${c.tree} firmes · ${c.sprout} en estudio · ${c.seed} por ver"><i class="t" style="width:${c.tree/n*100}%"></i><i class="s" style="width:${c.sprout/n*100}%"></i></div><small class="slegend"><span style="display:inline-flex;width:11px;height:11px;vertical-align:-1px">${LAUBURU}</span> ${c.tree} · 🌿 ${c.sprout} · 🌱 ${c.seed}</small>`; }
+function dueLabel(it){ const d=daysUntil(it.due); return d<=0?T("toca repasar hoy"):d===1?T("la verás mañana"):T(`la verás en ${d} días`); }
+function stageBar(items,m){ const c={seed:0,sprout:0,tree:0}; for(const it of items) c[stage(m[it.key]).k]++; const n=items.length||1; return `<div class="sbar" title="${c.tree} ${T("firmes")} · ${c.sprout} ${T("en estudio")} · ${c.seed} ${T("por ver")}"><i class="t" style="width:${c.tree/n*100}%"></i><i class="s" style="width:${c.sprout/n*100}%"></i></div><small class="slegend"><span style="display:inline-flex;width:11px;height:11px;vertical-align:-1px">${LAUBURU}</span> ${c.tree} · 🌿 ${c.sprout} · 🌱 ${c.seed}</small>`; }
 
 // ---------- push ----------
 const b64ToU8=b=>{ const p="=".repeat((4-b.length%4)%4); const r=(b+p).replace(/-/g,"+").replace(/_/g,"/"); const raw=atob(r); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); };
@@ -461,29 +465,29 @@ async function renderPushBox(){
   let info={enabled:false}; try{ info=await api("push/key"); }catch(e){}
   const supported="serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
-  if(!info.enabled){ box.innerHTML=`<p class="hint">Los avisos no están activados en el servidor.</p>`; return; }
-  if(!supported){ box.innerHTML=`<p class="hint">${ios&&!standalone()?"En iPhone, los avisos solo funcionan con la app añadida a la pantalla de inicio (Compartir → Añadir a pantalla de inicio). Ábrela desde ahí y vuelve aquí.":"Este navegador no admite avisos."}</p>`; return; }
+  if(!info.enabled){ box.innerHTML=`<p class="hint">${T("Los avisos no están activados en el servidor.")}</p>`; return; }
+  if(!supported){ box.innerHTML=`<p class="hint">${ios&&!standalone()?T("En iPhone, los avisos solo funcionan con la app añadida a la pantalla de inicio (Compartir → Añadir a pantalla de inicio). Ábrela desde ahí y vuelve aquí."):T("Este navegador no admite avisos.")}</p>`; return; }
   const reg=await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription();
   let st={subs:[]}; try{ st=await api("push/status"); }catch(e){}
   const mine=sub?st.subs.find(x=>x.endpoint===sub.endpoint):null;
   if(!mine){
-    box.innerHTML=`<p style="font-weight:600">Un aviso al día si tienes frases para repasar y no has practicado, y otro cuando alguien te reta.</p><div class="row"><label style="font-size:14px;font-weight:700">A las <select class="ans" id="phour" style="width:auto;padding:8px 10px;display:inline-block">${[8,9,10,12,14,17,18,19,20,21,22].map(h=>`<option value="${h}" ${h===19?"selected":""}>${h}:00</option>`).join("")}</select></label><span class="spacer"></span><button class="btn sm" id="pon">Aktibatu<small>Activar avisos</small></button></div>${Notification.permission==="denied"?`<p class="err">Los avisos están bloqueados para esta web en los ajustes del móvil.</p>`:""}`;
+    box.innerHTML=`<p style="font-weight:600">${T("Un aviso al día si tienes frases para repasar y no has practicado, y otro cuando alguien te reta.")}</p><div class="row"><label style="font-size:14px;font-weight:700">${T("A las")} <select class="ans" id="phour" style="width:auto;padding:8px 10px;display:inline-block">${[8,9,10,12,14,17,18,19,20,21,22].map(h=>`<option value="${h}" ${h===19?"selected":""}>${h}:00</option>`).join("")}</select></label><span class="spacer"></span><button class="btn sm" id="pon">Aktibatu<small>${T("Activar avisos")}</small></button></div>${Notification.permission==="denied"?`<p class="err">${T("Los avisos están bloqueados para esta web en los ajustes del móvil.")}</p>`:""}`;
     document.getElementById("pon").onclick=async()=>{
-      try{ const perm=await Notification.requestPermission(); if(perm!=="granted"){ toast("Sin permiso para avisos"); return; }
+      try{ const perm=await Notification.requestPermission(); if(perm!=="granted"){ toast(T("Sin permiso para avisos")); return; }
         const s2=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(info.key)});
-        await api("push/subscribe",{sub:s2.toJSON(),hour:+document.getElementById("phour").value,daily:true,challenges:true}); toast("Avisos activados"); renderPushBox(); }
-      catch(e){ toast("No se pudo activar: "+(e.message||e)); }
+        await api("push/subscribe",{sub:s2.toJSON(),hour:+document.getElementById("phour").value,daily:true,challenges:true}); toast(T("Avisos activados")); renderPushBox(); }
+      catch(e){ toast(T("No se pudo activar: ")+(e.message||e)); }
     };
     return;
   }
-  box.innerHTML=`<div class="row"><span style="font-weight:700">✅ Avisos activados</span><span class="spacer"></span><button class="link" id="ptest" style="font-size:13px">Probar</button></div>
-    <label class="row" style="font-size:15px"><input type="checkbox" id="pdaily" ${mine.daily?"checked":""} style="width:22px;height:22px"> Recordatorio diario a las <select class="ans" id="phour" style="width:auto;padding:6px 8px;display:inline-block">${[8,9,10,12,14,17,18,19,20,21,22].map(h=>`<option value="${h}" ${h===mine.hour?"selected":""}>${h}:00</option>`).join("")}</select></label>
-    <label class="row" style="font-size:15px"><input type="checkbox" id="pch" ${mine.challenges?"checked":""} style="width:22px;height:22px"> Retos y tareas de Taldea</label>
-    <button class="link" id="poff" style="align-self:flex-start;font-size:13px">Desactivar en este dispositivo</button>`;
-  const save=async()=>{ try{ await api("push/subscribe",{sub:sub.toJSON(),hour:+document.getElementById("phour").value,daily:document.getElementById("pdaily").checked,challenges:document.getElementById("pch").checked}); toast("Guardado"); }catch(e){ toast(e.message); } };
+  box.innerHTML=`<div class="row"><span style="font-weight:700">${T("✅ Avisos activados")}</span><span class="spacer"></span><button class="link" id="ptest" style="font-size:13px">${T("Probar")}</button></div>
+    <label class="row" style="font-size:15px"><input type="checkbox" id="pdaily" ${mine.daily?"checked":""} style="width:22px;height:22px"> ${T("Recordatorio diario a las")} <select class="ans" id="phour" style="width:auto;padding:6px 8px;display:inline-block">${[8,9,10,12,14,17,18,19,20,21,22].map(h=>`<option value="${h}" ${h===mine.hour?"selected":""}>${h}:00</option>`).join("")}</select></label>
+    <label class="row" style="font-size:15px"><input type="checkbox" id="pch" ${mine.challenges?"checked":""} style="width:22px;height:22px"> ${T("Retos y tareas de Taldea")}</label>
+    <button class="link" id="poff" style="align-self:flex-start;font-size:13px">${T("Desactivar en este dispositivo")}</button>`;
+  const save=async()=>{ try{ await api("push/subscribe",{sub:sub.toJSON(),hour:+document.getElementById("phour").value,daily:document.getElementById("pdaily").checked,challenges:document.getElementById("pch").checked}); toast(T("Guardado")); }catch(e){ toast(e.message); } };
   ["pdaily","pch","phour"].forEach(id=>document.getElementById(id).onchange=save);
-  document.getElementById("ptest").onclick=async()=>{ try{ const r=await api("push/test",{}); toast(r.sent?"Enviado, mira la notificación":"No se envió"); }catch(e){ toast(e.message); } };
-  document.getElementById("poff").onclick=async()=>{ try{ await api("push/unsubscribe",{endpoint:sub.endpoint}); await sub.unsubscribe(); toast("Avisos desactivados"); renderPushBox(); }catch(e){ toast(e.message); } };
+  document.getElementById("ptest").onclick=async()=>{ try{ const r=await api("push/test",{}); toast(r.sent?T("Enviado, mira la notificación"):T("No se envió")); }catch(e){ toast(e.message); } };
+  document.getElementById("poff").onclick=async()=>{ try{ await api("push/unsubscribe",{endpoint:sub.endpoint}); await sub.unsubscribe(); toast(T("Avisos desactivados")); renderPushBox(); }catch(e){ toast(e.message); } };
 }
 // abrir pestaña desde la notificación (#taldea)
 window.addEventListener("hashchange",()=>{ const h=location.hash.replace("#",""); if(P&&["gaur","ikasgaiak","taldea","datuak"].includes(h)) setTab(h); });
@@ -491,11 +495,11 @@ window.addEventListener("hashchange",()=>{ const h=location.hash.replace("#","")
 // ---------- bienvenida ----------
 function renderWelcome(){
   noTabs(); const slides=[
-    {em:OLEN("wave",90),t:"Ongi etorri!",es:"Bienvenido/a",b:"Esta app es para practicar entre clase y clase lo que vais viendo: saludos, presentarse, números, gustos… Cinco minutos al día bastan."},
-    {em:`<div style="font-size:54px;line-height:1">🌱 🌿 🌳</div>`,t:"Hazia, kimua, zuhaitza",es:"Semilla, brote, árbol",b:"Cada frase empieza como semilla. Cuando la estudias es un brote y vuelve a salir al día siguiente, a los 3, a los 7… Si la recuerdas cada vez, se hace árbol: firme. Si la fallas, vuelve mañana."},
-    {em:`<div style="font-size:54px;line-height:1">✍️</div>`,t:"Idatzi, ez aukeratu",es:"Escribe, no elijas",b:"Casi siempre te pediré escribir la frase. Hay pista y opciones, pero cuentan menos. Escribir es lo que hace que se quede."}
+    {em:OLEN("wave",90),t:"Ongi etorri!",es:T("Bienvenido/a"),b:T("Esta app es para practicar entre clase y clase lo que vais viendo: saludos, presentarse, números, gustos… Cinco minutos al día bastan.")},
+    {em:`<div style="font-size:54px;line-height:1">🌱 🌿 🌳</div>`,t:"Hazia, kimua, zuhaitza",es:T("Semilla, brote, árbol"),b:T("Cada frase empieza como semilla. Cuando la estudias es un brote y vuelve a salir al día siguiente, a los 3, a los 7… Si la recuerdas cada vez, se hace árbol: firme. Si la fallas, vuelve mañana.")},
+    {em:`<div style="font-size:54px;line-height:1">✍️</div>`,t:"Idatzi, ez aukeratu",es:T("Escribe, no elijas"),b:T("Casi siempre te pediré escribir la frase. Hay pista y opciones, pero cuentan menos. Escribir es lo que hace que se quede.")}
   ]; let i=0;
-  const show=()=>{ const sl=slides[i]; app.innerHTML=`<div class="stack pad" style="padding-top:calc(60px + env(safe-area-inset-top,0px));min-height:100vh;justify-content:center;align-items:center;text-align:center;gap:18px"><div>${sl.em}</div><h1 style="font-size:36px">${esc(sl.t)}</h1><p class="muted" style="margin-top:-10px">${esc(sl.es)}</p><p style="max-width:420px;font-size:17px">${sl.b}</p><div class="row" style="justify-content:center;gap:8px">${slides.map((_,k)=>`<span style="width:10px;height:10px;background:${k===i?"var(--red)":"var(--line-soft)"}"></span>`).join("")}</div><button class="btn red" id="wnext" style="max-width:360px">${i<slides.length-1?"Hurrengoa<small>Siguiente</small>":"Hasi!<small>Empezar</small>"}</button>${i<slides.length-1?`<button class="link" id="wskip">Saltar</button>`:""}</div>`;
+  const show=()=>{ const sl=slides[i]; app.innerHTML=`<div class="stack pad" style="padding-top:calc(60px + env(safe-area-inset-top,0px));min-height:100vh;justify-content:center;align-items:center;text-align:center;gap:18px"><div>${sl.em}</div><h1 style="font-size:36px">${esc(sl.t)}</h1><p class="muted" style="margin-top:-10px">${esc(sl.es)}</p><p style="max-width:420px;font-size:17px">${sl.b}</p><div class="row" style="justify-content:center;gap:8px">${slides.map((_,k)=>`<span style="width:10px;height:10px;background:${k===i?"var(--red)":"var(--line-soft)"}"></span>`).join("")}</div><button class="btn red" id="wnext" style="max-width:360px">${i<slides.length-1?`Hurrengoa<small>${T("Siguiente")}</small>`:`Hasi!<small>${T("Empezar")}</small>`}</button>${i<slides.length-1?`<button class="link" id="wskip">${T("Saltar")}</button>`:""}</div>`;
     document.getElementById("wnext").onclick=()=>{ i++; i<slides.length?show():done(); }; const sk=document.getElementById("wskip"); if(sk) sk.onclick=done; };
   const done=()=>{ try{ localStorage.setItem("euskara.welcome."+P.id,"1"); }catch(e){} setTab("gaur"); };
   show();
@@ -518,19 +522,19 @@ async function renderToday(){
   const total=due.length+nNew; const pend=loadSes(); const t=todayStr();
   const doneToday=ITEMS.filter(i=>i.last===t); const upcoming=ITEMS.filter(i=>i.due>t).sort((a,b)=>a.due<b.due?-1:1);
   const nextLesson=LESSONS.find(l=>lessonItems(l).some(x=>!imap()[x.key]));
-  const sub = pend?"Txanda bat erdizka · tienes una ronda a medias" : firstTime?"Ongi etorri · empieza por la primera lección" : total?`Gaur: ${due.length} para repasar${nNew?` eta ${nNew} berri`:""}` : "Gaurkoa eginda · lo de hoy está hecho";
+  const sub = pend?"Txanda bat erdizka · "+T("tienes una ronda a medias") : firstTime?"Ongi etorri · "+T("empieza por la primera lección") : total?`Gaur: ${due.length} ${T("para repasar")}${nNew?` eta ${nNew} berri`:""}` : "Gaurkoa eginda · "+T("lo de hoy está hecho");
   app.innerHTML=header(sub)+`
    <div class="stack pad cols" style="padding-top:18px"><div class="col">
-    ${pend?`<button class="btn red" id="resume">▶ Jarraitu<small>continuar (${pend.i}/${pend.ex.length})</small></button>`
-      : firstTime?`<div class="card stack" style="gap:12px"><p style="font-weight:700;font-size:18px">Kaixo! Así funciona:</p><p>1 · Abres una lección: lees, escuchas y miras la estructura.</p><p>2 · Pulsas <b>Ikasi</b>: te presento unas pocas frases, eliges su significado y las copias. Sin examen el primer día.</p><p>3 · Al día siguiente, aquí en <b>Gaur</b>, te las pido de memoria. Lo que aciertas se aleja en el calendario; lo que fallas vuelve mañana.</p></div><button class="btn red" id="golesson">${esc(LESSONS[0].title)}<small>Empezar por la lección 1</small></button>`
-      : total?`<button class="btn red" id="start">Hasi<small>Empezar la ronda de hoy (${total})</small></button><p class="hint">${due.length?`${due.length} frases que toca repasar hoy`:""}${due.length&&nNew?" y ":""}${nNew?`${nNew} nuevas de «${esc(nextL.title)}»`:""}.</p>`
-      : `<button class="btn red" id="free" ${ITEMS.length<4?"disabled":""}>Txanda librea<small>Ronda libre · 10 frases</small></button><p class="hint">Lo de hoy está hecho${upcoming.length?`; la siguiente ${dueLabel(upcoming[0])}`:""}. La ronda libre repasa 10 frases al azar sin tocar el calendario.</p>`}
-    ${!firstTime&&!pend&&nextLesson&&due.length<4?`<button class="btn ghost" id="nextlesson">${esc(nextLesson.emoji||"")} ${esc(nextLesson.title)}<small>Siguiente lección · aprender nuevas</small></button>`:""}
-    <div class="row" style="justify-content:center;flex-wrap:wrap">${(total||pend)&&!firstTime?`<button class="btn ghost sm" id="free" ${ITEMS.length<4?"disabled":""}>Txanda librea<small>ronda libre</small></button>`:""}${firstTime?"":`<button class="btn ghost sm" id="hardb" ${hard.length<3?"disabled":""}>Zailenak (${hard.length})</button>`}</div>
-    <p class="eyebrow" data-es="tu huerto">Zure baratzea</p>
-    <div class="three"><div class="t"><b>${LAUBURU}${P.items.consolidated}</b><span>Sendoak · firmes</span></div><div class="s"><b>🌿 ${ITEMS.length-P.items.consolidated}</b><span>Ikasten · estudio</span></div><div class="n"><b>🌱 ${cat.length-ITEMS.length}</b><span>Haziak · por ver</span></div></div>
-    ${stageBar(cat,imap()).replace('class="sbar"','class="sbar" style="margin-top:-3px;border-top:0"')}${doneToday.length?`<p class="hint">Gaur ${doneToday.length} esaldi · hoy has repasado ${doneToday.length} frases.</p>`:""}
-    <button class="link" id="how" style="align-self:center;font-size:14px">¿Cómo funciona?</button>
+    ${pend?`<button class="btn red" id="resume">▶ Jarraitu<small>${T("continuar")} (${pend.i}/${pend.ex.length})</small></button>`
+      : firstTime?`<div class="card stack" style="gap:12px"><p style="font-weight:700;font-size:18px">${T("Kaixo! Así funciona:")}</p><p>${T("1 · Abres una lección: lees, escuchas y miras la estructura.")}</p><p>${T("2 · Pulsas <b>Ikasi</b>: te presento unas pocas frases, eliges su significado y las copias. Sin examen el primer día.")}</p><p>${T("3 · Al día siguiente, aquí en <b>Gaur</b>, te las pido de memoria. Lo que aciertas se aleja en el calendario; lo que fallas vuelve mañana.")}</p></div><button class="btn red" id="golesson">${esc(T(LESSONS[0].title))}<small>${T("Empezar por la lección 1")}</small></button>`
+      : total?`<button class="btn red" id="start">Hasi<small>${T("Empezar la ronda de hoy")} (${total})</small></button><p class="hint">${due.length?`${due.length} ${T("frases que toca repasar hoy")}`:""}${due.length&&nNew?T(" y "):""}${nNew?`${nNew} ${T("nuevas de")} «${esc(T(nextL.title))}»`:""}.</p>`
+      : `<button class="btn red" id="free" ${ITEMS.length<4?"disabled":""}>Txanda librea<small>${T("Ronda libre · 10 frases")}</small></button><p class="hint">${T("Lo de hoy está hecho")}${upcoming.length?`${T("; la siguiente ")}${dueLabel(upcoming[0])}`:""}${T(". La ronda libre repasa 10 frases al azar sin tocar el calendario.")}</p>`}
+    ${!firstTime&&!pend&&nextLesson&&due.length<4?`<button class="btn ghost" id="nextlesson">${esc(nextLesson.emoji||"")} ${esc(T(nextLesson.title))}<small>${T("Siguiente lección · aprender nuevas")}</small></button>`:""}
+    <div class="row" style="justify-content:center;flex-wrap:wrap">${(total||pend)&&!firstTime?`<button class="btn ghost sm" id="free" ${ITEMS.length<4?"disabled":""}>Txanda librea<small>${T("ronda libre")}</small></button>`:""}${firstTime?"":`<button class="btn ghost sm" id="hardb" ${hard.length<3?"disabled":""}>Zailenak (${hard.length})</button>`}</div>
+    <p class="eyebrow" data-es="${T("tu huerto")}">Zure baratzea</p>
+    <div class="three"><div class="t"><b>${LAUBURU}${P.items.consolidated}</b><span>${T("Sendoak · firmes")}</span></div><div class="s"><b>🌿 ${ITEMS.length-P.items.consolidated}</b><span>${T("Ikasten · estudio")}</span></div><div class="n"><b>🌱 ${cat.length-ITEMS.length}</b><span>${T("Haziak · por ver")}</span></div></div>
+    ${stageBar(cat,imap()).replace('class="sbar"','class="sbar" style="margin-top:-3px;border-top:0"')}${doneToday.length?`<p class="hint">Gaur ${doneToday.length} esaldi · ${T("hoy has repasado")} ${doneToday.length} ${T("frases")}.</p>`:""}
+    <button class="link" id="how" style="align-self:center;font-size:14px">${T("¿Cómo funciona?")}</button>
    </div></div>`;
   const rs=document.getElementById("resume"); if(rs) rs.onclick=()=>{ const d=loadSes(); d?resumeSession(d):renderToday(); };
   const gl=document.getElementById("golesson"); if(gl) gl.onclick=()=>renderLesson(LESSONS[0]);
@@ -542,7 +546,7 @@ async function renderToday(){
   };
   const fb=document.getElementById("free"); if(fb) fb.onclick=()=>{ const learned=ITEMS.map(i=>({...i,...(catMap[i.key]||{})})); startSession({items:shuffle(learned).slice(0,10),label:"Txanda librea",free:true}); };
   const hb=document.getElementById("hardb"); if(hb) hb.onclick=()=>startSession({items:shuffle(hard.map(i=>({...i,...(catMap[i.key]||{})}))),label:"Zailenak",free:true});
-  document.getElementById("how").onclick=()=>{ const sh=document.getElementById("sheet"), inn=document.getElementById("sh-in"); sh.className="sheet show info"; inn.innerHTML=`<h3>Nola funtzionatzen du</h3><p class="hint" style="margin-top:-8px">Cómo funciona</p><div class="stack" style="gap:8px;font-size:15px"><p><b>Ronda de hoy.</b> La app decide qué frases toca repasar (las que estás a punto de olvidar) y añade unas pocas nuevas. Una al día basta.</p><p><b>Escribes antes de elegir.</b> Pista y opciones están ahí, pero cuentan menos.</p><p><b>🌱 → 🌿 → 🌳.</b> Una frase nueva es semilla; al estudiarla, brote; cuando la has recordado varias veces con días entre medias, árbol (firme). Si la fallas, baja a brote y la repasas mañana.</p><p><b>Ronda libre.</b> 10 frases al azar de las que ya conoces, sin tocar el calendario. Para cuando quieres más.</p><p><b>Zailenak.</b> Solo las que has fallado dos veces o más.</p></div><button class="btn" id="sh-close">Ulertu dut<small>Entendido</small></button>`; document.getElementById("sh-close").onclick=()=>sh.className="sheet"; };
+  document.getElementById("how").onclick=()=>{ const sh=document.getElementById("sheet"), inn=document.getElementById("sh-in"); sh.className="sheet show info"; inn.innerHTML=`<h3>Nola funtzionatzen du</h3><p class="hint" style="margin-top:-8px">${T("Cómo funciona")}</p><div class="stack" style="gap:8px;font-size:15px"><p>${T("<b>Ronda de hoy.</b> La app decide qué frases toca repasar (las que estás a punto de olvidar) y añade unas pocas nuevas. Una al día basta.")}</p><p>${T("<b>Escribes antes de elegir.</b> Pista y opciones están ahí, pero cuentan menos.")}</p><p>${T("<b>🌱 → 🌿 → 🌳.</b> Una frase nueva es semilla; al estudiarla, brote; cuando la has recordado varias veces con días entre medias, árbol (firme). Si la fallas, baja a brote y la repasas mañana.")}</p><p>${T("<b>Ronda libre.</b> 10 frases al azar de las que ya conoces, sin tocar el calendario. Para cuando quieres más.")}</p><p>${T("<b>Zailenak.</b> Solo las que has fallado dos veces o más.")}</p></div><button class="btn" id="sh-close">Ulertu dut<small>${T("Entendido")}</small></button>`; document.getElementById("sh-close").onclick=()=>sh.className="sheet"; };
 }
 
 // ---------- SESIÓN ----------
@@ -555,23 +559,23 @@ const TR=(()=>{ const o={}; for(const [k,v] of Object.entries(window.TRANSFORMS|
 function transformsFor(eu){ return TR[norm(eu)]||[]; }
 function buildEx(it, pool){
   const opts=list=>shuffle([it.eu,...shuffle([...new Set(pool.map(p=>p.eu).filter(x=>x!==it.eu))]).slice(0,3)]);
-  const ex={key:it.key,eu:it.eu,es:it.es,lesson_id:it.lesson_id,emoji:it.emoji||"",opts:opts(),mode:"produce"};
+  const ex={key:it.key,eu:it.eu,es:T(it.es),lesson_id:it.lesson_id,emoji:it.emoji||"",opts:opts(),mode:"produce"};
   if(it.count){ ex.mode="count"; ex.visual=qty(it.count,it.countEm||"🍎"); const nums=[...new Set(catalog().filter(p=>p.count&&p.eu!==it.eu).sort((a,b)=>Math.abs(a.count-it.count)-Math.abs(b.count-it.count)).slice(0,8).map(p=>p.eu))]; ex.opts=shuffle([it.eu,...shuffle(nums).slice(0,3)]); }
-  else if(!it.isNew && it.reps>=1 && transformsFor(it.eu).length && Math.random()<0.35){ const tr=pick(transformsFor(it.eu)); ex.mode="transform"; ex.from=it.eu; ex.instr=tr.i; ex.to=tr.to; ex.toEs=tr.es||""; ex.opts=shuffle([tr.to,...shuffle([...new Set(pool.map(p=>p.eu).filter(x=>norm(x)!==norm(tr.to)&&norm(x)!==norm(it.eu)))]).slice(0,3)]); }
+  else if(!it.isNew && it.reps>=1 && transformsFor(it.eu).length && Math.random()<0.35){ const tr=pick(transformsFor(it.eu)); ex.mode="transform"; ex.from=it.eu; ex.instr=tr.i; ex.to=tr.to; ex.toEs=T(tr.es||""); ex.instr=T(tr.i); ex.opts=shuffle([tr.to,...shuffle([...new Set(pool.map(p=>p.eu).filter(x=>norm(x)!==norm(tr.to)&&norm(x)!==norm(it.eu)))]).slice(0,3)]); }
   else if(VOICE && words(it.eu).length>=2 && Math.random()<0.3) ex.mode="listen";
-  else if(Math.random()<0.15 && words(it.es).length<=4) { ex.mode="meaning"; ex.opts=shuffle([it.es,...shuffle([...new Set(pool.map(p=>p.es).filter(x=>x!==it.es))]).slice(0,3)]); }
+  else if(Math.random()<0.15 && words(T(it.es)).length<=4) { ex.mode="meaning"; ex.opts=shuffle([T(it.es),...shuffle([...new Set(pool.map(p=>T(p.es)).filter(x=>x!==T(it.es)))]).slice(0,3)]); }
   return ex;
 }
 function startSession(opts){
   noTabs(); const pool=[...opts.items,...catalog()];
   const ex=[]; for(const it of opts.items){ if(it.isNew){
-      const base={key:it.key,eu:it.eu,es:it.es,lesson_id:it.lesson_id,emoji:it.emoji||"",visual:it.count?qty(it.count,it.countEm||"🍎"):""};
+      const base={key:it.key,eu:it.eu,es:T(it.es),lesson_id:it.lesson_id,emoji:it.emoji||"",visual:it.count?qty(it.count,it.countEm||"🍎"):""};
       ex.push({...base,mode:"learn"});
-      const same=pool.filter(p=>p.lesson_id===it.lesson_id&&norm(p.es)!==norm(it.es)&&!/^\d+$/.test(p.es)).map(p=>p.es); const rest=pool.filter(p=>norm(p.es)!==norm(it.es)&&!/^\d+$/.test(p.es)).map(p=>p.es); const esPool=[...new Set([...shuffle(same),...shuffle(rest)])];
-      ex.push({...base,mode:"recognize",opts:shuffle([it.es,...esPool.slice(0,3)])});
+      const same=pool.filter(p=>p.lesson_id===it.lesson_id&&norm(p.es)!==norm(it.es)&&!/^\d+$/.test(p.es)).map(p=>T(p.es)); const rest=pool.filter(p=>norm(p.es)!==norm(it.es)&&!/^\d+$/.test(p.es)).map(p=>T(p.es)); const esPool=[...new Set([...shuffle(same),...shuffle(rest)])];
+      ex.push({...base,mode:"recognize",opts:shuffle([T(it.es),...esPool.slice(0,3)])});
       ex.push({...base,mode:"copy"});
       continue; }
-    if(opts.forceTransform&&it.tr){ ex.push({key:it.key,eu:it.eu,es:it.es,lesson_id:it.lesson_id,emoji:it.emoji||"",mode:"transform",from:it.eu,instr:it.tr.i,to:it.tr.to,toEs:it.tr.es||"",opts:shuffle([it.tr.to,...shuffle([...new Set(pool.map(p=>p.eu).filter(x=>norm(x)!==norm(it.tr.to)&&norm(x)!==norm(it.eu)))]).slice(0,3)])}); }
+    if(opts.forceTransform&&it.tr){ ex.push({key:it.key,eu:it.eu,es:T(it.es),lesson_id:it.lesson_id,emoji:it.emoji||"",mode:"transform",from:it.eu,instr:T(it.tr.i),to:it.tr.to,toEs:T(it.tr.es||""),opts:shuffle([it.tr.to,...shuffle([...new Set(pool.map(p=>p.eu).filter(x=>norm(x)!==norm(it.tr.to)&&norm(x)!==norm(it.eu)))]).slice(0,3)])}); }
     else ex.push(buildEx(it,pool)); }
   SES={label:opts.label,free:!!opts.free,noReview:!!opts.forceTransform,ex,i:0,good:0,total:opts.items.length,xp:0,wrong:[],retried:0,lessonId:opts.lessonId||null,challenge:opts.challenge||null,answers:[]};
   if(!ex.length){ setTab(TAB); return; } saveSes(); preload(opts.items.map(i=>i.eu)); renderExercise();
@@ -583,25 +587,25 @@ function renderExercise(){
   let body="", wire=()=>{};
   const prompt=e.mode==="meaning"?`<p class="prompt eu">${esc(e.eu)}</p>`:`<p class="prompt">${e.emoji?`<span style="font-size:34px;vertical-align:-4px;margin-right:6px">${esc(e.emoji)}</span>`:""}${esc(e.es)}</p>`;
   if(e.mode==="learn"){
-    body=`<p class="eyebrow" data-es="nuevo">Berria</p><div class="learn">${e.visual?`<p class="em" style="font-size:30px;letter-spacing:-2px">${esc(e.visual)}</p>`:e.emoji?`<p class="em">${esc(e.emoji)}</p>`:""}<p class="eu">${esc(e.eu)}</p><p class="es">${esc(e.es)}</p>${spkBtn(e.eu,"big")}<p class="hint">Léelo en voz alta. Ahora te preguntaré qué significa y luego la copiarás.</p></div>`;
+    body=`<p class="eyebrow" data-es="${T("nuevo")}">Berria</p><div class="learn">${e.visual?`<p class="em" style="font-size:30px;letter-spacing:-2px">${esc(e.visual)}</p>`:e.emoji?`<p class="em">${esc(e.emoji)}</p>`:""}<p class="eu">${esc(e.eu)}</p><p class="es">${esc(e.es)}</p>${spkBtn(e.eu,"big")}<p class="hint">${T("Léelo en voz alta. Ahora te preguntaré qué significa y luego la copiarás.")}</p></div>`;
   } else if(e.mode==="recognize"){
-    body=`<p class="eyebrow" data-es="¿Qué significa? Elige">Zer esan nahi du?</p><div class="row">${prompt.replace('class="prompt"','class="prompt eu"').replace(esc(e.es),esc(e.eu))}${spkBtn(e.eu)}</div><div class="opts" id="recopts">${e.opts.map((o,k)=>`<button class="opt" data-k="${k}" aria-pressed="false">${esc(o)}</button>`).join("")}</div>`;
+    body=`<p class="eyebrow" data-es="${T("¿Qué significa? Elige")}">Zer esan nahi du?</p><div class="row">${prompt.replace('class="prompt"','class="prompt eu"').replace(esc(e.es),esc(e.eu))}${spkBtn(e.eu)}</div><div class="opts" id="recopts">${e.opts.map((o,k)=>`<button class="opt" data-k="${k}" aria-pressed="false">${esc(o)}</button>`).join("")}</div>`;
   } else if(e.mode==="copy"){
-    body=`<p class="eyebrow" data-es="Cópiala mirando el modelo">Idatzi begira</p><div class="learn" style="padding:18px"><p class="eu" style="font-size:28px">${esc(e.eu)}</p><p class="es" style="font-size:16px">${esc(e.es)}</p>${spkBtn(e.eu)}</div><input class="ans" id="typed" autocomplete="off" autocapitalize="sentences" placeholder="Escríbela igual…"><p class="hint">Escribirla una vez fija la forma. Mañana te la pediré sin modelo.</p>`;
+    body=`<p class="eyebrow" data-es="${T("Cópiala mirando el modelo")}">Idatzi begira</p><div class="learn" style="padding:18px"><p class="eu" style="font-size:28px">${esc(e.eu)}</p><p class="es" style="font-size:16px">${esc(e.es)}</p>${spkBtn(e.eu)}</div><input class="ans" id="typed" autocomplete="off" autocapitalize="sentences" placeholder="${T("Escríbela igual…")}"><p class="hint">${T("Escribirla una vez fija la forma. Mañana te la pediré sin modelo.")}</p>`;
   } else if(e.mode==="listen"){
-    body=`<p class="eyebrow" data-es="escucha y escribe">Entzun eta idatzi</p><div style="text-align:center">${spkBtn(e.eu,"big")}<p class="hint">Toca para repetir · mantén pulsado para oírlo despacio 🐢</p></div><input class="ans" id="typed" autocomplete="off" autocapitalize="sentences" placeholder="Lo que has oído, en euskera…"><div class="helps"><button class="help" data-h="hint">💡 Pista</button><button class="help" data-h="opts">🔘 Opciones</button></div><div id="helpbox" class="stack"></div>`;
+    body=`<p class="eyebrow" data-es="${T("escucha y escribe")}">Entzun eta idatzi</p><div style="text-align:center">${spkBtn(e.eu,"big")}<p class="hint">${T("Toca para repetir · mantén pulsado para oírlo despacio 🐢")}</p></div><input class="ans" id="typed" autocomplete="off" autocapitalize="sentences" placeholder="${T("Lo que has oído, en euskera…")}"><div class="helps"><button class="help" data-h="hint">${T("💡 Pista")}</button><button class="help" data-h="opts">${T("🔘 Opciones")}</button></div><div id="helpbox" class="stack"></div>`;
   } else if(e.mode==="count"){
-    body=`<p class="eyebrow" data-es="¿cuántos hay? Escríbelo en euskera">Zenbat daude?</p><div class="count">${esc(e.visual)}</div><input class="ans" id="typed" autocomplete="off" autocapitalize="none" placeholder="Número en euskera…"><div class="helps"><button class="help" data-h="hint">💡 Pista</button><button class="help" data-h="opts">🔘 Opciones</button></div><div id="helpbox" class="stack"></div>`;
+    body=`<p class="eyebrow" data-es="${T("¿cuántos hay? Escríbelo en euskera")}">Zenbat daude?</p><div class="count">${esc(e.visual)}</div><input class="ans" id="typed" autocomplete="off" autocapitalize="none" placeholder="${T("Número en euskera…")}"><div class="helps"><button class="help" data-h="hint">${T("💡 Pista")}</button><button class="help" data-h="opts">${T("🔘 Opciones")}</button></div><div id="helpbox" class="stack"></div>`;
   } else if(e.mode==="transform"){
-    body=`<p class="eyebrow" data-es="Transforma la frase">Eraldatu</p><div class="drill" style="padding:12px 14px"><p class="from">${esc(e.from)} ${spkBtn(e.from)}</p><p class="hint" style="margin-top:-6px">${esc(e.es)}</p><p class="instr">→ ${esc(e.instr)}</p></div><input class="ans" id="typed" autocomplete="off" autocapitalize="sentences" placeholder="La frase transformada…"><div class="helps"><button class="help" data-h="hint">💡 Pista</button><button class="help" data-h="opts">🔘 Opciones</button></div><div id="helpbox" class="stack"></div>`;
+    body=`<p class="eyebrow" data-es="${T("Transforma la frase")}">Eraldatu</p><div class="drill" style="padding:12px 14px"><p class="from">${esc(e.from)} ${spkBtn(e.from)}</p><p class="hint" style="margin-top:-6px">${esc(e.es)}</p><p class="instr">→ ${esc(e.instr)}</p></div><input class="ans" id="typed" autocomplete="off" autocapitalize="sentences" placeholder="${T("La frase transformada…")}"><div class="helps"><button class="help" data-h="hint">${T("💡 Pista")}</button><button class="help" data-h="opts">${T("🔘 Opciones")}</button></div><div id="helpbox" class="stack"></div>`;
   } else if(e.mode==="meaning"){
-    body=`<p class="eyebrow" data-es="¿qué significa?">Zer esan nahi du?</p><div class="row">${prompt}${spkBtn(e.eu)}</div><input class="ans" id="typed" autocomplete="off" placeholder="En castellano…"><div class="helps"><button class="help" data-h="opts">🔘 Opciones</button></div><div id="helpbox" class="stack"></div>`;
+    body=`<p class="eyebrow" data-es="${T("¿qué significa?")}">Zer esan nahi du?</p><div class="row">${prompt}${spkBtn(e.eu)}</div><input class="ans" id="typed" autocomplete="off" placeholder="${T("En castellano…")}"><div class="helps"><button class="help" data-h="opts">${T("🔘 Opciones")}</button></div><div id="helpbox" class="stack"></div>`;
   } else {
-    body=`<p class="eyebrow" data-es="escríbelo en euskera">Nola esaten da euskaraz?</p>${prompt}<input class="ans" id="typed" autocomplete="off" autocapitalize="sentences" placeholder="En euskera…"><div class="helps"><button class="help" data-h="hint">💡 Pista</button><button class="help" data-h="opts">🔘 Opciones</button></div><div id="helpbox" class="stack"></div>`;
+    body=`<p class="eyebrow" data-es="${T("escríbelo en euskera")}">Nola esaten da euskaraz?</p>${prompt}<input class="ans" id="typed" autocomplete="off" autocapitalize="sentences" placeholder="${T("En euskera…")}"><div class="helps"><button class="help" data-h="hint">${T("💡 Pista")}</button><button class="help" data-h="opts">${T("🔘 Opciones")}</button></div><div id="helpbox" class="stack"></div>`;
   }
-  app.innerHTML=`<div class="top pad"><button id="quit" aria-label="Salir" style="font-size:22px;color:var(--muted)">✕</button><div class="bar"><i style="width:${pct}%"></i></div><span class="pill g">+${SES.xp} XP</span></div>
-   <div class="exercise-wrap"><div class="stack pad" style="flex:1">${e.retry?`<p class="pill" style="align-self:flex-start">🔁 Berriro · otra vez esta</p>`:""}${body}${e.mode!=="learn"?`<div class="keys"><span><kbd>↵</kbd>comprobar</span><span><kbd>H</kbd>pista</span><span><kbd>O</kbd>opciones</span><span><kbd>1</kbd>–<kbd>4</kbd>elegir</span><span><kbd>S</kbd>escuchar</span><span class="muted">(fuera del campo, o con Alt)</span></div>`:""}</div>
-   <div class="bottom pad"><button class="btn" id="check" ${e.mode==="learn"?"":"disabled"}>${e.mode==="learn"?"Ulertu dut<small>Siguiente</small>":"Egiaztatu<small>Comprobar</small>"}</button></div></div>`;
+  app.innerHTML=`<div class="top pad"><button id="quit" aria-label="${T("Salir")}" style="font-size:22px;color:var(--muted)">✕</button><div class="bar"><i style="width:${pct}%"></i></div><span class="pill g">+${SES.xp} XP</span></div>
+   <div class="exercise-wrap"><div class="stack pad" style="flex:1">${e.retry?`<p class="pill" style="align-self:flex-start">🔁 Berriro · ${T("otra vez esta")}</p>`:""}${body}${e.mode!=="learn"?`<div class="keys"><span><kbd>↵</kbd>${T("comprobar")}</span><span><kbd>H</kbd>${T("pista")}</span><span><kbd>O</kbd>${T("opciones")}</span><span><kbd>1</kbd>–<kbd>4</kbd>${T("elegir")}</span><span><kbd>S</kbd>${T("escuchar")}</span><span class="muted">${T("(fuera del campo, o con Alt)")}</span></div>`:""}</div>
+   <div class="bottom pad"><button class="btn" id="check" ${e.mode==="learn"?"":"disabled"}>${e.mode==="learn"?`Ulertu dut<small>${T("Siguiente")}</small>`:`Egiaztatu<small>${T("Comprobar")}</small>`}</button></div></div>`;
   wireSpeak();
   const DESKTOP=window.matchMedia("(min-width:900px) and (hover:hover) and (pointer:fine)").matches;
   document.onkeydown=ev=>{ if(!DESKTOP) return; if(document.getElementById("sheet").classList.contains("show")) return; const tag=(ev.target.tagName||"").toLowerCase(); const inInput=tag==="input"&&ev.target.id==="typed"; const k=ev.key.toLowerCase();
@@ -619,7 +623,7 @@ function renderExercise(){
   app.querySelectorAll(".help").forEach(b=>b.onclick=()=>{
     const box=document.getElementById("helpbox"); b.classList.add("on");
     if(b.dataset.h==="hint"){ if(help>=1&&box.querySelector(".hint")) return; help=Math.max(help,1); box.insertAdjacentHTML("beforeend",`<p class="hint" style="font-size:18px;letter-spacing:1px;font-family:monospace">${esc(hintFor(e.mode==="transform"?e.to:e.eu))}</p>`); }
-    else { help=2; const target=e.mode==="meaning"?e.es:e.mode==="transform"?e.to:e.eu; if(!Array.isArray(e.opts)||!e.opts.some(o=>norm(o)===norm(target))){ const field=e.mode==="meaning"?"es":"eu"; const pool=[...new Set(catalog().map(p=>p[field]).filter(x=>norm(x)!==norm(target)))]; e.opts=shuffle([target,...shuffle(pool).slice(0,3)]); saveSes(); }
+    else { help=2; const target=e.mode==="meaning"?e.es:e.mode==="transform"?e.to:e.eu; if(!Array.isArray(e.opts)||!e.opts.some(o=>norm(o)===norm(target))){ const field=e.mode==="meaning"?"es":"eu"; const pool=[...new Set(catalog().map(p=>T(p[field])).filter(x=>norm(x)!==norm(target)))]; e.opts=shuffle([target,...shuffle(pool).slice(0,3)]); saveSes(); }
       box.innerHTML=`<div class="opts">${e.opts.map((o,k)=>`<button class="opt" data-k="${k}" aria-pressed="false">${esc(o)}</button>`).join("")}</div>`; box.querySelectorAll(".opt").forEach(ob=>ob.onclick=()=>{ box.querySelectorAll(".opt").forEach(x=>x.setAttribute("aria-pressed","false")); ob.setAttribute("aria-pressed","true"); picked=e.opts[+ob.dataset.k]; inp.value=picked; check.disabled=false; }); }
   });
   check.onclick=async()=>{
@@ -637,16 +641,16 @@ function renderExercise(){
     showSheet(ok,grade,e,given,near);
   };
 }
-function noteFor(eu){ const n=(window.NOTES||[]).find(x=>x.m.test(eu)); return n?n.t:""; }
+function noteFor(eu){ const n=(window.NOTES||[]).find(x=>x.m.test(eu)); return n?T(n.t):""; }
 function showSheet(ok,grade,e,given,near){
   const sh=document.getElementById("sheet"), inn=document.getElementById("sh-in"); sh.className="sheet show "+(ok?"ok":"bad");
   const ph=ok?(grade===2?pick(GOOD):pick(HARD)):pick(BAD); const target=e.mode==="meaning"?e.es:e.mode==="transform"?e.to:e.eu; const note=noteFor(e.mode==="transform"?e.to:e.eu);
-  inn.innerHTML=`<div class="row" style="align-items:flex-start"><div class="sh-olen">${OLEN(ok?"happy":"sad",64)}</div><div style="min-width:0;flex:1"><h3>${esc(ph[0])}</h3><p class="hint">${esc(ph[1])}</p>
-    ${near?`<p class="hint">Casi exacto: escribiste «${esc(given)}».</p>`:""}</div></div>
-    <div class="answer-box"><div style="flex:1;min-width:0"><b>${esc(target)}</b>${e.mode==="meaning"?`<div style="font-size:12px;font-weight:600;color:#5A5A5A;margin-top:3px">${esc(e.eu)}</div>`:""}${e.mode==="transform"?`<div style="font-size:14px;font-weight:700;color:#141414;margin-top:3px">${esc(e.toEs||"")}</div><div style="font-size:12px;font-weight:600;color:#5A5A5A;margin-top:2px">${esc(e.instr)} · desde «${esc(e.from)}» (${esc(e.es)})</div>`:e.mode!=="meaning"?`<div style="font-size:12px;font-weight:600;color:#5A5A5A;margin-top:3px">${esc(e.es)}</div>`:""}</div>${spkBtn(e.mode==="transform"?e.to:e.eu)}</div>
+  inn.innerHTML=`<div class="row" style="align-items:flex-start"><div class="sh-olen">${OLEN(ok?"happy":"sad",64)}</div><div style="min-width:0;flex:1"><h3>${esc(ph[0])}</h3><p class="hint">${esc(T(ph[1]))}</p>
+    ${near?`<p class="hint">${T("Casi exacto: escribiste")} «${esc(given)}».</p>`:""}</div></div>
+    <div class="answer-box"><div style="flex:1;min-width:0"><b>${esc(target)}</b>${e.mode==="meaning"?`<div style="font-size:12px;font-weight:600;color:#5A5A5A;margin-top:3px">${esc(e.eu)}</div>`:""}${e.mode==="transform"?`<div style="font-size:14px;font-weight:700;color:#141414;margin-top:3px">${esc(e.toEs||"")}</div><div style="font-size:12px;font-weight:600;color:#5A5A5A;margin-top:2px">${esc(e.instr)} · ${T("desde")} «${esc(e.from)}» (${esc(e.es)})</div>`:e.mode!=="meaning"?`<div style="font-size:12px;font-weight:600;color:#5A5A5A;margin-top:3px">${esc(e.es)}</div>`:""}</div>${spkBtn(e.mode==="transform"?e.to:e.eu)}</div>
     ${!ok&&note?`<div class="note">💡 ${esc(note)}</div>`:""}
-    ${!ok&&e.mode!=="meaning"?`<p class="eyebrow" data-es="copia la forma correcta">Idatzi zuzena</p><input class="ans" id="copy" autocomplete="off" autocapitalize="sentences" placeholder="${esc(target)}">`:""}
-    <button class="btn" id="sh-next" ${!ok&&e.mode!=="meaning"?"disabled":""}>Jarraitu<small>Continuar</small></button>`;
+    ${!ok&&e.mode!=="meaning"?`<p class="eyebrow" data-es="${T("copia la forma correcta")}">Idatzi zuzena</p><input class="ans" id="copy" autocomplete="off" autocapitalize="sentences" placeholder="${esc(target)}">`:""}
+    <button class="btn" id="sh-next" ${!ok&&e.mode!=="meaning"?"disabled":""}>Jarraitu<small>${T("Continuar")}</small></button>`;
   wireSpeak(inn);
   const next=document.getElementById("sh-next"), cp=document.getElementById("copy");
   if(cp){ cp.oninput=()=>{ next.disabled=norm(cp.value)!==norm(target); if(!next.disabled) cp.classList.add("ok"); }; cp.onkeydown=ev=>{ if(ev.key==="Enter"&&!next.disabled) next.click(); }; setTimeout(()=>cp.focus(),100); }
@@ -661,34 +665,34 @@ async function finish(){
   const acc=Math.round(okFirst/Math.max(1,first.length)*100);
   if(SES.challenge){ return finishChallenge(okFirst,first.length); }
   try{ P=await api("round",{lessonId:SES.lessonId,ok:Math.min(total,okFirst),total:Math.max(total,1)}); await loadItems(); }catch(e){}
-  app.innerHTML=`<div class="head pad" style="padding-bottom:28px;text-align:center"><div class="lb">${LAUBURU}</div><p class="eyebrow" data-es="Ronda terminada">${esc(SES.label)} amaituta</p><h1 style="margin-top:6px">${acc===100?"Bikain!":acc>=70?"Ondo egin!":"Segi aurrera!"}</h1><p class="big" style="margin-top:10px">+${SES.xp} XP</p><div style="display:flex;justify-content:center;margin:12px 0 -12px;position:relative;z-index:2">${OLEN(acc>=70?"happy":"sad",100)}</div></div>
+  app.innerHTML=`<div class="head pad" style="padding-bottom:28px;text-align:center"><div class="lb">${LAUBURU}</div><p class="eyebrow" data-es="${T("Ronda terminada")}">${esc(SES.label)} amaituta</p><h1 style="margin-top:6px">${acc===100?"Bikain!":acc>=70?"Ondo egin!":"Segi aurrera!"}</h1><p class="big" style="margin-top:10px">+${SES.xp} XP</p><div style="display:flex;justify-content:center;margin:12px 0 -12px;position:relative;z-index:2">${OLEN(acc>=70?"happy":"sad",100)}</div></div>
    <div class="stack pad" style="padding-top:18px;text-align:center">
-    <div class="stats"><div class="stat"><b>${okFirst}/${first.length}</b><span>Asmatuak · aciertos</span></div><div class="stat g"><b style="display:flex;justify-content:center;align-items:center;gap:6px"><span style="display:inline-flex;width:22px;height:22px">${LAUBURU}</span>${P.items.consolidated}</b><span>Sendoak · firmes</span></div></div>
-    ${(()=>{ const r=SES.results||{}; const keys=Object.keys(r); if(!keys.length) return ""; const m=imap(); const rows=keys.map(k=>{ const it=m[k]||{}; const ex=SES.ex.find(x=>x.key===k)||{}; const sg=stage({interval:r[k].interval}); return {k,eu:ex.eu||it.eu||k,sg,d:daysUntil(r[k].due)}; }).sort((a,b)=>b.d-a.d); return `<div class="card" style="text-align:left"><p class="eyebrow" style="margin-bottom:8px" data-es="a dónde va cada una">Nora doaz</p><div class="list">${rows.map(x=>`<div class="it"><span class="em">${x.sg.em}</span><span class="tx"><b>${esc(x.eu)}</b><small>${x.d<=0?"mañana otra vez (fallada)":x.d===1?"la verás mañana":`la verás en ${x.d} días`}${x.sg.k==="tree"?" · ¡firme!":""}</small></span></div>`).join("")}</div></div>`; })()}
-    ${SES.wrong.length?`<div class="card" style="text-align:left"><p class="eyebrow" style="margin-bottom:8px" data-es="vuelven mañana">Bihar itzuliko dira</p>${[...new Map(SES.wrong.map(w=>[w.key,w])).values()].map(w=>`<p style="padding:6px 0;border-top:1px solid var(--line)"><b style="color:var(--red)">${esc(w.eu)}</b> ${spkBtn(w.eu)}<br><span class="muted">${esc(w.es)}</span></p>`).join("")}</div>`:`<p class="hint">Sin fallos. Lo de hoy se aleja en el calendario.</p>`}
-    <button class="btn ghost" id="home">Itzuli<small>Volver</small></button></div>`;
+    <div class="stats"><div class="stat"><b>${okFirst}/${first.length}</b><span>${T("Asmatuak · aciertos")}</span></div><div class="stat g"><b style="display:flex;justify-content:center;align-items:center;gap:6px"><span style="display:inline-flex;width:22px;height:22px">${LAUBURU}</span>${P.items.consolidated}</b><span>${T("Sendoak · firmes")}</span></div></div>
+    ${(()=>{ const r=SES.results||{}; const keys=Object.keys(r); if(!keys.length) return ""; const m=imap(); const rows=keys.map(k=>{ const it=m[k]||{}; const ex=SES.ex.find(x=>x.key===k)||{}; const sg=stage({interval:r[k].interval}); return {k,eu:ex.eu||it.eu||k,sg,d:daysUntil(r[k].due)}; }).sort((a,b)=>b.d-a.d); return `<div class="card" style="text-align:left"><p class="eyebrow" style="margin-bottom:8px" data-es="${T("a dónde va cada una")}">Nora doaz</p><div class="list">${rows.map(x=>`<div class="it"><span class="em">${x.sg.em}</span><span class="tx"><b>${esc(x.eu)}</b><small>${x.d<=0?T("mañana otra vez (fallada)"):x.d===1?T("la verás mañana"):T(`la verás en ${x.d} días`)}${x.sg.k==="tree"?" · "+T("¡firme!"):""}</small></span></div>`).join("")}</div></div>`; })()}
+    ${SES.wrong.length?`<div class="card" style="text-align:left"><p class="eyebrow" style="margin-bottom:8px" data-es="${T("vuelven mañana")}">Bihar itzuliko dira</p>${[...new Map(SES.wrong.map(w=>[w.key,w])).values()].map(w=>`<p style="padding:6px 0;border-top:1px solid var(--line)"><b style="color:var(--red)">${esc(w.eu)}</b> ${spkBtn(w.eu)}<br><span class="muted">${esc(w.es)}</span></p>`).join("")}</div>`:`<p class="hint">${T("Sin fallos. Lo de hoy se aleja en el calendario.")}</p>`}
+    <button class="btn ghost" id="home">Itzuli<small>${T("Volver")}</small></button></div>`;
   wireSpeak(); document.getElementById("home").onclick=()=>setTab(TAB);
 }
 
 // ---------- IKASGAIAK ----------
 function renderLessons(){
   const m=imap();
-  app.innerHTML=header("Ikasgaiak · lee, escucha, luego practica")+`<div class="stack pad" style="padding-top:18px"><p class="eyebrow" data-es="Lecciones">Ikasgaiak</p>
-   <div class="lessons-grid">${LESSONS.map((l,i)=>{ const its=lessonItems(l); const learned=its.filter(x=>m[x.key]).length; const firm=its.filter(x=>m[x.key]&&m[x.key].interval>=7).length; const pct=Math.round(firm/its.length*100); const dueN=its.filter(x=>m[x.key]&&m[x.key].due<=todayStr()).length; return `<button class="lesson ${pct>=100?"done":""}" data-l="${l.id}"><span class="n"><b>${i+1}</b></span><span class="t"><strong>${esc(l.emoji||"")} ${esc(l.title)}</strong><small>${learned===0?"Sin empezar":pct>=100?"Completa: todo firme":dueN?`${dueN} para repasar hoy`:"Al día"} · ${esc(l.desc)}</small>${stageBar(its,m)}</span></button>`; }).join("")}</div>
-   ${(()=>{ const total=GRAMMAR.reduce((a,g)=>a+g.drills.length,0), done=GRAMMAR.reduce((a,g)=>a+Math.min(g.drills.length,gramDone(g.id)),0); return `<button class="gcard" id="togram" style="margin-top:10px"><span class="em">🧩</span><span class="t"><strong>Gramatika · estructuras</strong><small>${GRAMMAR.length} fichas: ser, estar, tener, gustar, negación, plural, números, preguntas</small></span><span class="pill ${done>=total?"g":""}">${done}/${total}</span><span style="color:var(--muted);font-size:22px">›</span></button>`; })()}
-   <div class="card legend3"><p class="eyebrow" style="margin-bottom:8px" data-es="qué es la barra">Zer da barra</p>
-     <div class="lg"><i style="background:var(--green)"></i><span>🌳 <b>Firmes</b>: recordadas varias veces con días entre medias</span></div>
-     <div class="lg"><i style="background:var(--ochre)"></i><span>🌿 <b>En estudio</b>: ya vistas, aún volviendo a menudo</span></div>
-     <div class="lg"><i style="background:var(--line)"></i><span>🌱 <b>Por ver</b>: todavía no te han salido</span></div>
+  app.innerHTML=header("Ikasgaiak · "+T("lee, escucha, luego practica"))+`<div class="stack pad" style="padding-top:18px"><p class="eyebrow" data-es="${T("Lecciones")}">Ikasgaiak</p>
+   <div class="lessons-grid">${LESSONS.map((l,i)=>{ const its=lessonItems(l); const learned=its.filter(x=>m[x.key]).length; const firm=its.filter(x=>m[x.key]&&m[x.key].interval>=7).length; const pct=Math.round(firm/its.length*100); const dueN=its.filter(x=>m[x.key]&&m[x.key].due<=todayStr()).length; return `<button class="lesson ${pct>=100?"done":""}" data-l="${l.id}"><span class="n"><b>${i+1}</b></span><span class="t"><strong>${esc(l.emoji||"")} ${esc(T(l.title))}</strong><small>${learned===0?T("Sin empezar"):pct>=100?T("Completa: todo firme"):dueN?T(`${dueN} para repasar hoy`):T("Al día")} · ${esc(T(l.desc))}</small>${stageBar(its,m)}</span></button>`; }).join("")}</div>
+   ${(()=>{ const total=GRAMMAR.reduce((a,g)=>a+g.drills.length,0), done=GRAMMAR.reduce((a,g)=>a+Math.min(g.drills.length,gramDone(g.id)),0); return `<button class="gcard" id="togram" style="margin-top:10px"><span class="em">🧩</span><span class="t"><strong>${T("Gramatika · estructuras")}</strong><small>${GRAMMAR.length} ${T("fichas: ser, estar, tener, gustar, negación, plural, números, preguntas")}</small></span><span class="pill ${done>=total?"g":""}">${done}/${total}</span><span style="color:var(--muted);font-size:22px">›</span></button>`; })()}
+   <div class="card legend3"><p class="eyebrow" style="margin-bottom:8px" data-es="${T("qué es la barra")}">Zer da barra</p>
+     <div class="lg"><i style="background:var(--green)"></i><span>🌳 ${T("<b>Firmes</b>: recordadas varias veces con días entre medias")}</span></div>
+     <div class="lg"><i style="background:var(--ochre)"></i><span>🌿 ${T("<b>En estudio</b>: ya vistas, aún volviendo a menudo")}</span></div>
+     <div class="lg"><i style="background:var(--line)"></i><span>🌱 ${T("<b>Por ver</b>: todavía no te han salido")}</span></div>
    </div></div>`;
   app.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>renderLesson(lessonOf(b.dataset.l)));
   document.getElementById("togram").onclick=renderGrammarList;
 }
 function renderGrammarList(){
   const m=imap();
-  app.innerHTML=header("Gramatika · las reglas detrás de las frases")+`<div class="stack pad" style="padding-top:18px"><button class="link" id="back" style="align-self:flex-start">‹ Ikasgaiak</button>
-   ${GRAMMAR.map(g=>{ const seen=g.lessons.some(id=>lessonItems(lessonOf(id)||{pairs:[],sentences:[]}).some(x=>m[x.key])); const done=gramDone(g.id); return `<button class="gcard" data-g="${g.id}" style="${seen?"":"opacity:.6"}"><span class="em">${esc(g.emoji)}</span><span class="t"><strong>${esc(g.title)}</strong><small>${esc(g.summary.split(".")[0])}.${seen?"":" · Se desbloquea con sus lecciones"}</small></span><span class="pill ${done>=g.drills.length?"g":""}">${done}/${g.drills.length}</span></button>`; }).join("")}
-   <p class="hint">Cada ficha: la regla, las piezas en color, ejemplos de tus lecciones y ejercicios de transformación.</p></div>`;
+  app.innerHTML=header("Gramatika · "+T("las reglas detrás de las frases"))+`<div class="stack pad" style="padding-top:18px"><button class="link" id="back" style="align-self:flex-start">‹ Ikasgaiak</button>
+   ${GRAMMAR.map(g=>{ const seen=g.lessons.some(id=>lessonItems(lessonOf(id)||{pairs:[],sentences:[]}).some(x=>m[x.key])); const done=gramDone(g.id); return `<button class="gcard" data-g="${g.id}" style="${seen?"":"opacity:.6"}"><span class="em">${esc(g.emoji)}</span><span class="t"><strong>${esc(T(g.title))}</strong><small>${esc(T(g.summary).split(".")[0])}.${seen?"":" · "+T("Se desbloquea con sus lecciones")}</small></span><span class="pill ${done>=g.drills.length?"g":""}">${done}/${g.drills.length}</span></button>`; }).join("")}
+   <p class="hint">${T("Cada ficha: la regla, las piezas en color, ejemplos de tus lecciones y ejercicios de transformación.")}</p></div>`;
   document.getElementById("back").onclick=()=>setTab("ikasgaiak");
   app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>renderGrammar(GRAMMAR.find(g=>g.id===b.dataset.g)));
   const av=document.getElementById("avbtn"); if(av) av.onclick=()=>renderProfile();
@@ -697,32 +701,32 @@ function renderGrammarList(){
 // progreso de drills por teléfono (ligero; no va al calendario)
 function gramDone(id){ try{ return (JSON.parse(localStorage.getItem("euskara.gram."+(P?P.id:""))||"{}")[id]||0); }catch(e){ return 0; } }
 function gramSet(id,n){ try{ const k="euskara.gram."+(P?P.id:""); const d=JSON.parse(localStorage.getItem(k)||"{}"); d[id]=Math.max(d[id]||0,n); localStorage.setItem(k,JSON.stringify(d)); }catch(e){} }
-const PK={subj:"sujeto",obj:"nombre / adjetivo",verb:"verbo",neg:"negación / unión",num:"número / plural",q:"interrogativo"};
+const PK0={subj:"sujeto",obj:"nombre / adjetivo",verb:"verbo",neg:"negación / unión",num:"número / plural",q:"interrogativo"}; const PK=new Proxy(PK0,{get:(o,k)=>T(o[k])});
 function renderGrammar(g){
   noTabs();
-  const lessonsTxt=g.lessons.map(id=>(lessonOf(id)||{}).title).filter(Boolean).join(", ");
+  const lessonsTxt=g.lessons.map(id=>T((lessonOf(id)||{}).title)).filter(Boolean).join(", ");
   const kinds=[...new Set(g.pieces.map(p=>p.k))];
-  app.innerHTML=`<div class="top pad"><button id="back" aria-label="Volver" style="font-size:22px;color:var(--muted)">‹</button><div style="flex:1;min-width:0"><p class="eyebrow" data-es="Gramática">Gramatika</p><h2>${esc(g.emoji)} ${esc(g.title)}</h2></div></div>
+  app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}" style="font-size:22px;color:var(--muted)">‹</button><div style="flex:1;min-width:0"><p class="eyebrow" data-es="${T("Gramática")}">Gramatika</p><h2>${esc(g.emoji)} ${esc(T(g.title))}</h2></div></div>
    <div class="stack pad" style="flex:1;gap:18px">
-    <p style="font-size:17px">${esc(g.summary)}</p>
-    <p class="eyebrow" data-es="cómo se arma">Egitura</p>
-    <div class="card stack" style="gap:12px"><div class="pieces">${g.pieces.map(p=>`<span class="pc ${p.k}">${esc(p.t)}</span>`).join("")}</div><div class="pclegend">${kinds.map(k=>`<span><i class="pc ${k}" style="padding:0"></i>${PK[k]}</span>`).join("")}</div></div>
-    ${g.table?`<table class="gtab"><tr>${g.table.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr>${g.table.rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${i===0?"lab":""}">${i===0?esc(c):`<b>${esc(c)}</b>`}</td>`).join("")}</tr>`).join("")}</table>`:""}
-    <p class="eyebrow" data-es="Ejemplos de ${esc(lessonsTxt)}">Adibideak</p>
-    <div class="card list">${g.examples.map(([eu,es])=>`<div class="it"><span class="tx"><b>${esc(eu)}</b><small>${esc(es)}</small></span>${spkBtn(eu)}</div>`).join("")}</div>
-    <p class="eyebrow" data-es="Transforma la frase">Eraldatu (${g.drills.length})</p>
-    <p class="hint">Escribe la frase transformada según la instrucción. Aquí se practica la regla, no la memoria: no afecta al calendario.</p>
+    <p style="font-size:17px">${esc(T(g.summary))}</p>
+    <p class="eyebrow" data-es="${T("cómo se arma")}">Egitura</p>
+    <div class="card stack" style="gap:12px"><div class="pieces">${g.pieces.map(p=>`<span class="pc ${p.k}">${esc(T(p.t))}</span>`).join("")}</div><div class="pclegend">${kinds.map(k=>`<span><i class="pc ${k}" style="padding:0"></i>${PK[k]}</span>`).join("")}</div></div>
+    ${g.table?`<table class="gtab"><tr>${g.table.cols.map(c=>`<th>${esc(T(c))}</th>`).join("")}</tr>${g.table.rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${i===0?"lab":""}">${i===0?esc(T(c)):`<b>${esc(c)}</b>`}</td>`).join("")}</tr>`).join("")}</table>`:""}
+    <p class="eyebrow" data-es="${T("Ejemplos de")} ${esc(lessonsTxt)}">Adibideak</p>
+    <div class="card list">${g.examples.map(([eu,es])=>`<div class="it"><span class="tx"><b>${esc(eu)}</b><small>${esc(T(es))}</small></span>${spkBtn(eu)}</div>`).join("")}</div>
+    <p class="eyebrow" data-es="${T("Transforma la frase")}">Eraldatu (${g.drills.length})</p>
+    <p class="hint">${T("Escribe la frase transformada según la instrucción. Aquí se practica la regla, no la memoria: no afecta al calendario.")}</p>
     <div id="drill"></div>
    </div>
-   <div class="bottom pad"><button class="btn" id="back2">Itzuli<small>Volver</small></button></div>`;
+   <div class="bottom pad"><button class="btn" id="back2">Itzuli<small>${T("Volver")}</small></button></div>`;
   wireSpeak();
   document.getElementById("back").onclick=document.getElementById("back2").onclick=()=>{ tabs.hidden=false; document.body.classList.remove("notabs"); renderGrammarList(); };
   let i=gramDone(g.id)>=g.drills.length?0:gramDone(g.id), ok=0;
   const box=document.getElementById("drill");
   const show=()=>{
-    if(i>=g.drills.length){ box.innerHTML=`<div class="drill" style="text-align:center"><p style="font-size:36px">${OLEN("happy",70)}</p><p style="font-weight:800">Bikain! Has completado las ${g.drills.length} transformaciones.</p><button class="btn ghost sm" id="again">Berriro<small>Otra vez</small></button></div>`; box.querySelector("#again").onclick=()=>{ i=0; show(); }; return; }
+    if(i>=g.drills.length){ box.innerHTML=`<div class="drill" style="text-align:center"><p style="font-size:36px">${OLEN("happy",70)}</p><p style="font-weight:800">${T("Bikain! Has completado las")} ${g.drills.length} ${T("transformaciones.")}</p><button class="btn ghost sm" id="again">Berriro<small>${T("Otra vez")}</small></button></div>`; box.querySelector("#again").onclick=()=>{ i=0; show(); }; return; }
     const d=g.drills[i];
-    box.innerHTML=`<div class="drill"><div class="row"><span class="pill b">${i+1} / ${g.drills.length}</span><span class="instr">${esc(d.instr)}</span></div><p class="from">${esc(d.from)} ${spkBtn(d.from)}</p><input class="ans" id="dans" autocomplete="off" autocapitalize="sentences" placeholder="Escribe la frase transformada…"><div id="dfb"></div><button class="btn sm" id="dchk" disabled>Egiaztatu<small>Comprobar</small></button></div>`;
+    box.innerHTML=`<div class="drill"><div class="row"><span class="pill b">${i+1} / ${g.drills.length}</span><span class="instr">${esc(T(d.instr))}</span></div><p class="from">${esc(d.from)} ${spkBtn(d.from)}</p><input class="ans" id="dans" autocomplete="off" autocapitalize="sentences" placeholder="${T("Escribe la frase transformada…")}"><div id="dfb"></div><button class="btn sm" id="dchk" disabled>Egiaztatu<small>${T("Comprobar")}</small></button></div>`;
     wireSpeak(box);
     const inp=box.querySelector("#dans"), chk=box.querySelector("#dchk"), fb=box.querySelector("#dfb");
     inp.oninput=()=>chk.disabled=!inp.value.trim(); inp.onkeydown=ev=>{ if(ev.key==="Enter"&&!chk.disabled) chk.click(); }; setTimeout(()=>inp.focus(),80);
@@ -730,7 +734,7 @@ function renderGrammar(g){
       const a=norm(inp.value), t=norm(d.to); const good=a===t||(a.length>=5&&lev(a,t)<=1);
       inp.classList.add(good?"ok":"bad"); chk.disabled=true;
       const note=noteFor(d.to);
-      fb.innerHTML=`<div class="note" style="border-color:${good?"var(--green)":"var(--red)"}"><b>${good?pick(GOOD)[0]:"Ia-ia."}</b> ${esc(d.to)} ${spkBtn(d.to)}${d.es?`<br><span class="hint" style="color:#5A5A5A">${esc(d.es)}</span>`:""}${!good&&note?`<br><span class="hint">💡 ${esc(note)}</span>`:""}</div><button class="btn sm" id="dnext" style="margin-top:8px">${i+1<g.drills.length?"Hurrengoa →<small>Siguiente</small>":"Amaitu<small>Terminar</small>"}</button>`;
+      fb.innerHTML=`<div class="note" style="border-color:${good?"var(--green)":"var(--red)"}"><b>${good?pick(GOOD)[0]:"Ia-ia."}</b> ${esc(d.to)} ${spkBtn(d.to)}${d.es?`<br><span class="hint" style="color:#5A5A5A">${esc(T(d.es))}</span>`:""}${!good&&note?`<br><span class="hint">💡 ${esc(note)}</span>`:""}</div><button class="btn sm" id="dnext" style="margin-top:8px">${i+1<g.drills.length?`Hurrengoa →<small>${T("Siguiente")}</small>`:`Amaitu<small>${T("Terminar")}</small>`}</button>`;
       wireSpeak(fb); if(VOICE) speak(d.to);
       i++; gramSet(g.id,i); fb.querySelector("#dnext").onclick=show; fb.querySelector("#dnext").focus();
     };
@@ -740,25 +744,25 @@ function renderGrammar(g){
 function renderLesson(l){
   noTabs(); const m=imap(); const its=lessonItems(l); const fresh=its.filter(x=>!m[x.key]);
   const st=k=>!m[k]?"":m[k].interval>=7?"ok":"new";
-  app.innerHTML=`<div class="top pad"><button id="back" aria-label="Volver" style="font-size:22px;color:var(--muted)">‹</button><div style="flex:1;min-width:0"><p class="eyebrow" data-es="Lección ${LESSONS.indexOf(l)+1}">${LESSONS.indexOf(l)+1}. ikasgaia</p><h2>${esc(l.emoji||"")} ${esc(l.title)}</h2></div><span class="pill g">${its.length-fresh.length}/${its.length}</span></div>
+  app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}" style="font-size:22px;color:var(--muted)">‹</button><div style="flex:1;min-width:0"><p class="eyebrow" data-es="${T("Lección")} ${LESSONS.indexOf(l)+1}">${LESSONS.indexOf(l)+1}. ikasgaia</p><h2>${esc(l.emoji||"")} ${esc(T(l.title))}</h2></div><span class="pill g">${its.length-fresh.length}/${its.length}</span></div>
    <div class="stack pad" style="flex:1;gap:18px">
-    ${l.pattern?`<div class="pattern"><p class="eyebrow" data-es="Estructura clave">Egitura</p><p class="pat">${esc(l.pattern).replace("___",'<span class="blank">___</span>')}</p></div>`:""}
-    ${l.grid?`<p class="eyebrow" data-es="${esc(l.grid.title)}">Nork esaten du</p><table class="gtab"><tr><th></th>${l.grid.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr>${l.grid.rows.map(r=>`<tr><td class="lab">${esc(r[0])}</td>${r.slice(1).map(c=>`<td><b>${esc(c)}</b></td>`).join("")}</tr>`).join("")}</table>`:""}
-    <p class="eyebrow" data-es="${VOICE?"Vocabulario y frases · toca para escuchar":"Vocabulario y frases"}">Hiztegia eta esaldiak</p>
-    <div class="vocab">${its.map(it=>{ const q=it.count?qty(it.count,it.countEm):""; const sg=stage(m[it.key]); return `<button class="v ${sg.k}" data-say="${esc(it.eu)}"><span class="tag">${sg.em}</span><span class="em ${q?"q":""}">${esc(q||it.emoji||(it.chunk?"💬":"•"))}</span><b>${esc(it.eu)}</b><small>${esc(it.es)}</small>${m[it.key]?`<span class="due">${dueLabel(m[it.key])}${m[it.key].lapses?` · ${m[it.key].lapses} fallos`:""}</span>`:`<span class="due">aún no vista</span>`}</button>`; }).join("")}</div>
-    <p class="hint">Cada tarjeta muestra su etapa (🌱 🌿 🌳) y cuándo la verás de nuevo.</p>
-    ${(()=>{ const n=its.reduce((a,x)=>a+transformsFor(x.eu).length,0); return n?`<button class="gcard" id="lessondrills" style="border-left-color:var(--red)"><span class="em">🔁</span><span class="t"><strong>Eraldatu</strong><small>${n} transformaciones con las frases de esta lección</small></span><span class="pill">${n}</span></button>`:""; })()}
-    ${l.tips&&l.tips.length?`<p class="eyebrow" data-es="Cómo funciona">Nola funtzionatzen du</p>${l.tips.map(t=>`<div class="tip"><b>${esc(t.t)}</b><p>${esc(t.b)}</p></div>`).join("")}`:""}
-    ${l.dialogue&&l.dialogue.length?`<p class="eyebrow" data-es="diálogo">Elkarrizketa</p><div class="card dlg">${l.scene?`<div class="scene"><span>${esc(l.scene.emoji)}</span><p>${esc(l.scene.title)}</p></div>`:""}${VOICE?`<button class="btn ghost sm" id="playdlg" style="align-self:center;position:relative;z-index:1">🔊 Entzun osorik<small>escuchar entero</small></button>`:""}${l.dialogue.map(([w,eu,es])=>`<div class="line ${w==="A"?"a":"b"}"><div><p class="eu">${esc(eu)}</p><p class="es">${esc(es)}</p></div>${spkBtn(eu)}</div>`).join("")}</div>`:""}
+    ${l.pattern?`<div class="pattern"><p class="eyebrow" data-es="${T("Estructura clave")}">Egitura</p><p class="pat">${esc(T(l.pattern)).replace("___",'<span class="blank">___</span>')}</p></div>`:""}
+    ${l.grid?`<p class="eyebrow" data-es="${esc(T(l.grid.title))}">Nork esaten du</p><table class="gtab"><tr><th></th>${l.grid.cols.map(c=>`<th>${esc(T(c))}</th>`).join("")}</tr>${l.grid.rows.map(r=>`<tr><td class="lab">${esc(T(r[0]))}</td>${r.slice(1).map(c=>`<td><b>${esc(c)}</b></td>`).join("")}</tr>`).join("")}</table>`:""}
+    <p class="eyebrow" data-es="${VOICE?T("Vocabulario y frases · toca para escuchar"):T("Vocabulario y frases")}">Hiztegia eta esaldiak</p>
+    <div class="vocab">${its.map(it=>{ const q=it.count?qty(it.count,it.countEm):""; const sg=stage(m[it.key]); return `<button class="v ${sg.k}" data-say="${esc(it.eu)}"><span class="tag">${sg.em}</span><span class="em ${q?"q":""}">${esc(q||it.emoji||(it.chunk?"💬":"•"))}</span><b>${esc(it.eu)}</b><small>${esc(T(it.es))}</small>${m[it.key]?`<span class="due">${dueLabel(m[it.key])}${m[it.key].lapses?` · ${m[it.key].lapses} ${T("fallos")}`:""}</span>`:`<span class="due">${T("aún no vista")}</span>`}</button>`; }).join("")}</div>
+    <p class="hint">${T("Cada tarjeta muestra su etapa (🌱 🌿 🌳) y cuándo la verás de nuevo.")}</p>
+    ${(()=>{ const n=its.reduce((a,x)=>a+transformsFor(x.eu).length,0); return n?`<button class="gcard" id="lessondrills" style="border-left-color:var(--red)"><span class="em">🔁</span><span class="t"><strong>Eraldatu</strong><small>${n} ${T("transformaciones con las frases de esta lección")}</small></span><span class="pill">${n}</span></button>`:""; })()}
+    ${l.tips&&l.tips.length?`<p class="eyebrow" data-es="${T("Cómo funciona")}">Nola funtzionatzen du</p>${l.tips.map(t=>`<div class="tip"><b>${esc(T(t.t))}</b><p>${esc(T(t.b))}</p></div>`).join("")}`:""}
+    ${l.dialogue&&l.dialogue.length?`<p class="eyebrow" data-es="${T("diálogo")}">Elkarrizketa</p><div class="card dlg">${l.scene?`<div class="scene"><span>${esc(l.scene.emoji)}</span><p>${esc(T(l.scene.title))}</p></div>`:""}${VOICE?`<button class="btn ghost sm" id="playdlg" style="align-self:center;position:relative;z-index:1">🔊 Entzun osorik<small>${T("escuchar entero")}</small></button>`:""}${l.dialogue.map(([w,eu,es])=>`<div class="line ${w==="A"?"a":"b"}"><div><p class="eu">${esc(eu)}</p><p class="es">${esc(T(es))}</p></div>${spkBtn(eu)}</div>`).join("")}</div>`:""}
    </div>
-   <div class="bottom pad stack" style="gap:8px">${fresh.length?`<button class="btn red" id="learn">Ikasi · ${fresh.length}<small>Aprender nuevas</small></button>`:""}<button class="btn ${fresh.length?"ghost":""}" id="go">Praktikatu<small>Practicar esta lección</small></button></div>`;
+   <div class="bottom pad stack" style="gap:8px">${fresh.length?`<button class="btn red" id="learn">Ikasi · ${fresh.length}<small>${T("Aprender nuevas")}</small></button>`:""}<button class="btn ${fresh.length?"ghost":""}" id="go">Praktikatu<small>${T("Practicar esta lección")}</small></button></div>`;
   wireSpeak();
   document.getElementById("back").onclick=()=>setTab("ikasgaiak");
   const pd=document.getElementById("playdlg"); if(pd) pd.onclick=()=>speakSeq(l.dialogue.map(d=>d[1]));
   preload(its.map(i=>i.eu));
-  const ld=document.getElementById("lessondrills"); if(ld) ld.onclick=()=>{ const items=[]; for(const x of its) for(const tr of transformsFor(x.eu)) items.push({key:x.key,eu:x.eu,es:x.es,lesson_id:l.id,emoji:x.emoji||"",tr}); startSession({items:shuffle(items).slice(0,10),label:"Eraldatu · "+l.title,free:true,forceTransform:true}); };
-  const lb=document.getElementById("learn"); if(lb) lb.onclick=async()=>{ const n=fresh.slice(0,6); try{ await api("items/introduce",{items:n}); await loadItems(); }catch(e){} startSession({items:n.map(i=>({...i,isNew:true})),label:l.title,lessonId:l.id}); };
-  document.getElementById("go").onclick=()=>{ const mm=imap(); const known=its.filter(x=>mm[x.key]); startSession({items:shuffle(known.length?known:its).slice(0,10),label:l.title,lessonId:l.id,free:true}); };
+  const ld=document.getElementById("lessondrills"); if(ld) ld.onclick=()=>{ const items=[]; for(const x of its) for(const tr of transformsFor(x.eu)) items.push({key:x.key,eu:x.eu,es:x.es,lesson_id:l.id,emoji:x.emoji||"",tr}); startSession({items:shuffle(items).slice(0,10),label:"Eraldatu · "+T(l.title),free:true,forceTransform:true}); };
+  const lb=document.getElementById("learn"); if(lb) lb.onclick=async()=>{ const n=fresh.slice(0,6); try{ await api("items/introduce",{items:n}); await loadItems(); }catch(e){} startSession({items:n.map(i=>({...i,isNew:true})),label:T(l.title),lessonId:l.id}); };
+  document.getElementById("go").onclick=()=>{ const mm=imap(); const known=its.filter(x=>mm[x.key]); startSession({items:shuffle(known.length?known:its).slice(0,10),label:T(l.title),lessonId:l.id,free:true}); };
   window.scrollTo(0,0);
 }
 
@@ -772,47 +776,47 @@ const TASKS=[
   {need:"l1",t:"Despídete de {X} en euskera de dos formas distintas y escríbelas",check:""}
 ];
 async function renderTeam(){
-  app.innerHTML=header("Taldea · retos y tareas con tu gente")+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
+  app.innerHTML=header("Taldea · "+T("retos y tareas con tu gente"))+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
   let friends=[], chs=[]; try{ [friends,chs]=await Promise.all([api("friends"),api("challenges")]); }catch(e){}
   const m=imap(); const learnedLessons=new Set(ITEMS.map(i=>i.lesson_id));
   const tasks=TASKS.filter(t=>learnedLessons.has(t.need));
   const opt=u=>`<option value="${u.id}">${esc(u.name)}${u.town?" · "+esc(u.town):""}</option>`;
-  const person=u=>`<div class="lbrow"><span class="av">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}</b><span class="muted" style="font-size:13px">${u.town?esc(u.town)+" · ":""}${u.consolidated} firmes${u.streak?" · 🔥 "+u.streak:""}${u.addedMe&&!u.added?" · te ha añadido":""}</span></span>${u.added?`<button class="link" data-unfriend="${u.id}" style="font-size:12px">quitar</button>`:`<button class="btn sm" data-friend="${u.id}">Gehitu<small>añadir</small></button>`}</div>`;
+  const person=u=>`<div class="lbrow"><span class="av">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}</b><span class="muted" style="font-size:13px">${u.town?esc(u.town)+" · ":""}${u.consolidated} ${T("firmes")}${u.streak?" · 🔥 "+u.streak:""}${u.addedMe&&!u.added?" · "+T("te ha añadido"):""}</span></span>${u.added?`<button class="link" data-unfriend="${u.id}" style="font-size:12px">${T("quitar")}</button>`:`<button class="btn sm" data-friend="${u.id}">Gehitu<small>${T("añadir")}</small></button>`}</div>`;
   app.querySelector(".stack").classList.add("cols");
   app.querySelector(".stack").innerHTML=`<div class="col">
-    <p class="eyebrow" data-es="tu círculo">Zure jendea</p>
-    <div class="card stack" style="gap:8px"><p class="hint">Añade a tus compañeros de clase o amigos por su nombre. Solo tu círculo puede retarte y compararse contigo.</p><input class="ans" id="psearch" placeholder="Buscar por nombre…" autocomplete="off"><div id="presults"></div>
-    ${friends.length?`<div class="lb-list" style="margin-top:6px">${friends.map(person).join("")}</div>`:`<p class="hint">Todavía no has añadido a nadie.</p>`}</div>
+    <p class="eyebrow" data-es="${T("tu círculo")}">Zure jendea</p>
+    <div class="card stack" style="gap:8px"><p class="hint">${T("Añade a tus compañeros de clase o amigos por su nombre. Solo tu círculo puede retarte y compararse contigo.")}</p><input class="ans" id="psearch" placeholder="${T("Buscar por nombre…")}" autocomplete="off"><div id="presults"></div>
+    ${friends.length?`<div class="lb-list" style="margin-top:6px">${friends.map(person).join("")}</div>`:`<p class="hint">${T("Todavía no has añadido a nadie.")}</p>`}</div>
     ${friends.length?`
-    <p class="eyebrow" data-es="reto de 6 frases">Erronka</p>
-    <div class="card stack" style="gap:10px"><p class="hint">Los dos respondéis las mismas 6 frases escribiendo. Gana quien acierte más a la primera.</p><div class="row"><select class="ans" id="duelTo" style="flex:1">${friends.map(opt).join("")}</select></div><div class="row"><button class="btn red sm" id="duel" style="flex:1">Erronka!<small>Retar · escribir 6 frases</small></button><button class="btn sm" id="duelT" style="flex:1">Eraldatu!<small>Retar · transformar 6</small></button></div></div>
-    <p class="eyebrow" data-es="tareas en persona">Elkarrekin</p>
-    ${tasks.length?`<div class="card stack" style="gap:10px"><p class="hint">Haz la tarea con la otra persona (en el café, por mensaje…), escribe aquí lo que te dijo en euskera y ella confirma si está bien.</p><select class="ans" id="taskTo">${friends.map(opt).join("")}</select><select class="ans" id="taskSel">${tasks.map((t,i)=>`<option value="${i}">${esc(t.t.replace("{X}","…"))}</option>`).join("")}</select><input class="ans" id="taskAns" placeholder="Lo que respondió, en euskera"><button class="btn sm" id="sendTask">Bidali<small>Enviar</small></button></div>`:`<p class="hint">Las tareas en persona se desbloquean al introducir las lecciones de presentarse, qué tal, edad…</p>`}`:""}
+    <p class="eyebrow" data-es="${T("reto de 6 frases")}">Erronka</p>
+    <div class="card stack" style="gap:10px"><p class="hint">${T("Los dos respondéis las mismas 6 frases escribiendo. Gana quien acierte más a la primera.")}</p><div class="row"><select class="ans" id="duelTo" style="flex:1">${friends.map(opt).join("")}</select></div><div class="row"><button class="btn red sm" id="duel" style="flex:1">Erronka!<small>${T("Retar · escribir 6 frases")}</small></button><button class="btn sm" id="duelT" style="flex:1">Eraldatu!<small>${T("Retar · transformar 6")}</small></button></div></div>
+    <p class="eyebrow" data-es="${T("tareas en persona")}">Elkarrekin</p>
+    ${tasks.length?`<div class="card stack" style="gap:10px"><p class="hint">${T("Haz la tarea con la otra persona (en el café, por mensaje…), escribe aquí lo que te dijo en euskera y ella confirma si está bien.")}</p><select class="ans" id="taskTo">${friends.map(opt).join("")}</select><select class="ans" id="taskSel">${tasks.map((t,i)=>`<option value="${i}">${esc(T(t.t).replace("{X}","…"))}</option>`).join("")}</select><input class="ans" id="taskAns" placeholder="${T("Lo que respondió, en euskera")}"><button class="btn sm" id="sendTask">Bidali<small>${T("Enviar")}</small></button></div>`:`<p class="hint">${T("Las tareas en persona se desbloquean al introducir las lecciones de presentarse, qué tal, edad…")}</p>`}`:""}
     </div><div class="col">
-    ${chs.length?`<p class="eyebrow" data-es="retos y tareas">Historia</p>${chs.map(c=>renderChallenge(c)).join("")}`:""}</div>`;
+    ${chs.length?`<p class="eyebrow" data-es="${T("retos y tareas")}">Historia</p>${chs.map(c=>renderChallenge(c)).join("")}`:""}</div>`;
   const sel=id=>friends.find(f=>f.id===+id)||{id:+id,name:"?"};
   const ps=document.getElementById("psearch"), pr=document.getElementById("presults"); let tm=null;
-  const wire=()=>{ app.querySelectorAll("[data-friend]").forEach(b=>b.onclick=async()=>{ try{ await api("friends",{id:+b.dataset.friend}); toast("Gehituta · añadido"); renderTeam(); }catch(e){ toast(e.message); } });
+  const wire=()=>{ app.querySelectorAll("[data-friend]").forEach(b=>b.onclick=async()=>{ try{ await api("friends",{id:+b.dataset.friend}); toast("Gehituta · "+T("añadido")); renderTeam(); }catch(e){ toast(e.message); } });
     app.querySelectorAll("[data-unfriend]").forEach(b=>b.onclick=async()=>{ try{ await api("friends/remove",{id:+b.dataset.unfriend}); renderTeam(); }catch(e){ toast(e.message); } }); };
-  ps.oninput=()=>{ clearTimeout(tm); const q=ps.value.trim(); if(q.length<2){ pr.innerHTML=""; return; } tm=setTimeout(async()=>{ try{ const r=await api("people?q="+encodeURIComponent(q)); pr.innerHTML=r.length?`<div class="lb-list">${r.map(person).join("")}</div>`:`<p class="hint">Nadie con ese nombre. Pídele que se registre y te diga cómo se ha puesto.</p>`; wire(); }catch(e){} },250); };
+  ps.oninput=()=>{ clearTimeout(tm); const q=ps.value.trim(); if(q.length<2){ pr.innerHTML=""; return; } tm=setTimeout(async()=>{ try{ const r=await api("people?q="+encodeURIComponent(q)); pr.innerHTML=r.length?`<div class="lb-list">${r.map(person).join("")}</div>`:`<p class="hint">${T("Nadie con ese nombre. Pídele que se registre y te diga cómo se ha puesto.")}</p>`; wire(); }catch(e){} },250); };
   wire();
   const d=document.getElementById("duel"); if(d) d.onclick=()=>{ const to=sel(document.getElementById("duelTo").value); const pool=catalog().filter(i=>m[i.key]); const items=shuffle(pool.length>=6?pool:catalog()).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||""})); startSession({items,label:"Erronka vs "+to.name,challenge:{toId:to.id,items}}); };
   const dt=document.getElementById("duelT"); if(dt) dt.onclick=()=>{ const to=sel(document.getElementById("duelTo").value); const pool=catalog().filter(i=>transformsFor(i.eu).length); const items=shuffle(pool).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||"",tr:pick(transformsFor(i.eu))})); startSession({items,label:"Eraldatu vs "+to.name,challenge:{toId:to.id,items,transform:true},forceTransform:true}); };
-  const st=document.getElementById("sendTask"); if(st) st.onclick=async()=>{ const to=sel(document.getElementById("taskTo").value), t=tasks[+document.getElementById("taskSel").value], ans=document.getElementById("taskAns").value.trim(); if(!ans) return toast("Escribe la respuesta primero"); try{ await api("challenges",{toId:to.id,kind:"task",payload:{text:t.t.replace("{X}",to.name),check:t.check},fromResult:{answer:ans}}); toast("Bidalita · enviado"); renderTeam(); }catch(e){ toast(e.message); } };
+  const st=document.getElementById("sendTask"); if(st) st.onclick=async()=>{ const to=sel(document.getElementById("taskTo").value), t=tasks[+document.getElementById("taskSel").value], ans=document.getElementById("taskAns").value.trim(); if(!ans) return toast(T("Escribe la respuesta primero")); try{ await api("challenges",{toId:to.id,kind:"task",payload:{text:T(t.t).replace("{X}",to.name),check:t.check},fromResult:{answer:ans}}); toast("Bidalita · "+T("enviado")); renderTeam(); }catch(e){ toast(e.message); } };
   app.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>{ const c=chs.find(x=>x.id===+b.dataset.play); startSession({items:c.payload.items,label:(c.payload.transform?"Eraldatu de ":"Erronka de ")+c.from,challenge:{id:c.id},forceTransform:!!c.payload.transform}); });
   app.querySelectorAll("[data-ok]").forEach(b=>b.onclick=async()=>{ const id=+b.dataset.ok, fix=(app.querySelector(`[data-fix="${id}"]`)||{}).value||""; try{ await api(`challenges/${id}/result`,{result:{ok:b.dataset.v==="1",fix}}); renderTeam(); }catch(e){ toast(e.message); } });
 }
 function renderChallenge(c){
-  const who=`<div class="who"><span class="av">${esc(c.from[0].toUpperCase())}</span>${esc(c.from)}${c.mine?" (tú)":""} <span class="muted">→</span> <span class="av">${esc(c.to[0].toUpperCase())}</span>${esc(c.to)}${c.forMe?" (tú)":""}</div>`;
+  const who=`<div class="who"><span class="av">${esc(c.from[0].toUpperCase())}</span>${esc(c.from)}${c.mine?" "+T("(tú)"):""} <span class="muted">→</span> <span class="av">${esc(c.to[0].toUpperCase())}</span>${esc(c.to)}${c.forMe?" "+T("(tú)"):""}</div>`;
   if(c.kind==="duel"){
     const a=c.fromResult, b=c.toResult;
-    if(a&&b) return `<div class="ch">${who}<div class="vs"><b class="${a.score>b.score?"w":""}">${a.score}/${a.total}</b><span class="muted">vs</span><b class="${b.score>a.score?"w":""}">${b.score}/${b.total}</b></div><p class="hint" style="text-align:center">${a.score===b.score?"Berdinketa · empate":(a.score>b.score?c.from:c.to)+" irabazle · gana"}</p></div>`;
-    if(c.forMe&&!b) return `<div class="ch">${who}<p>${esc(c.from)} te reta: ${c.payload.transform?"6 transformaciones":"6 frases escribiendo"}. ${a?`Ya ha hecho ${a.score}/${a.total}.`:""}</p><button class="btn red sm" data-play="${c.id}">Onartu<small>Jugar</small></button></div>`;
-    return `<div class="ch">${who}<p class="hint">Tu resultado: ${a?a.score+"/"+a.total:"–"}. Esperando a ${esc(c.to)}.</p></div>`;
+    if(a&&b) return `<div class="ch">${who}<div class="vs"><b class="${a.score>b.score?"w":""}">${a.score}/${a.total}</b><span class="muted">vs</span><b class="${b.score>a.score?"w":""}">${b.score}/${b.total}</b></div><p class="hint" style="text-align:center">${a.score===b.score?T("Berdinketa · empate"):(a.score>b.score?c.from:c.to)+" "+T("irabazle · gana")}</p></div>`;
+    if(c.forMe&&!b) return `<div class="ch">${who}<p>${esc(c.from)} ${T("te reta:")} ${c.payload.transform?T("6 transformaciones"):T("6 frases escribiendo")}. ${a?`${T("Ya ha hecho")} ${a.score}/${a.total}.`:""}</p><button class="btn red sm" data-play="${c.id}">Onartu<small>${T("Jugar")}</small></button></div>`;
+    return `<div class="ch">${who}<p class="hint">${T("Tu resultado:")} ${a?a.score+"/"+a.total:"–"}. ${T("Esperando a")} ${esc(c.to)}.</p></div>`;
   }
   const r=c.toResult, mine=c.fromResult||{};
   return `<div class="ch">${who}<p style="font-size:15px">${esc(c.payload.text)}</p><p><b style="color:var(--red)">${esc(mine.answer||"")}</b></p>
-    ${r?`<p class="hint">${r.ok?"✅ Confirmado por "+esc(c.to):"✏️ Corrección de "+esc(c.to)+": <b>"+esc(r.fix||"")+"</b>"}</p>`:c.forMe?`<p class="hint">¿Es lo que dijiste? Si no, escribe la forma correcta.</p><input class="ans" data-fix="${c.id}" placeholder="Corrección (opcional)"><div class="row"><button class="btn sm" data-ok="${c.id}" data-v="1">Zuzena ✓<small>Correcto</small></button><button class="btn ghost sm" data-ok="${c.id}" data-v="0">Zuzendu<small>Corregir</small></button></div>`:`<p class="hint">Esperando confirmación de ${esc(c.to)}.</p>`}</div>`;
+    ${r?`<p class="hint">${r.ok?T("✅ Confirmado por")+" "+esc(c.to):T("✏️ Corrección de")+" "+esc(c.to)+": <b>"+esc(r.fix||"")+"</b>"}</p>`:c.forMe?`<p class="hint">${T("¿Es lo que dijiste? Si no, escribe la forma correcta.")}</p><input class="ans" data-fix="${c.id}" placeholder="${T("Corrección (opcional)")}"><div class="row"><button class="btn sm" data-ok="${c.id}" data-v="1">Zuzena ✓<small>${T("Correcto")}</small></button><button class="btn ghost sm" data-ok="${c.id}" data-v="0">Zuzendu<small>${T("Corregir")}</small></button></div>`:`<p class="hint">${T("Esperando confirmación de")} ${esc(c.to)}.</p>`}</div>`;
 }
 async function finishChallenge(score,total){
   const c=SES.challenge; const answers=SES.answers;
@@ -821,14 +825,14 @@ async function finishChallenge(score,total){
     else await api("challenges",{toId:c.toId,kind:"duel",payload:{items:c.items,transform:!!c.transform},fromResult:{score,total}});
     P=await api("round",{lessonId:null,ok:score,total:Math.max(total,1)});
   }catch(e){ toast(e.message); }
-  app.innerHTML=`<div class="head pad" style="padding-bottom:28px;text-align:center"><div class="lb">${LAUBURU}</div><p class="eyebrow" data-es="Reto terminado">Erronka amaituta</p><h1 style="margin-top:6px">${score}/${total}</h1><p class="sub" style="max-width:none">${c.id?"Resultado enviado. Mira el marcador en Taldea.":"Reto enviado. Cuando conteste, veréis el marcador en Taldea."}</p></div><div class="stack pad" style="padding-top:18px"><button class="btn" id="home">Taldera<small>ir a Taldea</small></button></div>`;
+  app.innerHTML=`<div class="head pad" style="padding-bottom:28px;text-align:center"><div class="lb">${LAUBURU}</div><p class="eyebrow" data-es="${T("Reto terminado")}">Erronka amaituta</p><h1 style="margin-top:6px">${score}/${total}</h1><p class="sub" style="max-width:none">${c.id?T("Resultado enviado. Mira el marcador en Taldea."):T("Reto enviado. Cuando conteste, veréis el marcador en Taldea.")}</p></div><div class="stack pad" style="padding-top:18px"><button class="btn" id="home">Taldera<small>${T("ir a Taldea")}</small></button></div>`;
   document.getElementById("home").onclick=()=>setTab("taldea");
 }
 
 // ---------- DATUAK ----------
 async function renderStats(){
-  app.innerHTML=header("Datuak · lo que de verdad se queda")+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
-  let data; try{ data=await api("stats"); }catch(e){ app.querySelector(".stack").innerHTML=`<p class="err">No se pudieron cargar los datos.</p>`; return; }
+  app.innerHTML=header("Datuak · "+T("lo que de verdad se queda"))+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
+  let data; try{ data=await api("stats"); }catch(e){ app.querySelector(".stack").innerHTML=`<p class="err">${T("No se pudieron cargar los datos.")}</p>`; return; }
   const COLORS=["#B8281F","#2A7A4F","#D9A441","#3B6EA5","#8E4A9E","#C8683A"];
   const all=data.users.slice().sort((a,b)=>b.weekXp-a.weekXp||b.consolidated-a.consolidated).map((u,i)=>({...u,color:COLORS[i%COLORS.length]}));
   const users=all.filter(u=>u.me||u.friend); const top=all.filter(u=>u.weekXp>0).slice(0,20); const me=all.find(u=>u.me);
@@ -840,22 +844,32 @@ async function renderStats(){
   const m=imap(); const soon=ITEMS.filter(i=>i.due>data.days[6]).length;
   app.querySelector(".stack").classList.add("cols");
   app.querySelector(".stack").innerHTML=`<div class="col">
-    <div class="stats"><div class="stat g"><b style="display:flex;justify-content:center;align-items:center;gap:6px"><span style="display:inline-flex;width:22px;height:22px">${LAUBURU}</span>${me.consolidated}</b><span>Sendoak · firmes</span></div><div class="stat"><b>${me.learned}</b><span>Ikasten · en estudio</span></div><div class="stat"><b>🔥 ${me.streak}</b><span>Egunak · seguidos</span></div><div class="stat"><b>${me.accuracy}%</b><span>Lehenengoan · a la primera</span></div></div>
-    <p class="hint">Firme = la has acertado tantas veces que no hace falta repasarla hasta dentro de una semana o más. ${soon?`${soon} frases programadas para más adelante.`:""}</p>
-    <p class="eyebrow" data-es="Ranking de la semana · entre todo el mundo">Asteko sailkapena</p>
-    ${rk.position?`<p class="hint">Vas <b>${rk.position}ª de ${rk.active}</b> personas que han practicado esta semana${rk.total>rk.active?` (${rk.total} en total)`:""}.</p>`:`<p class="hint">Practica una ronda y entras en el ranking de la semana (${rk.active||0} personas activas).</p>`}
-    <div class="card lb-list">${(top.some(u=>u.me)||!me.weekXp?top:[...top,me]).map((u,i)=>`<div class="lbrow ${u.me?"me":""}"><span class="rank">${u.weekXp>0?(["🥇","🥈","🥉"][i]||(u.me&&!top.some(x=>x.me)?rk.position:i+1)):"–"}</span><span class="av" style="background:${u.color}">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}${u.me?" (tú)":u.friend?" ★":""}</b>${u.practicedToday?" <span class='muted' style='font-size:13px'>· gaur 🔥</span>":""}<i class="wbar"><i style="width:${Math.round(u.weekXp/maxW*100)}%;background:${u.color}"></i></i></span><b class="num">${u.weekXp}<span class="muted" style="font-size:13px;font-family:var(--body)"> XP</span></b></div>`).join("")}</div>
-    <p class="hint">${daysLeft===1?"Último día de la semana.":`Quedan ${daysLeft} días de semana.`} Cada frase acertada son 10 XP. ★ = gente de tu círculo.</p>
+    <div class="stats"><div class="stat g"><b style="display:flex;justify-content:center;align-items:center;gap:6px"><span style="display:inline-flex;width:22px;height:22px">${LAUBURU}</span>${me.consolidated}</b><span>${T("Sendoak · firmes")}</span></div><div class="stat"><b>${me.learned}</b><span>${T("Ikasten · en estudio")}</span></div><div class="stat"><b>🔥 ${me.streak}</b><span>${T("Egunak · seguidos")}</span></div><div class="stat"><b>${me.accuracy}%</b><span>${T("Lehenengoan · a la primera")}</span></div></div>
+    <p class="hint">${T("Firme = la has acertado tantas veces que no hace falta repasarla hasta dentro de una semana o más.")} ${soon?`${soon} ${T("frases programadas para más adelante.")}`:""}</p>
+    <p class="eyebrow" data-es="${T("Ranking de la semana · entre todo el mundo")}">Asteko sailkapena</p>
+    ${rk.position?`<p class="hint">${L2(`Vas <b>${rk.position}ª de ${rk.active}</b>`,`You are <b>#${rk.position} of ${rk.active}</b>`)} ${T("personas que han practicado esta semana")}${rk.total>rk.active?` (${rk.total} ${T("en total")})`:""}.</p>`:`<p class="hint">${T("Practica una ronda y entras en el ranking de la semana")} (${rk.active||0} ${T("personas activas")}).</p>`}
+    <div class="card lb-list">${(top.some(u=>u.me)||!me.weekXp?top:[...top,me]).map((u,i)=>`<div class="lbrow ${u.me?"me":""}"><span class="rank">${u.weekXp>0?(["🥇","🥈","🥉"][i]||(u.me&&!top.some(x=>x.me)?rk.position:i+1)):"–"}</span><span class="av" style="background:${u.color}">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}${u.me?" "+T("(tú)"):u.friend?" ★":""}</b>${u.practicedToday?" <span class='muted' style='font-size:13px'>· gaur 🔥</span>":""}<i class="wbar"><i style="width:${Math.round(u.weekXp/maxW*100)}%;background:${u.color}"></i></i></span><b class="num">${u.weekXp}<span class="muted" style="font-size:13px;font-family:var(--body)"> XP</span></b></div>`).join("")}</div>
+    <p class="hint">${daysLeft===1?T("Último día de la semana."):`${T("Quedan")} ${daysLeft} ${T("días de semana.")}`} ${T("Cada frase acertada son 10 XP. ★ = gente de tu círculo.")}</p>
     </div><div class="col">
-    <p class="eyebrow" data-es="XP por día">Azken 7 egunak</p>
+    <p class="eyebrow" data-es="${T("XP por día")}">Azken 7 egunak</p>
     <div class="card"><div class="chart">${data.days.map((d,i)=>`<div class="d"><div class="bars">${active.map(u=>`<i style="height:${Math.round(u.perDay[i]/mx*100)}%;background:${u.color}" title="${esc(u.name)}: ${u.perDay[i]} XP"></i>`).join("")}</div><small>${dayLabel(d)}</small></div>`).join("")}</div><div class="legend" style="margin-top:10px">${active.map(u=>`<span><i style="background:${u.color}"></i>${esc(u.name)}</span>`).join("")}</div></div>
-    <p class="eyebrow" data-es="tú y tu círculo">Zure jendea</p>
-    <div class="tabwrap"><table class="stab"><tr><th></th><th title="Firmes">Sendo</th><th title="En estudio">Ikast</th><th title="XP semana">Astea</th><th title="XP total">Guzt</th><th>🔥</th><th>%</th></tr>${users.map(u=>`<tr class="${u.me?"me":""}"><td class="lab"><span class="dot" style="background:${u.color}"></span>${esc(u.name)}</td>${cell(u,"consolidated")}${cell(u,"learned")}${cell(u,"weekXp")}${cell(u,"xp")}${cell(u,"streak")}${cell(u,"accuracy",x=>x+"%")}</tr>`).join("")}</table></div>
-    <p class="hint">Sendo = firmes · Ikast = en estudio · Astea = XP de la semana · Guzt = XP total · 🔥 = racha · % = aciertos a la primera.${users.length<2?" Añade gente en Taldea para compararte.":""}</p></div>`;
+    <p class="eyebrow" data-es="${T("tú y tu círculo")}">Zure jendea</p>
+    <div class="tabwrap"><table class="stab"><tr><th></th><th title="${T("Firmes")}">Sendo</th><th title="${T("En estudio")}">Ikast</th><th title="${T("XP semana")}">Astea</th><th title="${T("XP total")}">Guzt</th><th>🔥</th><th>%</th></tr>${users.map(u=>`<tr class="${u.me?"me":""}"><td class="lab"><span class="dot" style="background:${u.color}"></span>${esc(u.name)}</td>${cell(u,"consolidated")}${cell(u,"learned")}${cell(u,"weekXp")}${cell(u,"xp")}${cell(u,"streak")}${cell(u,"accuracy",x=>x+"%")}</tr>`).join("")}</table></div>
+    <p class="hint">${T("Sendo = firmes · Ikast = en estudio · Astea = XP de la semana · Guzt = XP total · 🔥 = racha · % = aciertos a la primera.")}${users.length<2?T(" Añade gente en Taldea para compararte."):""}</p></div>`;
 }
 
 // arranque
-api("me").then(async p=>{ P=p; await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["gaur","ikasgaiak","taldea","datuak"].includes(h)?h:"gaur"); }).catch(()=>renderLogin());
+function applyStatic(){ document.querySelectorAll("[data-t]").forEach(el=>el.textContent=T(el.dataset.t)); document.documentElement.lang=LANG||"es"; }
+function renderLangPick(){
+  noTabs();
+  app.innerHTML=`<div class="head pad" style="padding-bottom:26px"><div class="lb">${LAUBURU}</div><div class="row" style="gap:18px;position:relative"><div class="olen">${OLEN("wave",80)}</div><div><p class="eyebrow">Euskara praktika</p><h1>Ongi etorri!</h1><p style="color:var(--on-color);font-weight:600;font-size:13px">Bienvenido/a · Welcome</p></div></div></div>
+   <div class="stack pad" style="padding-top:22px"><p class="eyebrow">Zein hizkuntzatan?</p><p class="muted">Las traducciones y explicaciones, ¿en qué idioma?<br>Translations and explanations in which language?</p>
+    <button class="btn red" data-lang="es">Gaztelania<small>Castellano</small></button><button class="btn" data-lang="en">Ingelesa<small>English</small></button></div>`;
+  app.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ setLang(b.dataset.lang); applyStatic(); renderLogin(); });
+}
+const _renderLogin=renderLogin; renderLogin=function(){ if(!LANG) return renderLangPick(); _renderLogin(); const cl=document.getElementById("chlang"); if(cl) cl.onclick=()=>{ setLang(LANG==="en"?"es":"en"); applyStatic(); renderLogin(); }; };
+applyStatic();
+api("me").then(async p=>{ P=p; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["gaur","ikasgaiak","taldea","datuak"].includes(h)?h:"gaur"); }).catch(()=>renderLogin());
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
