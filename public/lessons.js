@@ -4,9 +4,20 @@
 // pattern:   la estructura clave, con ___ donde va la palabra que cambia
 // tips:      [{t: título, b: explicación}] -> cajas de "cómo funciona"
 // dialogue:  [[quién, euskera, castellano], ...] -> mini diálogo de ejemplo
+// Módulos del A1 (según el currículo HEOC adaptado): las lecciones llevan `module`. Los que aún no tienen lecciones muestran las previstas.
+window.MODULES = [
+  { id: 1, eu: "Ni", es: "Yo", en: "Me", desc: "Saludar, presentarte, cómo estás, edad, gustos" },
+  { id: 2, eu: "Nire mundua", es: "Mi mundo", en: "My world", desc: "Familia, ser y estar, profesiones, preguntas, dónde vives, tener" },
+  { id: 3, eu: "Etxea eta hiria", es: "Casa y ciudad", en: "Home and city", desc: "La casa, el barrio, dónde está, direcciones", planned: ["La casa y sus habitaciones", "Muebles y objetos: ba al dago?", "El barrio: tiendas y servicios", "Direcciones: nora, nondik", "Describir lugares"] },
+  { id: 4, eu: "Jendea", es: "La gente", en: "People", desc: "Describir personas, carácter, amigos, de quién es, números hasta 100", planned: ["Describir personas: aspecto", "Carácter y ánimo", "Amigos, pareja, vecinos", "Noren da? Posesión", "Números 20–100, teléfono, dirección"] },
+  { id: 5, eu: "On egin!", es: "¡Que aproveche!", en: "Enjoy your meal!", desc: "Comida, pedir en el bar, gustos, compras y precios", planned: ["Comidas y bebidas", "En el bar: pedir", "Gustos de comida", "Compras: cuánto cuesta", "Pintxo-pote y costumbres"] },
+  { id: 6, eu: "Egunerokoa", es: "El día a día", en: "Everyday life", desc: "Las horas, fechas, rutina, frecuencia, planes", planned: ["Las horas", "Días, meses y fechas", "Rutina diaria", "Frecuencia: beti, askotan, inoiz ez", "Planes: bihar, asteburuan"] },
+  { id: 7, eu: "Aisia eta eguraldia", es: "Ocio y tiempo", en: "Leisure and weather", desc: "Aficiones, fin de semana, el tiempo, quedar, cómo te sientes", planned: ["Deportes y aficiones", "Fin de semana: nora zoaz?", "El tiempo: euria ari du", "Quedar: invitar y rechazar", "Cuerpo y cómo me siento"] },
+  { id: 8, eu: "Atzo", es: "Ayer", en: "Yesterday", desc: "El pasado de ser y tener, contar el fin de semana, Euskal Herria", planned: ["Pasado de izan", "Pasado de ukan", "Contar el fin de semana", "Euskal Herria: territorios y fiestas", "Repaso del A1"] }
+];
 window.LESSONS = [
   {
-    id: "l1", title: "Saludos y despedidas", desc: "Kaixo, egun on, agur…", emoji: "👋", scene: { emoji: "☕", title: "Kafetegian · en el café" },
+    id: "l1", module: 1, title: "Saludos y despedidas", desc: "Kaixo, egun on, agur…", emoji: "👋", scene: { emoji: "☕", title: "Kafetegian · en el café" },
     pairs: [["Kaixo", "Hola", "👋"], ["Egun on", "Buenos días", "🌅"], ["Arratsalde on", "Buenas tardes", "🌇"], ["Gabon", "Buenas noches", "🌙"], ["Agur", "Adiós", "🚪"], ["Ikusi arte", "Hasta la vista", "👀"], ["Gero arte", "Hasta luego", "⏰"], ["Eskerrik asko", "Gracias", "🙏"]],
     sentences: [["Egun on!", "¡Buenos días!"], ["Kaixo! Zer moduz?", "¡Hola! ¿Qué tal?"], ["Agur, gero arte!", "¡Adiós, hasta luego!"]],
     pattern: "___ on",
@@ -14,7 +25,7 @@ window.LESSONS = [
     dialogue: [["A", "Kaixo!", "¡Hola!"], ["B", "Egun on! Zer moduz?", "¡Buenos días! ¿Qué tal?"], ["A", "Ondo. Agur, gero arte!", "Bien. ¡Adiós, hasta luego!"]]
   },
   {
-    id: "l2", title: "Presentarse", desc: "Nola duzu izena? Ni … naiz", emoji: "🙋", scene: { emoji: "☕", title: "Kafetegian · en el café" },
+    id: "l2", module: 1, title: "Presentarse", desc: "Nola duzu izena? Ni … naiz", emoji: "🙋", scene: { emoji: "☕", title: "Kafetegian · en el café" },
     pairs: [["Nola duzu izena?", "¿Cómo te llamas?", "❓"], ["Zein da zure izena?", "¿Cuál es tu nombre?", "🪪"], ["Ni Ane naiz", "Yo soy Ane", "🙋‍♀️"], ["Nire izena Ane da", "Mi nombre es Ane", "✍️"], ["Pozten naiz", "Encantado/a", "🤝"], ["ni", "yo", "👤"], ["nire", "mi", "👈"], ["izena", "nombre", "🏷️"]],
     sentences: [["Ni Mikel naiz.", "Yo soy Mikel."], ["Nire izena Ane da.", "Mi nombre es Ane."], ["Nola duzu izena?", "¿Cómo te llamas?"], ["Pozten naiz!", "¡Encantado!"]],
     pattern: "Ni ___ naiz",
@@ -22,7 +33,7 @@ window.LESSONS = [
     dialogue: [["A", "Nola duzu izena?", "¿Cómo te llamas?"], ["B", "Ni Mikel naiz. Eta zu?", "Yo soy Mikel. ¿Y tú?"], ["A", "Nire izena Ane da. Pozten naiz!", "Mi nombre es Ane. ¡Encantada!"]]
   },
   {
-    id: "l3", title: "¿Qué tal?", desc: "Zer moduz? Ondo, eta zu?", emoji: "😊", scene: { emoji: "🚶", title: "Kalean · por la calle" },
+    id: "l3", module: 1, title: "¿Qué tal?", desc: "Zer moduz? Ondo, eta zu?", emoji: "😊", scene: { emoji: "🚶", title: "Kalean · por la calle" },
     pairs: [["Zer moduz?", "¿Qué tal?", "❓"], ["Oso ondo", "Muy bien", "😄"], ["Ondo", "Bien", "🙂"], ["Hala-hola", "Así así", "😐"], ["Gaizki", "Mal", "😞"], ["Nekatuta", "Cansado/a", "🥱"], ["Eta zu?", "¿Y tú?", "👉"], ["Zer moduz zaude?", "¿Cómo estás?", "💬"]],
     sentences: [["Ondo, eskerrik asko. Eta zu?", "Bien, gracias. ¿Y tú?"], ["Oso ondo nago.", "Estoy muy bien."], ["Hala-hola, nekatuta nago.", "Así así, estoy cansado."]],
     pattern: "___ nago",
@@ -30,7 +41,7 @@ window.LESSONS = [
     dialogue: [["A", "Zer moduz?", "¿Qué tal?"], ["B", "Oso ondo, eskerrik asko. Eta zu?", "Muy bien, gracias. ¿Y tú?"], ["A", "Hala-hola, nekatuta nago.", "Así así, estoy cansada."]]
   },
   {
-    id: "l4", title: "La edad y los números", desc: "Zenbat urte dituzu?", emoji: "🎂", scene: { emoji: "🎂", title: "Urtebetetzean · en un cumpleaños" }, countable: "🍎",
+    id: "l4", module: 1, title: "La edad y los números", desc: "Zenbat urte dituzu?", emoji: "🎂", scene: { emoji: "🎂", title: "Urtebetetzean · en un cumpleaños" }, countable: "🍎",
     pairs: [["Zenbat urte dituzu?", "¿Cuántos años tienes?", "🎂"], ["urte", "año(s)", "📅"], ["bat", "1", "1️⃣"], ["bi", "2", "2️⃣"], ["hiru", "3", "3️⃣"], ["lau", "4", "4️⃣"], ["bost", "5", "5️⃣"], ["sei", "6", "6️⃣"], ["zazpi", "7", "7️⃣"], ["zortzi", "8", "8️⃣"], ["bederatzi", "9", "9️⃣"], ["hamar", "10", "🔟"], ["hamaika", "11", "🔢"], ["hamabi", "12", "🔢"], ["hamabost", "15", "🔢"], ["hogei", "20", "🔢"], ["hogeita hamar", "30", "🔢"], ["berrogei", "40", "🔢"], ["berrogeita hamar", "50", "🔢"], ["hirurogei", "60", "🔢"], ["hogeita bost", "25", "🔢"], ["berrogeita bi", "42", "🔢"]],
     sentences: [["Zenbat urte dituzu?", "¿Cuántos años tienes?"], ["Hogeita hamar urte ditut.", "Tengo treinta años."], ["Hogeita zortzi urte ditut.", "Tengo veintiocho años."], ["Berrogei urte ditu.", "Tiene cuarenta años."]],
     pattern: "___ urte ditut",
@@ -38,7 +49,7 @@ window.LESSONS = [
     dialogue: [["A", "Zenbat urte dituzu?", "¿Cuántos años tienes?"], ["B", "Hogeita hamabost urte ditut. Eta zuk?", "Tengo treinta y cinco. ¿Y tú?"], ["A", "Berrogei urte ditut.", "Tengo cuarenta."]]
   },
   {
-    id: "l5", title: "Gustos", desc: "Gustatzen zait / zaizkit", emoji: "❤️", scene: { emoji: "🍢", title: "Pintxo-potean · de pintxos" },
+    id: "l5", module: 1, title: "Gustos", desc: "Gustatzen zait / zaizkit", emoji: "❤️", scene: { emoji: "🍢", title: "Pintxo-potean · de pintxos" },
     pairs: [["Zer gustatzen zaizu?", "¿Qué te gusta?", "❓"], ["Musika gustatzen zait", "Me gusta la música", "🎵"], ["Liburuak gustatzen zaizkit", "Me gustan los libros", "📚"], ["Ez zait gustatzen hotza", "No me gusta el frío", "🥶"], ["Asko gustatzen zait", "Me gusta mucho", "❤️"], ["zinema", "cine", "🎬"], ["kirola", "deporte", "⚽"], ["janaria", "comida", "🍽️"], ["pintxoak", "pintxos", "🍢"], ["bidaiatzea", "viajar", "✈️"], ["sukaldatzea", "cocinar", "🍳"], ["hotza", "frío", "❄️"]],
     sentences: [["Musika gustatzen zait.", "Me gusta la música."], ["Pintxoak gustatzen zaizkit.", "Me gustan los pintxos."], ["Ez zait gustatzen hotza.", "No me gusta el frío."], ["Zinema asko gustatzen zait.", "Me gusta mucho el cine."]],
     pattern: "___ gustatzen zait",
@@ -46,7 +57,7 @@ window.LESSONS = [
     dialogue: [["A", "Zer gustatzen zaizu?", "¿Qué te gusta?"], ["B", "Zinema asko gustatzen zait. Eta zuri?", "Me gusta mucho el cine. ¿Y a ti?"], ["A", "Pintxoak gustatzen zaizkit!", "¡Me gustan los pintxos!"]]
   },
   {
-    id: "l6", title: "Hermanos y hermanas", desc: "Anaia, neba, arreba, ahizpa", emoji: "👨‍👩‍👧‍👦", scene: { emoji: "👨‍👩‍👧‍👦", title: "Familian · en familia" },
+    id: "l6", module: 2, title: "Hermanos y hermanas", desc: "Anaia, neba, arreba, ahizpa", emoji: "👨‍👩‍👧‍👦", scene: { emoji: "👨‍👩‍👧‍👦", title: "Familian · en familia" },
     grid: { title: "La palabra depende de TU género, no del de tu hermano/a", cols: ["👧 Si eres chica", "👦 Si eres chico"], rows: [["hermano", "neba", "anaia"], ["hermana", "ahizpa", "arreba"], ["hermanos (mixto)", "neba-arrebak", "anai-arrebak"]] },
     pairs: [["neba", "hermano (dice una chica)", "👧➡️👦"], ["anaia", "hermano (dice un chico)", "👦➡️👦"], ["ahizpa", "hermana (dice una chica)", "👧➡️👧"], ["arreba", "hermana (dice un chico)", "👦➡️👧"], ["neba-arrebak", "hermanos (dice una chica)", "👧➡️👫"], ["anai-arrebak", "hermanos (dice un chico)", "👦➡️👫"], ["Anai-arrebarik baduzu?", "¿Tienes hermanos?", "❓"], ["Ez dut anai-arrebarik", "No tengo hermanos", "🚫"], ["bat dut", "tengo uno/una", "1️⃣"], ["bi ditut", "tengo dos", "2️⃣"], ["familia", "familia", "🏡"]],
     sentences: [["Ahizpa bat dut.", "Tengo una hermana (dice una chica)."], ["Anaia bat eta arreba bat ditut.", "Tengo un hermano y una hermana (dice un chico)."], ["Neba bi ditut.", "Tengo dos hermanos (dice una chica)."], ["Ez dut anai-arrebarik.", "No tengo hermanos."]],
@@ -55,7 +66,7 @@ window.LESSONS = [
     dialogue: [["A", "Anai-arrebarik baduzu?", "¿Tienes hermanos?"], ["B", "Bai, ahizpa bat eta neba bat ditut. Eta zuk?", "Sí, tengo una hermana y un hermano (habla una chica). ¿Y tú?"], ["A", "Ez, ez dut anai-arrebarik.", "No, no tengo hermanos."]]
   },
   {
-    id: "l7", title: "Pronombres y ser/estar", desc: "Ni, zu, hura… + naiz/nago", emoji: "👥", scene: { emoji: "🏫", title: "Ikasgelan · en clase" },
+    id: "l7", module: 2, title: "Pronombres y ser/estar", desc: "Ni, zu, hura… + naiz/nago", emoji: "👥", scene: { emoji: "🏫", title: "Ikasgelan · en clase" },
     grid: { title: "Pronombre + ser (izan) + estar (egon)", cols: ["izan · ser", "egon · estar"], rows: [["ni (yo)", "naiz", "nago"], ["zu (tú)", "zara", "zaude"], ["hura (él/ella)", "da", "dago"], ["gu (nosotros)", "gara", "gaude"], ["zuek (vosotros)", "zarete", "zaudete"], ["haiek (ellos)", "dira", "daude"]] },
     pairs: [["ni", "yo", "🙋"], ["zu", "tú", "👉"], ["hura", "él / ella", "👤"], ["gu", "nosotros/as", "👫"], ["zuek", "vosotros/as", "👥"], ["haiek", "ellos/as", "👨‍👩‍👧‍👦"], ["Gu lagunak gara", "Nosotros somos amigos", "🤝"], ["Haiek ikasleak dira", "Ellos son estudiantes", "🎓"], ["Zuek nekatuta zaudete", "Vosotros estáis cansados", "🥱"], ["Gu ondo gaude", "Nosotros estamos bien", "🙂"], ["Hura pozik dago", "Él/ella está contento/a", "😄"], ["pozik", "contento/a", "😄"], ["lagunak", "amigos", "🤝"], ["ikasleak", "estudiantes", "🎓"]],
     sentences: [["Gu lagunak gara.", "Nosotros somos amigos."], ["Zuek ikasleak zarete.", "Vosotros sois estudiantes."], ["Haiek ondo daude.", "Ellos están bien."], ["Hura nekatuta dago.", "Él/ella está cansado/a."]],
@@ -64,7 +75,7 @@ window.LESSONS = [
     dialogue: [["A", "Zuek lagunak zarete?", "¿Vosotros sois amigos?"], ["B", "Bai, gu lagunak gara. Eta ikasleak gara.", "Sí, somos amigos. Y somos estudiantes."], ["A", "Nekatuta zaudete?", "¿Estáis cansados?"], ["B", "Ez, ondo gaude!", "¡No, estamos bien!"]]
   },
   {
-    id: "l8", title: "Profesiones", desc: "Zer zara? Irakaslea naiz", emoji: "💼", scene: { emoji: "☕", title: "Kafetegian · en el café" },
+    id: "l8", module: 2, title: "Profesiones", desc: "Zer zara? Irakaslea naiz", emoji: "💼", scene: { emoji: "☕", title: "Kafetegian · en el café" },
     pairs: [["Zer zara?", "¿Qué eres? (profesión)", "❓"], ["irakaslea", "profesor/a", "👩‍🏫"], ["ikaslea", "estudiante", "🎓"], ["medikua", "médico/a", "🩺"], ["erizaina", "enfermero/a", "💉"], ["sukaldaria", "cocinero/a", "👩‍🍳"], ["zerbitzaria", "camarero/a", "🍽️"], ["abokatua", "abogado/a", "⚖️"], ["arkitektoa", "arquitecto/a", "📐"], ["ingeniaria", "ingeniero/a", "⚙️"], ["diseinatzailea", "diseñador/a", "🎨"], ["dendaria", "dependiente/a, tendero/a", "🛍️"], ["langabea", "desempleado/a", "📭"], ["lana", "trabajo", "💼"], ["Non egiten duzu lan?", "¿Dónde trabajas?", "📍"]],
     sentences: [["Ni irakaslea naiz.", "Yo soy profesor/a."], ["Zu medikua zara.", "Tú eres médico/a."], ["Ane sukaldaria da.", "Ane es cocinera."], ["Gu ikasleak gara.", "Nosotros somos estudiantes."], ["Zer zara? Diseinatzailea naiz.", "¿Qué eres? Soy diseñador/a."]],
     pattern: "Ni ___ naiz",
@@ -72,7 +83,7 @@ window.LESSONS = [
     dialogue: [["A", "Zer zara?", "¿Qué eres?"], ["B", "Ni erizaina naiz. Eta zu?", "Yo soy enfermera. ¿Y tú?"], ["A", "Ni diseinatzailea naiz.", "Yo soy diseñadora."]]
   },
   {
-    id: "l9", title: "Nor, zer, zein", desc: "¿Quién? ¿Qué? ¿Cuál?", emoji: "❓", scene: { emoji: "🖼️", title: "Museoan · en el museo" },
+    id: "l9", module: 2, title: "Nor, zer, zein", desc: "¿Quién? ¿Qué? ¿Cuál?", emoji: "❓", scene: { emoji: "🖼️", title: "Museoan · en el museo" },
     grid: { title: "Zer = qué (no sé qué es) · Zein = cuál (hay varios y hay que elegir)", cols: ["zer · qué", "zein · cuál"], rows: [["Zer da hau?", "Zein da zurea?"], ["¿qué es esto?", "¿cuál es el tuyo?"], ["Zer nahi duzu?", "Zein nahi duzu?"], ["¿qué quieres?", "¿cuál quieres?"], ["Zer liburu da?", "Zein liburu da?"], ["¿qué libro es?", "¿cuál libro es? (de estos)"]] },
     pairs: [["nor", "quién", "👤"], ["zer", "qué", "📦"], ["zein", "cuál", "👉"], ["Nor da?", "¿Quién es?", "👤"], ["Zer da hau?", "¿Qué es esto?", "📦"], ["Zein da zurea?", "¿Cuál es el tuyo?", "👉"], ["hau", "esto / este", "👇"], ["hori", "eso / ese", "👉"], ["hura", "aquello / aquel", "☝️"], ["Nor zara?", "¿Quién eres?", "❓"], ["Zer da?", "¿Qué es?", "❓"], ["Hau liburua da", "Esto es un libro", "📚"], ["Hori Ane da", "Esa es Ane", "👩"], ["zurea", "el tuyo / la tuya", "🫵"], ["nirea", "el mío / la mía", "🙋"], ["Zer nahi duzu?", "¿Qué quieres?", "🤲"], ["Zein nahi duzu?", "¿Cuál quieres? (de estos)", "👉"], ["Zein liburu da zurea?", "¿Cuál libro es el tuyo?", "📚"], ["Zer liburu da?", "¿Qué libro es?", "❓"], ["Nor da irakaslea?", "¿Quién es el profesor/a?", "👩‍🏫"], ["Zein da irakaslea?", "¿Cuál es el profesor/a? (de estas personas)", "👉"]],
     sentences: [["Nor da hura?", "¿Quién es aquel/aquella?"], ["Hura nire irakaslea da.", "Aquel/aquella es mi profesor/a."], ["Zer da hau?", "¿Qué es esto?"], ["Hau nire liburua da.", "Esto es mi libro."], ["Zein da zure kafea?", "¿Cuál es tu café?"], ["Hori nirea da.", "Ese es el mío."], ["Zer nahi duzu? Kafea.", "¿Qué quieres? Café."], ["Zein nahi duzu? Hori.", "¿Cuál quieres? Ese."]],
@@ -81,7 +92,7 @@ window.LESSONS = [
     dialogue: [["A", "Nor da hura?", "¿Quién es aquella?"], ["B", "Hura Miren da, nire irakaslea.", "Aquella es Miren, mi profesora."], ["A", "Eta zer da hau?", "¿Y qué es esto?"], ["B", "Hau nire liburua da.", "Esto es mi libro."], ["A", "Zein da zurea, hau ala hori?", "¿Cuál es el tuyo, este o ese?"], ["B", "Hori nirea da.", "Ese es el mío."]]
   },
   {
-    id: "l10", title: "Dónde vives y de dónde eres", desc: "Non bizi zara? Nongoa zara?", emoji: "🌍", scene: { emoji: "✈️", title: "Aireportuan · en el aeropuerto" },
+    id: "l10", module: 2, title: "Dónde vives y de dónde eres", desc: "Non bizi zara? Nongoa zara?", emoji: "🌍", scene: { emoji: "✈️", title: "Aireportuan · en el aeropuerto" },
     grid: { title: "Nongoa zara? (¿de dónde eres?) → lugar + -koa / -ekoa / -goa", cols: ["acaba en…", "ejemplo"], rows: [["vocal → -koa", "Bilbo → Bilbokoa"], ["consonante → -ekoa", "Madril → Madrilekoa"], ["-n → -goa", "Irun → Irungoa"], ["país en vocal → -koa", "Peru → Perukoa"]] },
     pairs: [["Non bizi zara?", "¿Dónde vives?", "🏠"], ["Ni Bilbon bizi naiz", "Yo vivo en Bilbao", "🏙️"], ["Ramon Londresen bizi da", "Ramón vive en Londres", "🇬🇧"], ["Nire osaba Ekuadorren bizi da", "Mi tío vive en Ecuador", "🇪🇨"], ["Gu Perun bizi gara", "Nosotros vivimos en Perú", "🇵🇪"], ["Nongoa zara?", "¿De dónde eres?", "🌍"], ["Ni bilbokoa naiz", "Yo soy de Bilbao", "🏙️"], ["Ni madrilekoa naiz", "Yo soy de Madrid", "🏛️"], ["Ane donostiakoa da", "Ane es de Donostia", "🏖️"], ["Jon irungoa da", "Jon es de Irun", "🌉"], ["Gu argentinakoak gara", "Nosotros somos de Argentina", "🇦🇷"], ["osaba", "tío", "👨"], ["izeba", "tía", "👩"], ["bizi naiz", "vivo", "🏠"], ["bizi da", "vive", "🏠"], ["bizi gara", "vivimos", "🏠"], ["Bilbon", "en Bilbao", "📍"], ["Londresen", "en Londres", "📍"], ["Perun", "en Perú", "📍"], ["Ekuadorren", "en Ecuador", "📍"]],
     sentences: [["Non bizi zara?", "¿Dónde vives?"], ["Ni Bilbon bizi naiz.", "Yo vivo en Bilbao."], ["Ramon Londresen bizi da.", "Ramón vive en Londres."], ["Nire osaba Ekuadorren bizi da.", "Mi tío vive en Ecuador."], ["Gu Perun bizi gara.", "Nosotros vivimos en Perú."], ["Nongoa zara?", "¿De dónde eres?"], ["Ni bilbokoa naiz.", "Yo soy de Bilbao."], ["Nongoa da Ane?", "¿De dónde es Ane?"], ["Ane madrilekoa da.", "Ane es de Madrid."]],
@@ -90,7 +101,7 @@ window.LESSONS = [
     dialogue: [["A", "Nongoa zara?", "¿De dónde eres?"], ["B", "Ni argentinakoa naiz, baina Bilbon bizi naiz. Eta zu?", "Yo soy de Argentina, pero vivo en Bilbao. ¿Y tú?"], ["A", "Ni irungoa naiz eta Donostian bizi naiz.", "Yo soy de Irun y vivo en Donostia."]]
   },
   {
-    id: "l11", title: "Familia", desc: "Ama, aita, gurasoak, seme-alabak…", emoji: "👨‍👩‍👧‍👦", scene: { emoji: "🏡", title: "Etxean · en casa" },
+    id: "l11", module: 2, title: "Familia", desc: "Ama, aita, gurasoak, seme-alabak…", emoji: "👨‍👩‍👧‍👦", scene: { emoji: "🏡", title: "Etxean · en casa" },
     pairs: [["ama", "madre", "👩"], ["aita", "padre", "👨"], ["gurasoak", "padres", "👫"], ["alaba", "hija", "👧"], ["semea", "hijo", "👦"], ["seme-alabak", "hijos (hijos e hijas)", "👧👦"], ["amona / amama", "abuela", "👵"], ["aitona / aitite", "abuelo", "👴"], ["aiton-amonak", "abuelos", "👴👵"], ["osaba", "tío", "🧔"], ["izeba / izeko", "tía", "👩‍🦱"], ["osaba-izebak", "tíos", "🧔👩‍🦱"], ["lehengusua", "primo", "🧑"], ["lehengusina", "prima", "👩"], ["emaztea", "mujer (esposa)", "💍"], ["senarra", "marido", "💍"], ["biloba", "nieto/a", "🧒"], ["iloba", "sobrino/a", "🧒"], ["mutil-laguna", "novio", "💑"], ["neska-laguna", "novia", "💑"], ["familia", "familia", "🏡"], ["neba", "hermano (dice una chica)", "👧➡️👦"], ["anaia", "hermano (dice un chico)", "👦➡️👦"], ["ahizpa", "hermana (dice una chica)", "👧➡️👧"], ["arreba", "hermana (dice un chico)", "👦➡️👧"]],
     sentences: [["Nire ama irakaslea da.", "Mi madre es profesora."], ["Nire gurasoak Bilbon bizi dira.", "Mis padres viven en Bilbao."], ["Nik osaba bat eta izeba bi dauzkat.", "Tengo un tío y dos tías."], ["Nire amona Donostian bizi da.", "Mi abuela vive en Donostia."], ["Zenbat lehengusu dituzu?", "¿Cuántos primos tienes?"], ["Nire senarra medikua da.", "Mi marido es médico."]],
     pattern: "Nire ___ ___ da",
@@ -98,7 +109,7 @@ window.LESSONS = [
     dialogue: [["A", "Nolakoa da zure familia?", "¿Cómo es tu familia?"], ["B", "Nire gurasoak Bilbon bizi dira eta ahizpa bat daukat.", "Mis padres viven en Bilbao y tengo una hermana."], ["A", "Eta aiton-amonak?", "¿Y los abuelos?"], ["B", "Nire amona Donostiakoa da. Aitona ez daukat.", "Mi abuela es de Donostia. Abuelo no tengo."]]
   },
   {
-    id: "l12", title: "Tener: ukan y eduki", desc: "dut / ditut · daukat / dauzkat", emoji: "✋", scene: { emoji: "🎒", title: "Ikastolan · en la escuela" },
+    id: "l12", module: 2, title: "Tener: ukan y eduki", desc: "dut / ditut · daukat / dauzkat", emoji: "✋", scene: { emoji: "🎒", title: "Ikastolan · en la escuela" },
     grid: { title: "Dos verbos para «tener»: ukan (dut) y eduki (daukat). Singular / plural", cols: ["ukan", "eduki"], rows: [["nik dut / ditut", "nik daukat / dauzkat"], ["zuk duzu / dituzu", "zuk daukazu / dauzkazu"], ["hark du / ditu", "hark dauka / dauzka"], ["guk dugu / ditugu", "guk daukagu / dauzkagu"], ["zuek duzue / dituzue", "zuek daukazue / dauzkazue"], ["haiek dute / dituzte", "haiek daukate / dauzkate"]] },
     pairs: [["nik", "yo (con tener)", "🙋"], ["zuk", "tú (con tener)", "👉"], ["hark", "él / ella (con tener)", "👤"], ["guk", "nosotros (con tener)", "👫"], ["zuek", "vosotros (con tener)", "👥"], ["haiek", "ellos (con tener)", "👨‍👩‍👧‍👦"], ["dut", "tengo (una cosa)", "1️⃣"], ["ditut", "tengo (varias)", "🔢"], ["duzu", "tienes (una)", "1️⃣"], ["dituzu", "tienes (varias)", "🔢"], ["du", "tiene (una)", "1️⃣"], ["ditu", "tiene (varias)", "🔢"], ["dugu", "tenemos (una)", "1️⃣"], ["ditugu", "tenemos (varias)", "🔢"], ["dute", "tienen (una)", "1️⃣"], ["dituzte", "tienen (varias)", "🔢"], ["daukat", "tengo (una) · eduki", "1️⃣"], ["dauzkat", "tengo (varias) · eduki", "🔢"], ["daukazu", "tienes (una) · eduki", "1️⃣"], ["dauka", "tiene (una) · eduki", "1️⃣"], ["daukagu", "tenemos (una) · eduki", "1️⃣"], ["daukate", "tienen (una) · eduki", "1️⃣"]],
     sentences: [["Nik neba bat dut.", "Yo tengo un hermano (dice una chica)."], ["Nik neba bat daukat.", "Yo tengo un hermano (eduki)."], ["Zuk bi ahizpa dituzu.", "Tú tienes dos hermanas."], ["Hark etxe bat dauka.", "Él/ella tiene una casa."], ["Guk txakur bat dugu.", "Nosotros tenemos un perro."], ["Haiek hiru seme-alaba dituzte.", "Ellos tienen tres hijos."], ["Zuek liburu asko dauzkazue.", "Vosotros tenéis muchos libros."], ["Nik lehengusu asko dauzkat.", "Tengo muchos primos."]],
@@ -107,7 +118,7 @@ window.LESSONS = [
     dialogue: [["A", "Zenbat lehengusu dauzkazu?", "¿Cuántos primos tienes?"], ["B", "Sei dauzkat. Eta zuk?", "Tengo seis. ¿Y tú?"], ["A", "Nik bat bakarrik daukat.", "Yo tengo uno solo."], ["B", "Eta txakurrik baduzu?", "¿Y tienes perro?"], ["A", "Bai, txakur bat dut.", "Sí, tengo un perro."]]
   },
   {
-    id: "l13", title: "Preguntas: nor, zer, zein, non, nongoa, zenbat, norengana", desc: "Las palabras para preguntar", emoji: "❓", scene: { emoji: "🚉", title: "Geltokian · en la estación" },
+    id: "l13", module: 2, title: "Preguntas: nor, zer, zein, non, nongoa, zenbat, norengana", desc: "Las palabras para preguntar", emoji: "❓", scene: { emoji: "🚉", title: "Geltokian · en la estación" },
     grid: { title: "Cada pregunta con su respuesta", cols: ["pregunta", "ejemplo"], rows: [["nor · quién", "Nor zara? → Ni Ane naiz."], ["zer · qué", "Zer da hau? → Liburua da."], ["zein · cuál", "Zein da zurea? → Hori."], ["non · dónde", "Non bizi zara? → Bilbon."], ["nongoa · de dónde", "Nongoa zara? → Bilbokoa."], ["zenbat · cuántos", "Zenbat urte dituzu? → Hogei."], ["norengana · a casa de quién / hacia quién", "Norengana zoaz? → Amarengana."]] },
     pairs: [["nor", "quién", "👤"], ["zer", "qué", "📦"], ["zein", "cuál", "👉"], ["non", "dónde", "📍"], ["nongoa", "de dónde", "🌍"], ["zenbat", "cuántos/as", "🔢"], ["norengana", "a casa de quién / hacia quién", "🏃"], ["Norengana zoaz?", "¿A casa de quién vas?", "🏃"], ["Amarengana noa", "Voy a casa de mi madre / hacia mi madre", "👩"], ["Aitarengana noa", "Voy a casa de mi padre", "👨"], ["Lagunarengana noa", "Voy a casa de un amigo", "🤝"], ["Medikuarengana noa", "Voy al médico", "🩺"], ["noa", "voy", "🏃"], ["zoaz", "vas", "🏃"], ["Non dago?", "¿Dónde está?", "📍"], ["Nor dago etxean?", "¿Quién está en casa?", "🏡"], ["Zenbat dira?", "¿Cuántos son? / ¿Cuánto es?", "💶"]],
     sentences: [["Nor zara?", "¿Quién eres?"], ["Zer da hau?", "¿Qué es esto?"], ["Zein da zurea?", "¿Cuál es el tuyo?"], ["Non bizi zara?", "¿Dónde vives?"], ["Nongoa zara?", "¿De dónde eres?"], ["Zenbat urte dituzu?", "¿Cuántos años tienes?"], ["Norengana zoaz?", "¿A casa de quién vas?"], ["Amarengana noa.", "Voy a casa de mi madre."], ["Medikuarengana noa.", "Voy al médico."]],
@@ -118,55 +129,7 @@ window.LESSONS = [
 ];
 
 // Pistas de "noticing": cuando fallas, se muestra la que coincide con la forma correcta.
-window.NOTES = [
-  { m: /zaizkit/i, t: "zaizkit = me gustAN (varias cosas). Fíjate en la -k del plural: liburuak, pintxoak." },
-  { m: /\bzait\b/i, t: "zait = me gustA (una cosa). Si fuera plural sería zaizkit." },
-  { m: /\bez zait|ez zaizkit|ez dut/i, t: "El negativo ez va justo delante del verbo auxiliar: ez zait, ez dut." },
-  { m: /urte ditut/i, t: "Los años son varios: ditut (los tengo), no dut." },
-  { m: /urte ditu\b/i, t: "ditu = los tiene (otra persona). ditut = los tengo (yo)." },
-  { m: /\bditut\b/i, t: "ditut = tengo varios/as. Con uno solo es dut: ahizpa bat dut." },
-  { m: /\bbat dut\b/i, t: "dut = tengo (uno). Con dos o más cambia a ditut." },
-  { m: /hogeita/i, t: "hogeita = 20 y… Del 21 al 39 todo empieza por hogeita." },
-  { m: /berrogeita/i, t: "berrogeita = 40 y… (berrogei = 2 × 20)." },
-  { m: /hirurogei/i, t: "hirurogei = 3 × 20 = 60. El euskera cuenta de 20 en 20." },
-  { m: /\bnaiz\b/i, t: "naiz = soy. Va al final: Ni Ane naiz." },
-  { m: /\bda\b/i, t: "da = es. Nire izena Ane da (mi nombre Ane es)." },
-  { m: /\bnago\b/i, t: "nago = estoy. Ondo nago, nekatuta nago." },
-  { m: /\bneba\b|\bahizpa\b/i, t: "neba y ahizpa son las palabras que usa una CHICA para hermano y hermana." },
-  { m: /\banaia\b|\barreba\b/i, t: "anaia y arreba son las palabras que usa un CHICO para hermano y hermana." },
-  { m: /-arrebak/i, t: "neba-arrebak (dice ella) / anai-arrebak (dice él) = hermanos en general." },
-  { m: /\bon\b/i, t: "on = bueno. egun on, arratsalde on, gabon (gau + on)." },
-  { m: /eskerrik asko/i, t: "eskerrik asko = gracias (literalmente «muchas gracias»)." },
-  { m: /eta zu\??$/i, t: "Eta zu? = ¿y tú? Devuelve la pregunta para seguir la conversación." },
-  { m: /\bgara\b/i, t: "gara = somos (gu). ni naiz · zu zara · hura da · gu gara · zuek zarete · haiek dira." },
-  { m: /\bzarete\b/i, t: "zarete = sois (zuek). Ojo: zara es «tú eres», zarete «vosotros sois»." },
-  { m: /\bdira\b/i, t: "dira = son (haiek). da es «es» (uno), dira «son» (varios)." },
-  { m: /\bgaude\b/i, t: "gaude = estamos (gu). ni nago · zu zaude · hura dago · gu gaude · zuek zaudete · haiek daude." },
-  { m: /\bzaudete\b/i, t: "zaudete = estáis (zuek)." },
-  { m: /\bdaude\b/i, t: "daude = están (haiek). dago es «está» (uno)." },
-  { m: /\bdago\b/i, t: "dago = está (hura). Para cómo está o dónde está; para lo que es, se usa da." },
-  { m: /bizi (naiz|da|gara|zara|zarete|dira)/i, t: "Vivir = bizi + ser: bizi naiz, bizi da, bizi gara. El lugar lleva -n: Bilbon, Perun; tras consonante -en: Londresen." },
-  { m: /\b\w+(en|n) bizi/i, t: "El lugar donde vives lleva -n (en): Bilbo → Bilbon. Si acaba en consonante, -en: Ekuador → Ekuadorren." },
-  { m: /\w+ekoa\b/i, t: "-ekoa = «de» tras consonante: Madril → madrilekoa." },
-  { m: /\w+goa\b/i, t: "-goa = «de» tras -n: Irun → irungoa." },
-  { m: /\w+koa\b/i, t: "-koa = «de» tras vocal: Bilbo → bilbokoa. Plural: -koak (gu bilbokoak gara)." },
-  { m: /^nongoa/i, t: "Nongoa? = ¿de dónde (eres)? Se responde con -koa/-ekoa/-goa. Non? es «dónde» (vives)." },
-  { m: /^non bizi/i, t: "Non bizi zara? = ¿dónde vives? Se responde con lugar + -n + bizi naiz." },
-  { m: /^nor /i, t: "nor = quién (personas). Para cosas se usa zer." },
-  { m: /^zer da/i, t: "zer = qué (cosas). Para personas se usa nor." },
-  { m: /^zein/i, t: "zein = cuál: hay varios delante y hay que elegir (Zein da zurea? → hori). Si no hay dónde elegir, es zer." },
-  { m: /^zer nahi|^zer liburu/i, t: "zer = qué, en general, sin un grupo del que elegir. Para «cuál de estos» se usa zein." },
-  { m: /\b(daukat|daukazu|dauka|daukagu|daukazue|daukate)\b/i, t: "eduki = tener (una cosa): nik daukat, zuk daukazu, hark dauka, guk daukagu, zuek daukazue, haiek daukate. Significa lo mismo que dut." },
-  { m: /\b(dauzkat|dauzkazu|dauzka|dauzkagu|dauzkazue|dauzkate)\b/i, t: "dauzka- = tener VARIAS cosas (eduki plural): nik dauzkat, zuk dauzkazu, hark dauzka… Una sola cosa: daukat." },
-  { m: /\b(duzu|du|dugu|duzue|dute)\b/i, t: "ukan = tener (una cosa): nik dut, zuk duzu, hark du, guk dugu, zuek duzue, haiek dute. Varias: ditut, dituzu, ditu, ditugu, dituzue, dituzte." },
-  { m: /\b(dituzu|ditu|ditugu|dituzue|dituzte)\b/i, t: "ditu- = tener VARIAS cosas (ukan plural). Una sola: dut, duzu, du…" },
-  { m: /^(nik|zuk|hark|guk|haiek)\b/i, t: "Con «tener» (ukan/eduki) el sujeto lleva -k: nik, zuk, hark, guk, zuek, haiek. Con ser/estar, sin -k: ni, zu, hura, gu." },
-  { m: /rengana\b/i, t: "-(r)engana = hacia una persona / a casa de: ama → amarengana, aita → aitarengana, laguna → lagunarengana. Responde a norengana?" },
-  { m: /^norengana/i, t: "Norengana? = ¿a casa de quién? / ¿hacia quién? Se responde con persona + -rengana: amarengana." },
-  { m: /^non /i, t: "non = dónde (estás, vives). Para «de dónde eres» es nongoa." },
-  { m: /(seme-alabak|aiton-amonak|osaba-izebak)/i, t: "Compuesto con guion = los dos juntos: seme-alabak (hijos e hijas), aiton-amonak (abuelos), osaba-izebak (tíos)." },
-  { m: /(irakasle|ikasle|mediku|erizain|sukaldari|zerbitzari|abokatu|arkitekto|ingeniari|diseinatzaile|dendari)a\b/i, t: "La profesión lleva -a (artículo) en la frase: irakaslea naiz. En plural, -ak: irakasleak gara." }
-];
+
 
 // Fichas de gramática. Cada una: patrón con piezas, ejemplos de las lecciones y un ejercicio de transformación.
 // pieces: [{t: texto, k: tipo}] tipo = "subj" | "obj" | "verb" | "neg" | "num" | "q"
