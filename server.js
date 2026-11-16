@@ -15,7 +15,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
     xp INTEGER NOT NULL DEFAULT 0, streak INTEGER NOT NULL DEFAULT 0, last_day TEXT,
-    weak TEXT NOT NULL DEFAULT '[]', profile TEXT NOT NULL DEFAULT '{}', last_seen TEXT, lang TEXT NOT NULL DEFAULT 'es',
+    weak TEXT NOT NULL DEFAULT '[]', profile TEXT NOT NULL DEFAULT '{}', last_seen TEXT, lang TEXT NOT NULL DEFAULT 'es', open_duel INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
   CREATE TABLE IF NOT EXISTS login_codes (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, code_hash TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, used INTEGER NOT NULL DEFAULT 0, expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL);
@@ -62,7 +62,7 @@ db.exec(`
       created_at TEXT NOT NULL DEFAULT (datetime('now')))`);
     console.log("Migración: tabla users antigua (PIN) apartada como users_old_pin.");
   }
-  const want = { weak: "TEXT NOT NULL DEFAULT '[]'", profile: "TEXT NOT NULL DEFAULT '{}'", last_seen: "TEXT", lang: "TEXT NOT NULL DEFAULT 'es'" };
+  const want = { weak: "TEXT NOT NULL DEFAULT '[]'", profile: "TEXT NOT NULL DEFAULT '{}'", last_seen: "TEXT", lang: "TEXT NOT NULL DEFAULT 'es'", open_duel: "INTEGER NOT NULL DEFAULT 0" };
   for (const [c, def] of Object.entries(want)) if (!cols().includes(c)) { db.exec(`ALTER TABLE users ADD COLUMN ${c} ${def}`); console.log("Migración: columna users." + c); }
 })();
 
@@ -122,7 +122,7 @@ function profile(user) {
   const lessons = {};
   for (const p of db.prepare("SELECT lesson_id, rounds, best FROM progress WHERE user_id = ?").all(user.id)) lessons[p.lesson_id] = { rounds: p.rounds, best: p.best };
   const pending = db.prepare("SELECT COUNT(*) n FROM challenges WHERE to_id = ? AND status = 'open' AND to_result IS NULL").get(user.id).n;
-  return { id: user.id, name: user.name, email: user.email, lang: user.lang || "es", xp: user.xp, streak, practicedToday: user.last_day === today, lessons, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
+  return { id: user.id, name: user.name, email: user.email, lang: user.lang || "es", openDuel: !!user.open_duel, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
 }
 
 // ---------- notificaciones push (web-push, sin servicio externo) ----------
@@ -239,9 +239,10 @@ app.post("/api/profile", auth, (req, res) => {
   const clean = { gender: p.gender === "neska" || p.gender === "mutila" ? p.gender : null, age: Number.isInteger(p.age) && p.age > 0 && p.age < 120 ? p.age : null,
     nebak: Math.max(0, Math.min(9, p.nebak | 0)), ahizpak: Math.max(0, Math.min(9, p.ahizpak | 0)), town: String(p.town || "").slice(0, 40), origin: String(p.origin || "").slice(0, 40) };
   const name = cleanName(p.name); const lang = p.lang ? cleanLang(p.lang) : req.user.lang;
-  db.prepare("UPDATE users SET profile = ?, lang = ?" + (name.length >= 2 ? ", name = ?" : "") + " WHERE id = ?").run(...(name.length >= 2 ? [JSON.stringify(clean), lang, name, req.user.id] : [JSON.stringify(clean), lang, req.user.id]));
+  const openDuel = typeof p.openDuel === "boolean" ? (p.openDuel ? 1 : 0) : req.user.open_duel;
+  db.prepare("UPDATE users SET profile = ?, lang = ?, open_duel = ?" + (name.length >= 2 ? ", name = ?" : "") + " WHERE id = ?").run(...(name.length >= 2 ? [JSON.stringify(clean), lang, openDuel, name, req.user.id] : [JSON.stringify(clean), lang, openDuel, req.user.id]));
   logEvent(req.user.id, "profile", { complete: !!clean.gender, lang });
-  res.json({ ...clean, name: name.length >= 2 ? name : req.user.name, lang });
+  res.json({ ...clean, name: name.length >= 2 ? name : req.user.name, lang, openDuel: !!openDuel });
 });
 
 // ---------- lagunak: a quién puedes retar y con quién te comparas ----------
@@ -337,8 +338,9 @@ app.get("/api/challenges", auth, (req, res) => {
 app.post("/api/challenges", auth, (req, res) => {
   const to = db.prepare("SELECT id FROM users WHERE id = ?").get(req.body.toId | 0);
   if (!to || to.id === req.user.id) return res.status(400).json({ error: "Elige a otra persona." });
-  if (!circleIds(req.user.id).has(to.id)) return res.status(403).json({ error: "Solo puedes retar a gente de tu círculo. Añádela primero en Taldea." });
   const kind = req.body.kind === "task" ? "task" : "duel";
+  const toRow = db.prepare("SELECT open_duel FROM users WHERE id = ?").get(to.id);
+  if (!circleIds(req.user.id).has(to.id) && !(kind === "duel" && toRow.open_duel)) return res.status(403).json({ error: "Solo puedes retar a gente de tu círculo o a quien esté disponible para retos." });
   const payload = req.body.payload && typeof req.body.payload === "object" ? req.body.payload : {};
   const info = db.prepare("INSERT INTO challenges (from_id, to_id, kind, payload, from_result) VALUES (?, ?, ?, ?, ?)").run(req.user.id, to.id, kind, JSON.stringify(payload), req.body.fromResult ? JSON.stringify(req.body.fromResult) : null);
   const from = displayName(req.user);
@@ -348,6 +350,21 @@ app.post("/api/challenges", auth, (req, res) => {
     : (en ? { title: `${from} challenges you! ⚔️`, body: payload.transform ? "6 transformations. Accept?" : "6 phrases, typed. Accept?", url: "/#taldea", tag: "challenge" } : { title: `${from} te reta! ⚔️`, body: payload.transform ? "6 transformaciones. ¿Aceptas?" : "6 frases escribiendo. ¿Aceptas?", url: "/#taldea", tag: "challenge" }), "challenges").catch(() => {});
   res.json(chView(db.prepare("SELECT * FROM challenges WHERE id = ?").get(info.lastInsertRowid), req.user.id));
 });
+// Reto a una persona al azar entre quienes se han marcado disponibles (activas en los últimos 21 días).
+app.post("/api/challenges/random", auth, (req, res) => {
+  const since = madridDay(-21);
+  const cands = db.prepare(`SELECT id FROM users WHERE open_duel = 1 AND id != ? AND last_seen >= ?
+    AND id NOT IN (SELECT to_id FROM challenges WHERE from_id = ? AND status = 'open')`).all(req.user.id, since, req.user.id);
+  if (!cands.length) return res.status(404).json({ error: "Ahora mismo no hay nadie disponible. Prueba más tarde o añade gente a tu círculo.", none: true });
+  const to = cands[Math.floor(Math.random() * cands.length)];
+  const payload = req.body.payload && typeof req.body.payload === "object" ? req.body.payload : {};
+  const info = db.prepare("INSERT INTO challenges (from_id, to_id, kind, payload, from_result) VALUES (?, ?, 'duel', ?, ?)").run(req.user.id, to.id, JSON.stringify({ ...payload, random: true }), req.body.fromResult ? JSON.stringify(req.body.fromResult) : null);
+  logEvent(req.user.id, "challenge", { kind: "duel", random: true });
+  const from = displayName(req.user); const en = db.prepare("SELECT lang FROM users WHERE id = ?").get(to.id).lang === "en";
+  sendPush(to.id, en ? { title: `${from} challenges you! ⚔️`, body: payload.transform ? "6 transformations. Accept?" : "6 phrases, typed. Accept?", url: "/#taldea", tag: "challenge" } : { title: `${from} te reta! ⚔️`, body: payload.transform ? "6 transformaciones. ¿Aceptas?" : "6 frases escribiendo. ¿Aceptas?", url: "/#taldea", tag: "challenge" }, "challenges").catch(() => {});
+  res.json(chView(db.prepare("SELECT * FROM challenges WHERE id = ?").get(info.lastInsertRowid), req.user.id));
+});
+app.get("/api/challenges/open-count", auth, (req, res) => res.json({ n: db.prepare("SELECT COUNT(*) n FROM users WHERE open_duel = 1 AND id != ? AND last_seen >= ?").get(req.user.id, madridDay(-21)).n }));
 app.post("/api/challenges/:id/result", auth, (req, res) => {
   const c = db.prepare("SELECT * FROM challenges WHERE id = ?").get(req.params.id);
   if (!c || (c.from_id !== req.user.id && c.to_id !== req.user.id)) return res.status(404).json({ error: "Reto no encontrado." });
@@ -475,7 +492,12 @@ app.get("/api/stats", auth, (req, res) => {
       accuracy: t.total ? Math.round(t.ok / t.total * 100) : 0, lessonsDone: lessonsDone[u.id] || 0, learned: it.learned, consolidated: it.consolidated,
       weekXp: W[u.id] || 0, perDay, practicedToday: u.last_day === today };
   });
-  res.json({ days, users, rank: { position: myRank || null, active: activeCount, total: totalUsers } });
+  const xs = weekRows.map(r => r.xp).sort((a, b) => a - b); const median = xs.length ? xs[Math.floor(xs.length / 2)] : 0;
+  const myDays = db.prepare("SELECT COUNT(DISTINCT day) n FROM rounds WHERE user_id = ? AND day >= ?").get(me, days[0]).n;
+  const avgDays = db.prepare("SELECT AVG(n) a FROM (SELECT COUNT(DISTINCT day) n FROM rounds WHERE day >= ? GROUP BY user_id)").get(days[0]).a || 0;
+  const firmRows = db.prepare("SELECT user_id, SUM(CASE WHEN interval >= 7 THEN 1 ELSE 0 END) f FROM items GROUP BY user_id").all().map(r => r.f).sort((a, b) => a - b);
+  const myFirm = itemStats(me).consolidated; const firmPct = firmRows.length ? Math.round(firmRows.filter(f => f <= myFirm).length / firmRows.length * 100) : 100;
+  res.json({ days, users, rank: { position: myRank || null, active: activeCount, total: totalUsers, median, myWeek: W[me] || 0, myDays, avgDays: Math.round(avgDays * 10) / 10, firmPct } });
 });
 
 // ---------- audio en euskera (generado una vez por frase y guardado en disco) ----------

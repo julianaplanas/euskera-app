@@ -790,7 +790,10 @@ const TASKS=[
 ];
 async function renderTeam(){
   app.innerHTML=header("Taldea · "+T("retos y tareas con tu gente"))+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
-  let friends=[], chs=[]; try{ [friends,chs]=await Promise.all([api("friends"),api("challenges")]); }catch(e){}
+  let friends=[], chs=[], sd={users:[],rank:{}}, oc={n:0}; try{ [friends,chs,sd,oc]=await Promise.all([api("friends"),api("challenges"),api("stats"),api("challenges/open-count")]); }catch(e){}
+  const fid=new Set(friends.map(f=>f.id));
+  const top=sd.users.filter(u=>u.weekXp>0).sort((a,b)=>b.weekXp-a.weekXp).slice(0,20); const meU=sd.users.find(u=>u.me)||{weekXp:0,me:true,name:P.name}; const maxW=Math.max(1,...top.map(u=>u.weekXp),meU.weekXp); const rk=sd.rank||{};
+  const rankHtml=`<p class="eyebrow" data-es="${T("Ranking de la semana · entre todo el mundo")}">Asteko sailkapena</p><div class="card lb-list">${(top.some(u=>u.me)||!meU.weekXp?top:[...top,meU]).map((u,i)=>`<div class="lbrow ${u.me?"me":""}"><span class="rank">${u.weekXp>0?(["🥇","🥈","🥉"][i]||(u.me&&!top.some(x=>x.me)?rk.position:i+1)):"–"}</span><span class="av">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}${u.me?" "+T("(tú)"):u.friend?" ★":""}</b><i class="wbar"><i style="width:${Math.round(u.weekXp/maxW*100)}%;background:${u.me?"var(--red)":u.friend?"var(--ochre)":"var(--green)"}"></i></i></span><b class="num">${u.weekXp}<span class="muted" style="font-size:12px;font-family:var(--body)"> XP</span></b></div>`).join("")||`<p class="hint" style="padding:12px 14px">${T("Practica una ronda y entras en el ranking de la semana")}.</p>`}</div>`;
   const m=imap(); const learnedLessons=new Set(ITEMS.map(i=>i.lesson_id));
   const tasks=TASKS.filter(t=>learnedLessons.has(t.need));
   const opt=u=>`<option value="${u.id}">${esc(u.name)}${u.town?" · "+esc(u.town):""}</option>`;
@@ -805,22 +808,30 @@ async function renderTeam(){
     <div class="card stack" style="gap:10px"><p class="hint">${T("Los dos respondéis las mismas 6 frases escribiendo. Gana quien acierte más a la primera.")}</p><div class="row"><select class="ans" id="duelTo" style="flex:1">${friends.map(opt).join("")}</select></div><div class="row"><button class="btn red sm bi" id="duel" style="flex:1">Erronka!<small>${T("Retar · escribir 6 frases")}</small></button><button class="btn sm bi" id="duelT" style="flex:1">Eraldatu!<small>${T("Retar · transformar 6")}</small></button></div></div>
     <p class="eyebrow" data-es="${T("tareas en persona")}">Elkarrekin</p>
     ${tasks.length?`<div class="card stack" style="gap:10px"><p class="hint">${T("Haz la tarea con la otra persona (en el café, por mensaje…), escribe aquí lo que te dijo en euskera y ella confirma si está bien.")}</p><select class="ans" id="taskTo">${friends.map(opt).join("")}</select><select class="ans" id="taskSel">${tasks.map((t,i)=>`<option value="${i}">${esc(T(t.t).replace("{X}","…"))}</option>`).join("")}</select><input class="ans" id="taskAns" placeholder="${T("Lo que respondió, en euskera")}"><button class="btn sm" id="sendTask">Bidali<small>${T("Enviar")}</small></button></div>`:`<p class="hint">${T("Las tareas en persona se desbloquean al introducir las lecciones de presentarse, qué tal, edad…")}</p>`}`:""}
+    <p class="eyebrow" data-es="${L2("retar a alguien al azar","challenge someone at random")}">Edonorekin</p>
+    <div class="card stack" style="gap:12px"><label class="row" style="font-size:14px;font-weight:500;gap:10px"><input type="checkbox" id="openduel" ${P.openDuel?"checked":""} style="width:22px;height:22px;flex:none"> ${L2("Estoy disponible: cualquiera puede retarme","I'm available: anyone can challenge me")}</label><p class="hint">${oc.n} ${L2("personas disponibles ahora","people available now")}.</p><div class="row"><button class="btn sm" id="rnd" ${oc.n?"":"disabled"}>${ic("shuffle")} Ausazko erronka</button><button class="btn sm ghost" id="rndT" ${oc.n?"":"disabled"}>${ic("refresh")} Eraldatu</button></div></div>
     </div><div class="col">
-    ${chs.length?`<p class="eyebrow" data-es="${T("retos y tareas")}">Historia</p>${chs.map(c=>renderChallenge(c)).join("")}`:""}</div>`;
+    ${rankHtml}
+    ${chs.length?`<p class="eyebrow" data-es="${T("retos y tareas")}">Historia</p>${chs.map(c=>renderChallenge(c,fid)).join("")}`:""}</div>`;
   const sel=id=>friends.find(f=>f.id===+id)||{id:+id,name:"?"};
   const ps=document.getElementById("psearch"), pr=document.getElementById("presults"); let tm=null;
   const wire=()=>{ app.querySelectorAll("[data-friend]").forEach(b=>b.onclick=async()=>{ try{ await api("friends",{id:+b.dataset.friend}); toast("Gehituta · "+T("añadido")); renderTeam(); }catch(e){ toast(e.message); } });
     app.querySelectorAll("[data-unfriend]").forEach(b=>b.onclick=async()=>{ try{ await api("friends/remove",{id:+b.dataset.unfriend}); renderTeam(); }catch(e){ toast(e.message); } }); };
   ps.oninput=()=>{ clearTimeout(tm); const q=ps.value.trim(); if(q.length<2){ pr.innerHTML=""; return; } tm=setTimeout(async()=>{ try{ const r=await api("people?q="+encodeURIComponent(q)); pr.innerHTML=r.length?`<div class="lb-list">${r.map(person).join("")}</div>`:`<p class="hint">${T("Nadie con ese nombre. Pídele que se registre y te diga cómo se ha puesto.")}</p>`; wire(); }catch(e){} },250); };
   wire();
+  const od=document.getElementById("openduel"); if(od) od.onchange=async()=>{ try{ const pr=await api("profile",{...P.profile,openDuel:od.checked}); P.openDuel=pr.openDuel; toast(od.checked?L2("Disponible para retos","Available for challenges"):L2("Ya no estás disponible","No longer available")); }catch(e){ toast(e.message); } };
+  const rn=document.getElementById("rnd"); if(rn) rn.onclick=()=>{ const pool=catalog().filter(i=>m[i.key]); const items=shuffle(pool.length>=6?pool:catalog()).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||""})); startSession({items,label:"Ausazko erronka",challenge:{random:true,items}}); };
+  const rnT=document.getElementById("rndT"); if(rnT) rnT.onclick=()=>{ const pool=catalog().filter(i=>transformsFor(i.eu).length); const items=shuffle(pool).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||"",tr:pick(transformsFor(i.eu))})); startSession({items,label:"Ausazko eraldatu",challenge:{random:true,items,transform:true},forceTransform:true}); };
+  app.querySelectorAll("[data-addf]").forEach(b=>b.onclick=async()=>{ try{ await api("friends",{id:+b.dataset.addf}); toast("Gehituta · "+T("añadido")); renderTeam(); }catch(e){ toast(e.message); } });
   const d=document.getElementById("duel"); if(d) d.onclick=()=>{ const to=sel(document.getElementById("duelTo").value); const pool=catalog().filter(i=>m[i.key]); const items=shuffle(pool.length>=6?pool:catalog()).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||""})); startSession({items,label:"Erronka vs "+to.name,challenge:{toId:to.id,items}}); };
   const dt=document.getElementById("duelT"); if(dt) dt.onclick=()=>{ const to=sel(document.getElementById("duelTo").value); const pool=catalog().filter(i=>transformsFor(i.eu).length); const items=shuffle(pool).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||"",tr:pick(transformsFor(i.eu))})); startSession({items,label:"Eraldatu vs "+to.name,challenge:{toId:to.id,items,transform:true},forceTransform:true}); };
   const st=document.getElementById("sendTask"); if(st) st.onclick=async()=>{ const to=sel(document.getElementById("taskTo").value), t=tasks[+document.getElementById("taskSel").value], ans=document.getElementById("taskAns").value.trim(); if(!ans) return toast(T("Escribe la respuesta primero")); try{ await api("challenges",{toId:to.id,kind:"task",payload:{text:T(t.t).replace("{X}",to.name),check:t.check},fromResult:{answer:ans}}); toast("Bidalita · "+T("enviado")); renderTeam(); }catch(e){ toast(e.message); } };
   app.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>{ const c=chs.find(x=>x.id===+b.dataset.play); startSession({items:c.payload.items,label:(c.payload.transform?"Eraldatu de ":"Erronka de ")+c.from,challenge:{id:c.id},forceTransform:!!c.payload.transform}); });
   app.querySelectorAll("[data-ok]").forEach(b=>b.onclick=async()=>{ const id=+b.dataset.ok, fix=(app.querySelector(`[data-fix="${id}"]`)||{}).value||""; try{ await api(`challenges/${id}/result`,{result:{ok:b.dataset.v==="1",fix}}); renderTeam(); }catch(e){ toast(e.message); } });
 }
-function renderChallenge(c){
-  const who=`<div class="who"><span class="av">${esc(c.from[0].toUpperCase())}</span>${esc(c.from)}${c.mine?" "+T("(tú)"):""} <span class="muted">→</span> <span class="av">${esc(c.to[0].toUpperCase())}</span>${esc(c.to)}${c.forMe?" "+T("(tú)"):""}</div>`;
+function renderChallenge(c,fid=new Set()){
+  const otherId=c.mine?c.toId:c.fromId; const stranger=otherId&&otherId!==P.id&&!fid.has(otherId);
+  const who=`<div class="who"><span class="av">${esc(c.from[0].toUpperCase())}</span>${esc(c.from)}${c.mine?" "+T("(tú)"):""} <span class="muted">→</span> <span class="av">${esc(c.to[0].toUpperCase())}</span>${esc(c.to)}${c.forMe?" "+T("(tú)"):""}${c.payload&&c.payload.random?` <span class="pill" style="margin-left:4px">${L2("al azar","random")}</span>`:""}${stranger?`<button class="link" data-addf="${otherId}" style="margin-left:auto;font-size:12px">+ Gehitu</button>`:""}</div>`;
   if(c.kind==="duel"){
     const a=c.fromResult, b=c.toResult;
     if(a&&b) return `<div class="ch">${who}<div class="vs"><b class="${a.score>b.score?"w":""}">${a.score}/${a.total}</b><span class="muted">vs</span><b class="${b.score>a.score?"w":""}">${b.score}/${b.total}</b></div><p class="hint" style="text-align:center">${a.score===b.score?T("Berdinketa · empate"):(a.score>b.score?c.from:c.to)+" "+T("irabazle · gana")}</p></div>`;
@@ -835,6 +846,7 @@ async function finishChallenge(score,total){
   const c=SES.challenge; const answers=SES.answers;
   try{
     if(c.id) await api(`challenges/${c.id}/result`,{result:{score,total}});
+    else if(c.random) await api("challenges/random",{payload:{items:c.items,transform:!!c.transform},fromResult:{score,total}});
     else await api("challenges",{toId:c.toId,kind:"duel",payload:{items:c.items,transform:!!c.transform},fromResult:{score,total}});
     P=await api("round",{lessonId:null,ok:score,total:Math.max(total,1)});
   }catch(e){ toast(e.message); }
@@ -844,30 +856,32 @@ async function finishChallenge(score,total){
 
 // ---------- DATUAK ----------
 async function renderStats(){
-  app.innerHTML=header("Datuak · "+T("lo que de verdad se queda"))+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
+  app.innerHTML=header("Datuak · "+T("lo que de verdad se queda"))+`<div class="stack pad" style="padding-top:20px"><p class="muted">Kargatzen…</p></div>`;
   let data; try{ data=await api("stats"); }catch(e){ app.querySelector(".stack").innerHTML=`<p class="err">${T("No se pudieron cargar los datos.")}</p>`; return; }
-  const COLORS=["#B8281F","#2A7A4F","#D9A441","#3B6EA5","#8E4A9E","#C8683A"];
-  const all=data.users.slice().sort((a,b)=>b.weekXp-a.weekXp||b.consolidated-a.consolidated).map((u,i)=>({...u,color:COLORS[i%COLORS.length]}));
-  const users=all.filter(u=>u.me||u.friend); const top=all.filter(u=>u.weekXp>0).slice(0,20); const me=all.find(u=>u.me);
-  const active=users.filter(u=>u.weekXp>0||u.me); const rk=data.rank||{};
+  const me=data.users.find(u=>u.me); const rk=data.rank||{};
   const dayLabel=d=>["Ig","Al","Ar","Az","Og","Ol","Lr"][new Date(d+"T12:00:00").getDay()];
-  const maxW=Math.max(1,...top.map(u=>u.weekXp),me.weekXp); const mx=Math.max(1,...users.flatMap(u=>u.perDay));
-  const daysLeft=7-((new Date(data.days[6]+"T12:00:00").getDay()+6)%7);
-  const best=k=>Math.max(...users.map(u=>u[k])); const cell=(u,k,f=x=>x)=>`<td class="${u[k]===best(k)&&u[k]>0?"win":""}">${f(u[k])}</td>`;
-  const m=imap(); const soon=ITEMS.filter(i=>i.due>data.days[6]).length;
+  const mx=Math.max(1,...me.perDay);
+  const m=imap(); const cat=catalog();
+  const hardest=ITEMS.filter(i=>i.lapses>0).sort((a,b)=>b.lapses-a.lapses).slice(0,5);
+  const lessons=LESSONS.map(l=>{ const its=lessonItems(l); const firm=its.filter(x=>m[x.key]&&m[x.key].interval>=7).length; const seen=its.filter(x=>m[x.key]).length; return {l,its,firm,seen}; }).filter(x=>x.seen>0);
+  const pos=rk.position?L2(`${rk.position}ª de ${rk.active}`,`#${rk.position} of ${rk.active}`):L2("sin ronda esta semana","no round this week");
   app.querySelector(".stack").classList.add("cols");
   app.querySelector(".stack").innerHTML=`<div class="col">
     <div class="stats"><div class="stat g"><b style="display:flex;justify-content:center;align-items:center;gap:6px"><span style="display:inline-flex;width:22px;height:22px">${LAUBURU}</span>${me.consolidated}</b><span>${T("Sendoak · firmes")}</span></div><div class="stat"><b>${me.learned}</b><span>${T("Ikasten · en estudio")}</span></div><div class="stat"><b>🔥 ${me.streak}</b><span>${T("Egunak · seguidos")}</span></div><div class="stat"><b>${me.accuracy}%</b><span>${T("Lehenengoan · a la primera")}</span></div></div>
-    <p class="eyebrow" data-es="${T("Ranking de la semana · entre todo el mundo")}">Asteko sailkapena</p>
-    ${rk.position?`<p class="hint">${L2(`Vas <b>${rk.position}ª de ${rk.active}</b>`,`You are <b>#${rk.position} of ${rk.active}</b>`)} ${T("personas que han practicado esta semana")}${rk.total>rk.active?` (${rk.total} ${T("en total")})`:""}.</p>`:`<p class="hint">${T("Practica una ronda y entras en el ranking de la semana")} (${rk.active||0} ${T("personas activas")}).</p>`}
-    <div class="card lb-list">${(top.some(u=>u.me)||!me.weekXp?top:[...top,me]).map((u,i)=>`<div class="lbrow ${u.me?"me":""}"><span class="rank">${u.weekXp>0?(["🥇","🥈","🥉"][i]||(u.me&&!top.some(x=>x.me)?rk.position:i+1)):"–"}</span><span class="av" style="background:${u.color}">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}${u.me?" "+T("(tú)"):u.friend?" ★":""}</b>${u.practicedToday?" <span class='muted' style='font-size:13px'>· gaur 🔥</span>":""}<i class="wbar"><i style="width:${Math.round(u.weekXp/maxW*100)}%;background:${u.color}"></i></i></span><b class="num">${u.weekXp}<span class="muted" style="font-size:13px;font-family:var(--body)"> XP</span></b></div>`).join("")}</div>
-    <p class="hint">${daysLeft===1?T("Último día de la semana."):`${T("Quedan")} ${daysLeft} ${T("días de semana.")}`} ${T("Cada frase acertada son 10 XP. ★ = gente de tu círculo.")}</p>
-    </div><div class="col">
     <p class="eyebrow" data-es="${T("XP por día")}">Azken 7 egunak</p>
-    <div class="card"><div class="chart">${data.days.map((d,i)=>`<div class="d"><div class="bars">${active.map(u=>`<i style="height:${Math.round(u.perDay[i]/mx*100)}%;background:${u.color}" title="${esc(u.name)}: ${u.perDay[i]} XP"></i>`).join("")}</div><small>${dayLabel(d)}</small></div>`).join("")}</div><div class="legend" style="margin-top:10px">${active.map(u=>`<span><i style="background:${u.color}"></i>${esc(u.name)}</span>`).join("")}</div></div>
-    <p class="eyebrow" data-es="${T("tú y tu círculo")}">Zure jendea</p>
-    <div class="tabwrap"><table class="stab"><tr><th></th><th title="${T("Firmes")}">Sendo</th><th title="${T("En estudio")}">Ikast</th><th title="${T("XP semana")}">Astea</th><th title="${T("XP total")}">Guzt</th><th>🔥</th><th>%</th></tr>${users.map(u=>`<tr class="${u.me?"me":""}"><td class="lab"><span class="dot" style="background:${u.color}"></span>${esc(u.name)}</td>${cell(u,"consolidated")}${cell(u,"learned")}${cell(u,"weekXp")}${cell(u,"xp")}${cell(u,"streak")}${cell(u,"accuracy",x=>x+"%")}</tr>`).join("")}</table></div>
-    <p class="hint">${T("Sendo = firmes · Ikast = en estudio · Astea = XP de la semana · Guzt = XP total · 🔥 = racha · % = aciertos a la primera.")}${users.length<2?T(" Añade gente en Taldea para compararte."):""}</p></div>`;
+    <div class="card"><div class="chart">${data.days.map((d,i)=>`<div class="d"><div class="bars"><i style="height:${Math.round(me.perDay[i]/mx*100)}%;background:${me.perDay[i]?"var(--green)":"var(--soft)"}" title="${me.perDay[i]} XP"></i></div><small>${dayLabel(d)}</small></div>`).join("")}</div><p class="hint" style="margin-top:10px">${me.weekXp} XP · ${rk.myDays||0} ${L2("días esta semana","days this week")}</p></div>
+    <p class="eyebrow" data-es="${L2("frente al resto, esta semana","vs. everyone else, this week")}">Besteekin alderatuta</p>
+    <div class="card" style="display:flex;flex-direction:column;gap:10px">
+      <div class="row" style="justify-content:space-between"><span class="hint">${L2("Posición","Position")}</span><b>${pos}</b></div>
+      <div class="row" style="justify-content:space-between"><span class="hint">XP · ${L2("tú / mediana","you / median")}</span><b>${rk.myWeek||0} / ${rk.median||0}</b></div>
+      <div class="row" style="justify-content:space-between"><span class="hint">${L2("Días practicados · tú / media","Days practised · you / average")}</span><b>${rk.myDays||0} / ${rk.avgDays||0}</b></div>
+      <div class="row" style="justify-content:space-between"><span class="hint">${L2("Frases firmes","Solid phrases")}</span><b>${L2(`más que el ${rk.firmPct}%`,`more than ${rk.firmPct}%`)}</b></div>
+    </div>
+    </div><div class="col">
+    ${lessons.length?`<p class="eyebrow" data-es="${L2("firmes por lección","solid per lesson")}">Ikasgaiak</p><div class="card list">${lessons.map(x=>`<div class="it"><span class="em">${ring(x.firm/x.its.length,28)}</span><span class="tx"><b>${esc(T(x.l.title))}</b><small>${x.firm}/${x.its.length} sendo</small></span></div>`).join("")}</div>`:""}
+    ${hardest.length?`<p class="eyebrow" data-es="${L2("las que más fallas","the ones you miss most")}">Zailenak</p><div class="card list">${hardest.map(i=>`<div class="it"><span class="em" style="color:var(--red);font-family:var(--display);font-weight:700;font-size:15px">${i.lapses}×</span><span class="tx"><b>${esc(i.eu)}</b><small>${esc(T(i.es))}</small></span>${spkBtn(i.eu)}</div>`).join("")}</div>`:""}
+    </div>`;
+  wireSpeak();
 }
 
 // arranque
