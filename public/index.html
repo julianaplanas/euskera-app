@@ -374,17 +374,35 @@ function setTab(t){ document.onkeydown=null; TAB=t; tabs.hidden=false; document.
 tabs.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 function noTabs(){ tabs.hidden=true; document.body.classList.add("notabs"); }
 
-// ---------- LOGIN ----------
-function renderLogin(mode="login",prefill={}){
-  noTabs(); const reg=mode==="register";
-  app.innerHTML=`<div class="head pad" style="padding-bottom:26px"><div class="lb">${LAUBURU}</div><div class="row" style="gap:18px;position:relative"><div class="olen">${OLEN("wave",80)}</div><div><p class="eyebrow" data-es="Práctica de euskera">Euskara praktika</p><h1>${reg?"Sortu kontua":"Nor zara?"}</h1><p style="color:var(--on-color);font-weight:600;font-size:13px">${reg?"Crea tu cuenta":"¿Quién eres?"}</p></div></div></div>
-   <div class="stack pad" style="padding-top:22px"><p class="muted">${reg?"Elige un nombre (letras, números o espacios), un PIN de 4 cifras y el código de invitación que te han pasado.":"Entra con tu nombre y tu PIN."}</p>
-    <form id="f" class="stack"><input class="ans" id="name" placeholder="Nombre" autocomplete="username" autocapitalize="none" maxlength="24" value="${esc(prefill.name||"")}"><input class="ans" id="pin" placeholder="PIN" inputmode="numeric" pattern="[0-9]*" type="password" autocomplete="${reg?"new-password":"current-password"}" value="${esc(prefill.pin||"")}">${reg?`<input class="ans" id="invite" placeholder="Código de invitación" autocomplete="off" autocapitalize="none">`:""}<p class="err" id="err"></p><button class="btn red" type="submit">${reg?"Crear cuenta":"Sartu<small>Entrar"}</small></button></form>
-    <button class="link" id="swap">${reg?"Ya tengo cuenta":"Crear una cuenta nueva"}</button></div>`;
-  document.getElementById("swap").onclick=()=>renderLogin(reg?"login":"register");
-  document.getElementById("f").onsubmit=async e=>{ e.preventDefault(); const name=document.getElementById("name").value,pin=document.getElementById("pin").value,invite=(document.getElementById("invite")||{}).value||""; const err=document.getElementById("err"); err.textContent="";
-    try{ P=await api(reg?"register":"login",{name,pin,invite}); await Promise.all([loadItems(),checkVoice()]); if(!P.profile.gender) renderProfile(true); else setTab("gaur"); }
-    catch(ex){ if(ex.unknown){ renderLogin("register",{name,pin}); document.getElementById("err").textContent="No existe ese usuario. ¿Quieres crearlo?"; } else err.textContent=ex.message; } };
+// ---------- LOGIN: email + código de 6 cifras ----------
+const EMAIL_KEY="euskara.email";
+function loginHead(t1,t2){ return `<div class="head pad" style="padding-bottom:26px"><div class="lb">${LAUBURU}</div><div class="row" style="gap:18px;position:relative"><div class="olen">${OLEN("wave",80)}</div><div><p class="eyebrow" data-es="Práctica de euskera">Euskara praktika</p><h1>${t1}</h1><p style="color:var(--on-color);font-weight:600;font-size:13px">${t2}</p></div></div></div>`; }
+function renderLogin(){
+  noTabs(); let saved=""; try{ saved=localStorage.getItem(EMAIL_KEY)||""; }catch(e){}
+  app.innerHTML=loginHead("Kaixo!","Entra o crea tu cuenta con tu correo")+`
+   <div class="stack pad" style="padding-top:22px"><p class="muted">Te mandamos un código de 6 cifras al correo. Sin contraseñas: la sesión se queda abierta en este dispositivo.</p>
+    <form id="f" class="stack"><input class="ans" id="email" type="email" placeholder="tu@correo.com" autocomplete="email" autocapitalize="none" inputmode="email" required value="${esc(saved)}"><p class="err" id="err"></p><button class="btn red" type="submit">Bidali kodea<small>Enviar código</small></button></form>
+    <p class="hint" style="text-align:center">Al entrar aceptas la <a href="privacy.html" target="_blank" rel="noopener">política de privacidad</a>.</p></div>`;
+  document.getElementById("f").onsubmit=async e=>{ e.preventDefault(); const email=document.getElementById("email").value.trim().toLowerCase(); const err=document.getElementById("err"); err.textContent=""; const btn=e.target.querySelector("button"); btn.disabled=true;
+    try{ const r=await api("auth/request",{email}); try{ localStorage.setItem(EMAIL_KEY,email); }catch(x){} renderCode(email,r); }catch(ex){ err.textContent=ex.message; btn.disabled=false; } };
+}
+function renderCode(email,info={}){
+  noTabs();
+  app.innerHTML=loginHead("Zure kodea","Tu código")+`
+   <div class="stack pad" style="padding-top:22px"><p class="muted">Hemos enviado un código de 6 cifras a <b>${esc(email)}</b>. Mira también la carpeta de spam.</p>
+    ${info.devCode?`<div class="note"><b>Modo pruebas</b> (el envío de correo no está configurado): tu código es <b style="font-size:20px;letter-spacing:3px">${esc(info.devCode)}</b></div>`:""}
+    <form id="f" class="stack"><input class="ans" id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="000 000" maxlength="7" style="text-align:center;font-size:28px;letter-spacing:6px" autofocus>
+    ${info.exists?"":`<p class="eyebrow" data-es="Tu nombre, como quieres que te vean los demás">Nola duzu izena?</p><input class="ans" id="newname" placeholder="Nombre" autocomplete="nickname" maxlength="30">`}
+    <p class="err" id="err"></p><button class="btn red" type="submit">Sartu<small>Entrar</small></button></form>
+    <div class="row" style="justify-content:space-between"><button class="link" id="again">Otro correo</button><button class="link" id="resend">Reenviar código</button></div></div>`;
+  const code=document.getElementById("code"); code.focus();
+  code.oninput=()=>{ const d=code.value.replace(/\D/g,"").slice(0,6); code.value=d.length>3?d.slice(0,3)+" "+d.slice(3):d; };
+  document.getElementById("again").onclick=()=>renderLogin();
+  document.getElementById("resend").onclick=async()=>{ try{ const r=await api("auth/request",{email}); toast("Kodea bidalita · código reenviado"); if(r.devCode) renderCode(email,r); }catch(e){ toast(e.message); } };
+  document.getElementById("f").onsubmit=async e=>{ e.preventDefault(); const err=document.getElementById("err"); err.textContent=""; const name=(document.getElementById("newname")||{}).value||"";
+    try{ const r=await api("auth/verify",{email,code:code.value,name}); if(r.needName){ err.textContent="Dinos cómo te llamas (al menos 2 letras)."; (document.getElementById("newname")||code).focus(); return; }
+      P=r; await Promise.all([loadItems(),checkVoice()]); if(!P.profile.gender) renderProfile(true); else setTab("gaur"); }
+    catch(ex){ err.textContent=ex.message; if(ex.expired) document.getElementById("resend").focus(); } };
 }
 
 // ---------- PERFIL (personalización) ----------
@@ -393,6 +411,7 @@ function renderProfile(first=false){
   app.innerHTML=`<div class="top pad"><button id="back" aria-label="Volver" style="font-size:22px;color:var(--muted)">${first?"":"‹"}</button><div style="flex:1"><p class="eyebrow" data-es="Mi perfil">Nire profila</p><h2>Zu zeu · sobre ti</h2></div></div>
    <div class="stack pad" style="flex:1">
     <p class="muted">Con esto la app crea frases sobre ti (tu edad, tus hermanos…). Lo que dices de ti mismo se recuerda mucho mejor que lo de Ane y Mikel.</p>
+    <p class="eyebrow" data-es="Tu nombre, como lo ven los demás">Izena</p><input class="ans" id="pname" placeholder="Nombre" maxlength="30" autocomplete="nickname" value="${esc(P.name||"")}">
     <p class="eyebrow" data-es="¿Chica o chico?">Neska ala mutila?</p>
     <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-g="neska" aria-pressed="${pr.gender==="neska"}">👧 Neska<br><small class="muted">chica · neba / ahizpa</small></button><button class="opt" data-g="mutila" aria-pressed="${pr.gender==="mutila"}">👦 Mutila<br><small class="muted">chico · anaia / arreba</small></button></div>
     <p class="eyebrow" data-es="¿Cuántos años tienes?">Zenbat urte dituzu?</p><input class="ans" id="age" type="number" inputmode="numeric" min="1" max="119" placeholder="Edad" value="${pr.age||""}">
@@ -405,10 +424,10 @@ function renderProfile(first=false){
     <p class="eyebrow" data-es="Audio">Audioa</p>
     <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-sp="0" aria-pressed="${!SLOW}">🔊 Normala<br><small class="muted">Normal</small></button><button class="opt" data-sp="1" aria-pressed="${SLOW}">🐢 Poliki<br><small class="muted">Lento</small></button></div>
     <p class="hint">${VOICE?"En cualquier altavoz, mantén pulsado para oírlo despacio aunque esté en normal.":"🔇 El audio no está disponible ahora mismo; los dictados se omiten."}</p>
-    ${first?"":`<button class="link" id="logout" style="align-self:center">Salir de la cuenta</button>
+    ${first?"":`<p class="hint" style="text-align:center">Sesión de <b>${esc(P.email||"")}</b></p><button class="link" id="logout" style="align-self:center">Salir de la cuenta</button>
     <details class="card" style="margin-top:8px"><summary class="muted" style="cursor:pointer">Kontua ezabatu · Borrar mi cuenta</summary>
-      <p class="hint" style="margin-top:10px">Se borran tu usuario, tu progreso, tus retos y tus avisos. No se puede deshacer. Escribe tu PIN para confirmar.</p>
-      <input class="ans" id="delpin" type="password" inputmode="numeric" placeholder="PIN" autocomplete="off" style="margin-top:8px">
+      <p class="hint" style="margin-top:10px">Se borran tu cuenta, tu progreso, tus retos y tus avisos. No se puede deshacer. Escribe tu correo para confirmar.</p>
+      <input class="ans" id="delmail" type="email" placeholder="tu@correo.com" autocomplete="off" style="margin-top:8px">
       <button class="btn" id="delacc" style="margin-top:8px">Ezabatu betiko<small>Borrar para siempre</small></button>
       <p class="hint" id="delmsg"></p>
       <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Pribatutasuna · Política de privacidad</a></p>
@@ -416,15 +435,15 @@ function renderProfile(first=false){
    </div>
    <div class="bottom pad"><button class="btn red" id="save">Gorde<small>Guardar</small></button></div>`;
   const lo=document.getElementById("logout"); if(lo) lo.onclick=async()=>{ await api("logout",{}); P=null; renderLogin(); };
-  const da=document.getElementById("delacc"); if(da) da.onclick=async()=>{ const pin=document.getElementById("delpin").value; const m=document.getElementById("delmsg"); if(!pin){ m.textContent="Escribe tu PIN."; return; } if(!confirm("¿Borrar tu cuenta y todo tu progreso? No se puede deshacer.")) return; try{ await api("account/delete",{pin}); P=null; try{ localStorage.clear(); }catch(e){} renderLogin(); }catch(e){ m.textContent=e.message||"No se pudo borrar."; } };
+  const da=document.getElementById("delacc"); if(da) da.onclick=async()=>{ const email=document.getElementById("delmail").value; const m=document.getElementById("delmsg"); if(!email){ m.textContent="Escribe tu correo."; return; } if(!confirm("¿Borrar tu cuenta y todo tu progreso? No se puede deshacer.")) return; try{ await api("account/delete",{email}); P=null; try{ localStorage.clear(); }catch(e){} renderLogin(); }catch(e){ m.textContent=e.message||"No se pudo borrar."; } };
   renderPushBox();
   app.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{ SLOW=b.dataset.sp==="1"; try{ localStorage.setItem("euskara.slow",SLOW?"1":"0"); }catch(e){} app.querySelectorAll("[data-sp]").forEach(x=>x.setAttribute("aria-pressed",(x.dataset.sp==="1")===SLOW)); if(VOICE) speak("Kaixo, zer moduz?"); });
   let g=pr.gender||null;
   app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ g=b.dataset.g; app.querySelectorAll("[data-g]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.g===g)); });
   document.getElementById("back").onclick=()=>first?null:setTab("gaur");
   document.getElementById("save").onclick=async()=>{
-    const body={gender:g,age:+document.getElementById("age").value||null,nebak:+document.getElementById("nebak").value||0,ahizpak:+document.getElementById("ahizpak").value||0,town:document.getElementById("town").value.trim(),origin:document.getElementById("origin").value.trim()};
-    try{ P.profile=await api("profile",body); await api("items/introduce",{items:personalItems()}); await loadItems(); P=await api("me"); if(first&&!seenWelcome()) renderWelcome(); else setTab("gaur"); }catch(e){ toast(e.message); }
+    const body={name:document.getElementById("pname").value.trim(),gender:g,age:+document.getElementById("age").value||null,nebak:+document.getElementById("nebak").value||0,ahizpak:+document.getElementById("ahizpak").value||0,town:document.getElementById("town").value.trim(),origin:document.getElementById("origin").value.trim()};
+    try{ const pr=await api("profile",body); P.name=pr.name; delete pr.name; P.profile=pr; await api("items/introduce",{items:personalItems()}); await loadItems(); P=await api("me"); if(first&&!seenWelcome()) renderWelcome(); else setTab("gaur"); }catch(e){ toast(e.message); }
   };
 }
 
@@ -478,10 +497,10 @@ function renderWelcome(){
   ]; let i=0;
   const show=()=>{ const sl=slides[i]; app.innerHTML=`<div class="stack pad" style="padding-top:calc(60px + env(safe-area-inset-top,0px));min-height:100vh;justify-content:center;align-items:center;text-align:center;gap:18px"><div>${sl.em}</div><h1 style="font-size:36px">${esc(sl.t)}</h1><p class="muted" style="margin-top:-10px">${esc(sl.es)}</p><p style="max-width:420px;font-size:17px">${sl.b}</p><div class="row" style="justify-content:center;gap:8px">${slides.map((_,k)=>`<span style="width:10px;height:10px;background:${k===i?"var(--red)":"var(--line-soft)"}"></span>`).join("")}</div><button class="btn red" id="wnext" style="max-width:360px">${i<slides.length-1?"Hurrengoa<small>Siguiente</small>":"Hasi!<small>Empezar</small>"}</button>${i<slides.length-1?`<button class="link" id="wskip">Saltar</button>`:""}</div>`;
     document.getElementById("wnext").onclick=()=>{ i++; i<slides.length?show():done(); }; const sk=document.getElementById("wskip"); if(sk) sk.onclick=done; };
-  const done=()=>{ try{ localStorage.setItem("euskara.welcome."+P.name,"1"); }catch(e){} setTab("gaur"); };
+  const done=()=>{ try{ localStorage.setItem("euskara.welcome."+P.id,"1"); }catch(e){} setTab("gaur"); };
   show();
 }
-const seenWelcome=()=>{ try{ return localStorage.getItem("euskara.welcome."+P.name)==="1"; }catch(e){ return true; } };
+const seenWelcome=()=>{ try{ return localStorage.getItem("euskara.welcome."+P.id)==="1"; }catch(e){ return true; } };
 
 // ---------- GAUR (ronda diaria por repetición espaciada) ----------
 function dueToday(){ const t=todayStr(); return ITEMS.filter(i=>i.due<=t).sort((a,b)=>a.due<b.due?-1:a.due>b.due?1:b.lapses-a.lapses); }
@@ -528,7 +547,7 @@ async function renderToday(){
 
 // ---------- SESIÓN ----------
 let SES=null;
-const sesKey=()=>"euskara.ses2."+(P?P.name:"");
+const sesKey=()=>"euskara.ses2."+(P?P.id:"");
 function saveSes(){ try{ if(SES) localStorage.setItem(sesKey(),JSON.stringify(SES)); }catch(e){} }
 function loadSes(){ try{ const d=JSON.parse(localStorage.getItem(sesKey())||"null"); return d&&d.ex&&d.i<d.ex.length?d:null; }catch(e){ return null; } }
 function clearSes(){ try{ localStorage.removeItem(sesKey()); }catch(e){} }
@@ -676,8 +695,8 @@ function renderGrammarList(){
   window.scrollTo(0,0);
 }
 // progreso de drills por teléfono (ligero; no va al calendario)
-function gramDone(id){ try{ return (JSON.parse(localStorage.getItem("euskara.gram."+(P?P.name:""))||"{}")[id]||0); }catch(e){ return 0; } }
-function gramSet(id,n){ try{ const k="euskara.gram."+(P?P.name:""); const d=JSON.parse(localStorage.getItem(k)||"{}"); d[id]=Math.max(d[id]||0,n); localStorage.setItem(k,JSON.stringify(d)); }catch(e){} }
+function gramDone(id){ try{ return (JSON.parse(localStorage.getItem("euskara.gram."+(P?P.id:""))||"{}")[id]||0); }catch(e){ return 0; } }
+function gramSet(id,n){ try{ const k="euskara.gram."+(P?P.id:""); const d=JSON.parse(localStorage.getItem(k)||"{}"); d[id]=Math.max(d[id]||0,n); localStorage.setItem(k,JSON.stringify(d)); }catch(e){} }
 const PK={subj:"sujeto",obj:"nombre / adjetivo",verb:"verbo",neg:"negación / unión",num:"número / plural",q:"interrogativo"};
 function renderGrammar(g){
   noTabs();
@@ -753,23 +772,33 @@ const TASKS=[
   {need:"l1",t:"Despídete de {X} en euskera de dos formas distintas y escríbelas",check:""}
 ];
 async function renderTeam(){
-  app.innerHTML=header("Taldea · retos y tareas con los demás")+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
-  let users=[], chs=[]; try{ [users,chs]=await Promise.all([api("users"),api("challenges")]); }catch(e){}
-  const pendingForMe=chs.filter(c=>c.forMe&&c.status==="open"&&!c.toResult);
-  const toConfirm=chs.filter(c=>c.kind==="task"&&c.forMe&&!c.toResult);
+  app.innerHTML=header("Taldea · retos y tareas con tu gente")+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
+  let friends=[], chs=[]; try{ [friends,chs]=await Promise.all([api("friends"),api("challenges")]); }catch(e){}
   const m=imap(); const learnedLessons=new Set(ITEMS.map(i=>i.lesson_id));
   const tasks=TASKS.filter(t=>learnedLessons.has(t.need));
+  const opt=u=>`<option value="${u.id}">${esc(u.name)}${u.town?" · "+esc(u.town):""}</option>`;
+  const person=u=>`<div class="lbrow"><span class="av">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}</b><span class="muted" style="font-size:13px">${u.town?esc(u.town)+" · ":""}${u.consolidated} firmes${u.streak?" · 🔥 "+u.streak:""}${u.addedMe&&!u.added?" · te ha añadido":""}</span></span>${u.added?`<button class="link" data-unfriend="${u.id}" style="font-size:12px">quitar</button>`:`<button class="btn sm" data-friend="${u.id}">Gehitu<small>añadir</small></button>`}</div>`;
   app.querySelector(".stack").classList.add("cols");
   app.querySelector(".stack").innerHTML=`<div class="col">
-    ${!users.length?`<div class="card"><p class="eyebrow" data-es="Todavía sin compañía">Oraindik bakarrik</p><p style="margin-top:6px">Cuando alguien más entre con el código de invitación podrás retarle aquí.</p></div>`:`
+    <p class="eyebrow" data-es="tu círculo">Zure jendea</p>
+    <div class="card stack" style="gap:8px"><p class="hint">Añade a tus compañeros de clase o amigos por su nombre. Solo tu círculo puede retarte y compararse contigo.</p><input class="ans" id="psearch" placeholder="Buscar por nombre…" autocomplete="off"><div id="presults"></div>
+    ${friends.length?`<div class="lb-list" style="margin-top:6px">${friends.map(person).join("")}</div>`:`<p class="hint">Todavía no has añadido a nadie.</p>`}</div>
+    ${friends.length?`
     <p class="eyebrow" data-es="reto de 6 frases">Erronka</p>
-    <div class="card stack" style="gap:10px"><p class="hint">Los dos respondéis las mismas 6 frases escribiendo. Gana quien acierte más a la primera.</p><div class="row"><select class="ans" id="duelTo" style="flex:1">${users.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join("")}</select></div><div class="row"><button class="btn red sm" id="duel" style="flex:1">Erronka!<small>Retar · escribir 6 frases</small></button><button class="btn sm" id="duelT" style="flex:1">Eraldatu!<small>Retar · transformar 6</small></button></div></div>
+    <div class="card stack" style="gap:10px"><p class="hint">Los dos respondéis las mismas 6 frases escribiendo. Gana quien acierte más a la primera.</p><div class="row"><select class="ans" id="duelTo" style="flex:1">${friends.map(opt).join("")}</select></div><div class="row"><button class="btn red sm" id="duel" style="flex:1">Erronka!<small>Retar · escribir 6 frases</small></button><button class="btn sm" id="duelT" style="flex:1">Eraldatu!<small>Retar · transformar 6</small></button></div></div>
     <p class="eyebrow" data-es="tareas en persona">Elkarrekin</p>
-    ${tasks.length?`<div class="card stack" style="gap:10px"><p class="hint">Haz la tarea con la otra persona (en el café, por mensaje…), escribe aquí lo que te dijo en euskera y ella confirma si está bien.</p><select class="ans" id="taskTo">${users.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join("")}</select><select class="ans" id="taskSel">${tasks.map((t,i)=>`<option value="${i}">${esc(t.t.replace("{X}","…"))}</option>`).join("")}</select><input class="ans" id="taskAns" placeholder="Lo que respondió, en euskera"><button class="btn sm" id="sendTask">Bidali<small>Enviar</small></button></div>`:`<p class="hint">Las tareas en persona se desbloquean al introducir las lecciones de presentarse, qué tal, edad…</p>`}`}
-    ${chs.length?`<p class="eyebrow" data-es="retos y tareas">Historia</p>${chs.map(c=>renderChallenge(c)).join("")}`:""}`;
-  const d=document.getElementById("duel"); if(d) d.onclick=()=>{ const to=document.getElementById("duelTo").value; const pool=catalog().filter(i=>m[i.key]); const items=shuffle(pool.length>=6?pool:catalog()).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||""})); startSession({items,label:"Erronka vs "+to,challenge:{to,items}}); };
-  const dt=document.getElementById("duelT"); if(dt) dt.onclick=()=>{ const to=document.getElementById("duelTo").value; const pool=catalog().filter(i=>transformsFor(i.eu).length); const items=shuffle(pool).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||"",tr:pick(transformsFor(i.eu))})); startSession({items,label:"Eraldatu vs "+to,challenge:{to,items,transform:true},forceTransform:true}); };
-  const st=document.getElementById("sendTask"); if(st) st.onclick=async()=>{ const to=document.getElementById("taskTo").value, t=tasks[+document.getElementById("taskSel").value], ans=document.getElementById("taskAns").value.trim(); if(!ans) return toast("Escribe la respuesta primero"); try{ await api("challenges",{to,kind:"task",payload:{text:t.t.replace("{X}",to),check:t.check},fromResult:{answer:ans}}); toast("Bidalita · enviado"); renderTeam(); }catch(e){ toast(e.message); } };
+    ${tasks.length?`<div class="card stack" style="gap:10px"><p class="hint">Haz la tarea con la otra persona (en el café, por mensaje…), escribe aquí lo que te dijo en euskera y ella confirma si está bien.</p><select class="ans" id="taskTo">${friends.map(opt).join("")}</select><select class="ans" id="taskSel">${tasks.map((t,i)=>`<option value="${i}">${esc(t.t.replace("{X}","…"))}</option>`).join("")}</select><input class="ans" id="taskAns" placeholder="Lo que respondió, en euskera"><button class="btn sm" id="sendTask">Bidali<small>Enviar</small></button></div>`:`<p class="hint">Las tareas en persona se desbloquean al introducir las lecciones de presentarse, qué tal, edad…</p>`}`:""}
+    </div><div class="col">
+    ${chs.length?`<p class="eyebrow" data-es="retos y tareas">Historia</p>${chs.map(c=>renderChallenge(c)).join("")}`:""}</div>`;
+  const sel=id=>friends.find(f=>f.id===+id)||{id:+id,name:"?"};
+  const ps=document.getElementById("psearch"), pr=document.getElementById("presults"); let tm=null;
+  const wire=()=>{ app.querySelectorAll("[data-friend]").forEach(b=>b.onclick=async()=>{ try{ await api("friends",{id:+b.dataset.friend}); toast("Gehituta · añadido"); renderTeam(); }catch(e){ toast(e.message); } });
+    app.querySelectorAll("[data-unfriend]").forEach(b=>b.onclick=async()=>{ try{ await api("friends/remove",{id:+b.dataset.unfriend}); renderTeam(); }catch(e){ toast(e.message); } }); };
+  ps.oninput=()=>{ clearTimeout(tm); const q=ps.value.trim(); if(q.length<2){ pr.innerHTML=""; return; } tm=setTimeout(async()=>{ try{ const r=await api("people?q="+encodeURIComponent(q)); pr.innerHTML=r.length?`<div class="lb-list">${r.map(person).join("")}</div>`:`<p class="hint">Nadie con ese nombre. Pídele que se registre y te diga cómo se ha puesto.</p>`; wire(); }catch(e){} },250); };
+  wire();
+  const d=document.getElementById("duel"); if(d) d.onclick=()=>{ const to=sel(document.getElementById("duelTo").value); const pool=catalog().filter(i=>m[i.key]); const items=shuffle(pool.length>=6?pool:catalog()).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||""})); startSession({items,label:"Erronka vs "+to.name,challenge:{toId:to.id,items}}); };
+  const dt=document.getElementById("duelT"); if(dt) dt.onclick=()=>{ const to=sel(document.getElementById("duelTo").value); const pool=catalog().filter(i=>transformsFor(i.eu).length); const items=shuffle(pool).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||"",tr:pick(transformsFor(i.eu))})); startSession({items,label:"Eraldatu vs "+to.name,challenge:{toId:to.id,items,transform:true},forceTransform:true}); };
+  const st=document.getElementById("sendTask"); if(st) st.onclick=async()=>{ const to=sel(document.getElementById("taskTo").value), t=tasks[+document.getElementById("taskSel").value], ans=document.getElementById("taskAns").value.trim(); if(!ans) return toast("Escribe la respuesta primero"); try{ await api("challenges",{toId:to.id,kind:"task",payload:{text:t.t.replace("{X}",to.name),check:t.check},fromResult:{answer:ans}}); toast("Bidalita · enviado"); renderTeam(); }catch(e){ toast(e.message); } };
   app.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>{ const c=chs.find(x=>x.id===+b.dataset.play); startSession({items:c.payload.items,label:(c.payload.transform?"Eraldatu de ":"Erronka de ")+c.from,challenge:{id:c.id},forceTransform:!!c.payload.transform}); });
   app.querySelectorAll("[data-ok]").forEach(b=>b.onclick=async()=>{ const id=+b.dataset.ok, fix=(app.querySelector(`[data-fix="${id}"]`)||{}).value||""; try{ await api(`challenges/${id}/result`,{result:{ok:b.dataset.v==="1",fix}}); renderTeam(); }catch(e){ toast(e.message); } });
 }
@@ -789,7 +818,7 @@ async function finishChallenge(score,total){
   const c=SES.challenge; const answers=SES.answers;
   try{
     if(c.id) await api(`challenges/${c.id}/result`,{result:{score,total}});
-    else await api("challenges",{to:c.to,kind:"duel",payload:{items:c.items,transform:!!c.transform},fromResult:{score,total}});
+    else await api("challenges",{toId:c.toId,kind:"duel",payload:{items:c.items,transform:!!c.transform},fromResult:{score,total}});
     P=await api("round",{lessonId:null,ok:score,total:Math.max(total,1)});
   }catch(e){ toast(e.message); }
   app.innerHTML=`<div class="head pad" style="padding-bottom:28px;text-align:center"><div class="lb">${LAUBURU}</div><p class="eyebrow" data-es="Reto terminado">Erronka amaituta</p><h1 style="margin-top:6px">${score}/${total}</h1><p class="sub" style="max-width:none">${c.id?"Resultado enviado. Mira el marcador en Taldea.":"Reto enviado. Cuando conteste, veréis el marcador en Taldea."}</p></div><div class="stack pad" style="padding-top:18px"><button class="btn" id="home">Taldera<small>ir a Taldea</small></button></div>`;
@@ -801,10 +830,11 @@ async function renderStats(){
   app.innerHTML=header("Datuak · lo que de verdad se queda")+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
   let data; try{ data=await api("stats"); }catch(e){ app.querySelector(".stack").innerHTML=`<p class="err">No se pudieron cargar los datos.</p>`; return; }
   const COLORS=["#B8281F","#2A7A4F","#D9A441","#3B6EA5","#8E4A9E","#C8683A"];
-  const users=data.users.slice().sort((a,b)=>b.weekXp-a.weekXp||b.consolidated-a.consolidated).map((u,i)=>({...u,color:COLORS[i%COLORS.length]}));
-  const active=users.filter(u=>u.weekXp>0||u.me); const me=users.find(u=>u.me);
+  const all=data.users.slice().sort((a,b)=>b.weekXp-a.weekXp||b.consolidated-a.consolidated).map((u,i)=>({...u,color:COLORS[i%COLORS.length]}));
+  const users=all.filter(u=>u.me||u.friend); const top=all.filter(u=>u.weekXp>0).slice(0,20); const me=all.find(u=>u.me);
+  const active=users.filter(u=>u.weekXp>0||u.me); const rk=data.rank||{};
   const dayLabel=d=>["Ig","Al","Ar","Az","Og","Ol","Lr"][new Date(d+"T12:00:00").getDay()];
-  const maxW=Math.max(1,...users.map(u=>u.weekXp)); const mx=Math.max(1,...users.flatMap(u=>u.perDay));
+  const maxW=Math.max(1,...top.map(u=>u.weekXp),me.weekXp); const mx=Math.max(1,...users.flatMap(u=>u.perDay));
   const daysLeft=7-((new Date(data.days[6]+"T12:00:00").getDay()+6)%7);
   const best=k=>Math.max(...users.map(u=>u[k])); const cell=(u,k,f=x=>x)=>`<td class="${u[k]===best(k)&&u[k]>0?"win":""}">${f(u[k])}</td>`;
   const m=imap(); const soon=ITEMS.filter(i=>i.due>data.days[6]).length;
@@ -812,15 +842,16 @@ async function renderStats(){
   app.querySelector(".stack").innerHTML=`<div class="col">
     <div class="stats"><div class="stat g"><b style="display:flex;justify-content:center;align-items:center;gap:6px"><span style="display:inline-flex;width:22px;height:22px">${LAUBURU}</span>${me.consolidated}</b><span>Sendoak · firmes</span></div><div class="stat"><b>${me.learned}</b><span>Ikasten · en estudio</span></div><div class="stat"><b>🔥 ${me.streak}</b><span>Egunak · seguidos</span></div><div class="stat"><b>${me.accuracy}%</b><span>Lehenengoan · a la primera</span></div></div>
     <p class="hint">Firme = la has acertado tantas veces que no hace falta repasarla hasta dentro de una semana o más. ${soon?`${soon} frases programadas para más adelante.`:""}</p>
-    <p class="eyebrow" data-es="Ranking de la semana · empieza de cero cada lunes">Asteko sailkapena</p>
-    <div class="card lb-list">${users.map((u,i)=>`<div class="lbrow ${u.me?"me":""}"><span class="rank">${u.weekXp>0?(["🥇","🥈","🥉"][i]||(i+1)):"–"}</span><span class="av" style="background:${u.color}">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}${u.me?" (tú)":""}</b>${u.practicedToday?" <span class='muted' style='font-size:13px'>· gaur 🔥</span>":""}<i class="wbar"><i style="width:${Math.round(u.weekXp/maxW*100)}%;background:${u.color}"></i></i></span><b class="num">${u.weekXp}<span class="muted" style="font-size:13px;font-family:var(--body)"> XP</span></b></div>`).join("")}</div>
-    <p class="hint">${daysLeft===1?"Último día de la semana.":`Quedan ${daysLeft} días de semana.`} Cada frase acertada son 10 XP; las frases firmes de cada persona están en la tabla de abajo.</p>
+    <p class="eyebrow" data-es="Ranking de la semana · entre todo el mundo">Asteko sailkapena</p>
+    ${rk.position?`<p class="hint">Vas <b>${rk.position}ª de ${rk.active}</b> personas que han practicado esta semana${rk.total>rk.active?` (${rk.total} en total)`:""}.</p>`:`<p class="hint">Practica una ronda y entras en el ranking de la semana (${rk.active||0} personas activas).</p>`}
+    <div class="card lb-list">${(top.some(u=>u.me)||!me.weekXp?top:[...top,me]).map((u,i)=>`<div class="lbrow ${u.me?"me":""}"><span class="rank">${u.weekXp>0?(["🥇","🥈","🥉"][i]||(u.me&&!top.some(x=>x.me)?rk.position:i+1)):"–"}</span><span class="av" style="background:${u.color}">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}${u.me?" (tú)":u.friend?" ★":""}</b>${u.practicedToday?" <span class='muted' style='font-size:13px'>· gaur 🔥</span>":""}<i class="wbar"><i style="width:${Math.round(u.weekXp/maxW*100)}%;background:${u.color}"></i></i></span><b class="num">${u.weekXp}<span class="muted" style="font-size:13px;font-family:var(--body)"> XP</span></b></div>`).join("")}</div>
+    <p class="hint">${daysLeft===1?"Último día de la semana.":`Quedan ${daysLeft} días de semana.`} Cada frase acertada son 10 XP. ★ = gente de tu círculo.</p>
     </div><div class="col">
     <p class="eyebrow" data-es="XP por día">Azken 7 egunak</p>
     <div class="card"><div class="chart">${data.days.map((d,i)=>`<div class="d"><div class="bars">${active.map(u=>`<i style="height:${Math.round(u.perDay[i]/mx*100)}%;background:${u.color}" title="${esc(u.name)}: ${u.perDay[i]} XP"></i>`).join("")}</div><small>${dayLabel(d)}</small></div>`).join("")}</div><div class="legend" style="margin-top:10px">${active.map(u=>`<span><i style="background:${u.color}"></i>${esc(u.name)}</span>`).join("")}</div></div>
-    <p class="eyebrow" data-es="todos">Denak</p>
+    <p class="eyebrow" data-es="tú y tu círculo">Zure jendea</p>
     <div class="tabwrap"><table class="stab"><tr><th></th><th title="Firmes">Sendo</th><th title="En estudio">Ikast</th><th title="XP semana">Astea</th><th title="XP total">Guzt</th><th>🔥</th><th>%</th></tr>${users.map(u=>`<tr class="${u.me?"me":""}"><td class="lab"><span class="dot" style="background:${u.color}"></span>${esc(u.name)}</td>${cell(u,"consolidated")}${cell(u,"learned")}${cell(u,"weekXp")}${cell(u,"xp")}${cell(u,"streak")}${cell(u,"accuracy",x=>x+"%")}</tr>`).join("")}</table></div>
-    <p class="hint">Sendo = firmes · Ikast = en estudio · Astea = XP de la semana · Guzt = XP total · 🔥 = racha · % = aciertos a la primera.</p></div>`;
+    <p class="hint">Sendo = firmes · Ikast = en estudio · Astea = XP de la semana · Guzt = XP total · 🔥 = racha · % = aciertos a la primera.${users.length<2?" Añade gente en Taldea para compararte.":""}</p></div>`;
 }
 
 // arranque

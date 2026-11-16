@@ -13,19 +13,30 @@ const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, salt TEXT NOT NULL, hash TEXT NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
     xp INTEGER NOT NULL DEFAULT 0, streak INTEGER NOT NULL DEFAULT 0, last_day TEXT,
+    weak TEXT NOT NULL DEFAULT '[]', profile TEXT NOT NULL DEFAULT '{}', last_seen TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+  CREATE TABLE IF NOT EXISTS login_codes (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, code_hash TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, used INTEGER NOT NULL DEFAULT 0, expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL);
+  CREATE INDEX IF NOT EXISTS login_codes_email ON login_codes (email, created_at);
+  CREATE TABLE IF NOT EXISTS friends (user_id INTEGER NOT NULL, friend_id INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (user_id, friend_id));
+  CREATE INDEX IF NOT EXISTS friends_friend ON friends (friend_id);
+  CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT NOT NULL, meta TEXT, day TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+  CREATE INDEX IF NOT EXISTS events_day ON events (day, name);
   CREATE TABLE IF NOT EXISTS progress (user_id INTEGER NOT NULL, lesson_id TEXT NOT NULL, rounds INTEGER NOT NULL DEFAULT 0, best INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, lesson_id));
   CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+  CREATE INDEX IF NOT EXISTS sessions_user ON sessions (user_id);
   CREATE TABLE IF NOT EXISTS rounds (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, lesson_id TEXT, ok INTEGER NOT NULL, total INTEGER NOT NULL, day TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+  CREATE INDEX IF NOT EXISTS rounds_day ON rounds (day);
+  CREATE INDEX IF NOT EXISTS rounds_user_day ON rounds (user_id, day);
   CREATE TABLE IF NOT EXISTS items (
     user_id INTEGER NOT NULL, key TEXT NOT NULL, eu TEXT NOT NULL, es TEXT NOT NULL, lesson_id TEXT,
     interval REAL NOT NULL DEFAULT 0, ease REAL NOT NULL DEFAULT 2.3, due TEXT NOT NULL,
     reps INTEGER NOT NULL DEFAULT 0, lapses INTEGER NOT NULL DEFAULT 0, last TEXT,
     PRIMARY KEY (user_id, key)
   );
+  CREATE INDEX IF NOT EXISTS items_user_due ON items (user_id, due);
   CREATE TABLE IF NOT EXISTS push_subs (
     endpoint TEXT PRIMARY KEY, user_id INTEGER NOT NULL, sub TEXT NOT NULL, daily INTEGER NOT NULL DEFAULT 1, challenges INTEGER NOT NULL DEFAULT 1,
     hour INTEGER NOT NULL DEFAULT 19, last_sent TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -35,10 +46,16 @@ db.exec(`
     payload TEXT NOT NULL, from_result TEXT, to_result TEXT, status TEXT NOT NULL DEFAULT 'open',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+  CREATE INDEX IF NOT EXISTS challenges_to ON challenges (to_id, status);
 `);
-for (const sql of ["ALTER TABLE users ADD COLUMN weak TEXT NOT NULL DEFAULT '[]'", "ALTER TABLE users ADD COLUMN profile TEXT NOT NULL DEFAULT '{}'"]) { try { db.exec(sql); } catch (e) {} }
 
-const hashPin = (pin, salt) => crypto.scryptSync(String(pin), salt, 32).toString("hex");
+const SECRET = process.env.APP_SECRET || "dev-secret-change-me";
+const hashCode = (email, code) => crypto.createHmac("sha256", SECRET).update(email + ":" + code).digest("hex");
+const normEmail = (e) => String(e || "").trim().toLowerCase();
+const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) && e.length <= 120;
+const cleanName = (n) => String(n || "").trim().normalize("NFC").replace(/\s+/g, " ").slice(0, 30);
+const displayName = (u) => u.name ? u.name[0].toUpperCase() + u.name.slice(1) : "?";
+function logEvent(userId, name, meta) { try { db.prepare("INSERT INTO events (user_id, name, meta, day) VALUES (?, ?, ?, ?)").run(userId || null, name, meta ? JSON.stringify(meta) : null, madridDay()); } catch (e) {} }
 const norm = (s) => String(s || "").trim().toLowerCase().normalize("NFC").replace(/\s+/g, " ");
 const madridDay = (offsetDays = 0) => new Date(Date.now() + offsetDays * 86400000).toLocaleDateString("sv-SE", { timeZone: process.env.TZ_NAME || "Europe/Madrid" });
 const addDays = (day, n) => new Date(new Date(day + "T12:00:00Z").getTime() + n * 86400000).toISOString().slice(0, 10);
@@ -66,6 +83,8 @@ function auth(req, res, next) {
   if (!row) return res.status(401).json({ error: "No has iniciado sesión." });
   req.user = db.prepare("SELECT * FROM users WHERE id = ?").get(row.user_id);
   if (!req.user) return res.status(401).json({ error: "Sesión inválida." });
+  const today = madridDay();
+  if (req.user.last_seen !== today) { db.prepare("UPDATE users SET last_seen = ? WHERE id = ?").run(today, req.user.id); req.user.last_seen = today; }
   next();
 }
 function setSession(res, userId) {
@@ -85,7 +104,7 @@ function profile(user) {
   const lessons = {};
   for (const p of db.prepare("SELECT lesson_id, rounds, best FROM progress WHERE user_id = ?").all(user.id)) lessons[p.lesson_id] = { rounds: p.rounds, best: p.best };
   const pending = db.prepare("SELECT COUNT(*) n FROM challenges WHERE to_id = ? AND status = 'open' AND to_result IS NULL").get(user.id).n;
-  return { name: user.name, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
+  return { id: user.id, name: user.name, email: user.email, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
 }
 
 // ---------- notificaciones push (web-push, sin servicio externo) ----------
@@ -113,6 +132,7 @@ app.post("/api/push/subscribe", auth, (req, res) => {
   const daily = req.body.daily === false ? 0 : 1, challenges = req.body.challenges === false ? 0 : 1, hour = Math.max(6, Math.min(23, parseInt(req.body.hour) || 19));
   db.prepare(`INSERT INTO push_subs (endpoint, user_id, sub, daily, challenges, hour) VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, sub = excluded.sub, daily = excluded.daily, challenges = excluded.challenges, hour = excluded.hour`).run(sub.endpoint, req.user.id, JSON.stringify(sub), daily, challenges, hour);
+  logEvent(req.user.id, "push_on");
   res.json({ ok: true });
 });
 app.post("/api/push/unsubscribe", auth, (req, res) => { if (req.body.endpoint) db.prepare("DELETE FROM push_subs WHERE endpoint = ? AND user_id = ?").run(req.body.endpoint, req.user.id); res.json({ ok: true }); });
@@ -127,7 +147,7 @@ async function dailyReminders() {
     const u = db.prepare("SELECT * FROM users WHERE id = ?").get(r.user_id); if (!u || u.last_day === today) continue;
     const due = db.prepare("SELECT COUNT(*) n FROM items WHERE user_id = ? AND due <= ?").get(u.id, today).n;
     if (!due) continue;
-    const name = u.name[0].toUpperCase() + u.name.slice(1);
+    const name = displayName(u);
     const n = await sendPush(u.id, { title: `Kaixo, ${name}!`, body: `${due} ${due === 1 ? "frase" : "frases"} para repasar hoy. Bost minutu · cinco minutos.`, url: "/", tag: "daily" }, "daily");
     if (n) db.prepare("UPDATE push_subs SET last_sent = ? WHERE user_id = ? AND daily = 1").run(today, u.id);
   }
@@ -135,25 +155,58 @@ async function dailyReminders() {
 if (PUSH_ON) { setInterval(() => { const m = new Date().getMinutes(); if (m === 0 || m === 1) dailyReminders().catch(e => console.error(e)); }, 60 * 1000); console.log("Push activado; recordatorios diarios en marcha."); }
 else console.log("Push desactivado (faltan VAPID_PUBLIC / VAPID_PRIVATE).");
 
-// ---------- cuentas ----------
-app.post("/api/register", (req, res) => {
-  const name = norm(req.body.name), pin = String(req.body.pin || "");
-  if (!/^[a-z0-9àáâäèéêëìíîïòóôöùúûüñç._ -]{2,24}$/.test(name)) return res.status(400).json({ error: "El nombre: de 2 a 24 letras, números o espacios (sin símbolos)." });
-  if (!/^\d{4,8}$/.test(pin)) return res.status(400).json({ error: "El PIN debe tener entre 4 y 8 cifras." });
-  if (process.env.INVITE_CODE && String(req.body.invite || "") !== process.env.INVITE_CODE) return res.status(403).json({ error: "Código de invitación incorrecto." });
-  if (db.prepare("SELECT 1 FROM users WHERE name = ?").get(name)) return res.status(409).json({ error: "Ese nombre ya existe. Inicia sesión con tu PIN." });
-  const salt = crypto.randomBytes(16).toString("hex");
-  const info = db.prepare("INSERT INTO users (name, salt, hash) VALUES (?, ?, ?)").run(name, salt, hashPin(pin, salt));
-  setSession(res, info.lastInsertRowid);
-  res.json(profile(db.prepare("SELECT * FROM users WHERE id = ?").get(info.lastInsertRowid)));
+// ---------- correo (Resend) ----------
+const MAIL_ON = !!process.env.RESEND_API_KEY;
+async function sendMail(to, subject, text, html) {
+  if (!MAIL_ON) { console.log(`[mail desactivado] para ${to}: ${subject}\n${text}`); return false; }
+  const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: process.env.MAIL_FROM || "Euskara Praktika <onboarding@resend.dev>", to: [to], subject, text, html }) });
+  if (!r.ok) { const t = await r.text().catch(() => ""); throw new Error("Resend " + r.status + " " + t.slice(0, 200)); }
+  return true;
+}
+
+// ---------- cuentas: email + código de 6 cifras ----------
+const CODE_TTL_MS = 10 * 60 * 1000;
+app.post("/api/auth/request", async (req, res) => {
+  const email = normEmail(req.body.email);
+  if (!validEmail(email)) return res.status(400).json({ error: "Escribe un correo válido." });
+  const now = Date.now();
+  const recent = db.prepare("SELECT COUNT(*) n FROM login_codes WHERE email = ? AND created_at > ?").get(email, now - 3600 * 1000).n;
+  if (recent >= 5) return res.status(429).json({ error: "Demasiados códigos pedidos. Espera una hora o usa el último que recibiste." });
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+  db.prepare("UPDATE login_codes SET used = 1 WHERE email = ? AND used = 0").run(email);
+  db.prepare("INSERT INTO login_codes (email, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?)").run(email, hashCode(email, code), now + CODE_TTL_MS, now);
+  const exists = !!db.prepare("SELECT 1 FROM users WHERE email = ?").get(email);
+  const pretty = code.slice(0, 3) + " " + code.slice(3);
+  try {
+    const sent = await sendMail(email, `${pretty} · zure kodea / tu código`,
+      `Kaixo!\n\nZure kodea / tu código para entrar en Euskara Praktika: ${pretty}\n\nBalio du 10 minutuz · Vale 10 minutos. Si no has pedido este código, ignora este correo.`,
+      `<div style="font-family:system-ui,sans-serif;max-width:420px;margin:auto;padding:24px;background:#FFF9EC;color:#141414"><p style="margin:0 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase">Euskara Praktika</p><h1 style="margin:0 0 16px;font-size:22px">Zure kodea<br><span style="font-size:14px;font-weight:400;color:#5A5A5A">Tu código para entrar</span></h1><p style="font-size:40px;font-weight:700;letter-spacing:6px;background:#141414;color:#FFF9EC;padding:14px 18px;text-align:center;margin:0 0 16px">${pretty}</p><p style="font-size:14px;color:#5A5A5A;margin:0">Balio du 10 minutuz · Vale 10 minutos.<br>Si no has pedido este código, ignora este correo.</p></div>`);
+    logEvent(null, "code_sent", { exists });
+    res.json({ ok: true, exists, sent, ...(sent ? {} : { devCode: code }) });
+  } catch (e) { console.error("mail error", e.message); res.status(502).json({ error: "No se pudo enviar el correo. Inténtalo en un momento." }); }
 });
-app.post("/api/login", (req, res) => {
-  const name = norm(req.body.name), pin = String(req.body.pin || "");
-  const user = db.prepare("SELECT * FROM users WHERE name = ?").get(name);
-  if (!user) return res.status(404).json({ error: "No existe ese usuario.", unknown: true });
-  if (!crypto.timingSafeEqual(Buffer.from(user.hash, "hex"), Buffer.from(hashPin(pin, user.salt), "hex"))) return res.status(401).json({ error: "PIN incorrecto." });
+app.post("/api/auth/verify", (req, res) => {
+  const email = normEmail(req.body.email), code = String(req.body.code || "").replace(/\D/g, "");
+  if (!validEmail(email) || code.length !== 6) return res.status(400).json({ error: "Código de 6 cifras." });
+  const row = db.prepare("SELECT * FROM login_codes WHERE email = ? AND used = 0 ORDER BY id DESC LIMIT 1").get(email);
+  if (!row || row.expires_at < Date.now()) return res.status(400).json({ error: "El código ha caducado. Pide otro.", expired: true });
+  if (row.attempts >= 5) return res.status(429).json({ error: "Demasiados intentos. Pide un código nuevo.", expired: true });
+  if (!crypto.timingSafeEqual(Buffer.from(row.code_hash), Buffer.from(hashCode(email, code)))) {
+    db.prepare("UPDATE login_codes SET attempts = attempts + 1 WHERE id = ?").run(row.id);
+    return res.status(401).json({ error: `Código incorrecto (${4 - row.attempts} ${row.attempts === 3 ? "intento" : "intentos"} más).` });
+  }
+  let user = db.prepare("SELECT * FROM users WHERE email = ?").get(email); let isNew = false;
+  if (!user) {
+    const name = cleanName(req.body.name);
+    if (name.length < 2) return res.status(200).json({ needName: true });
+    const info = db.prepare("INSERT INTO users (email, name) VALUES (?, ?)").run(email, name);
+    user = db.prepare("SELECT * FROM users WHERE id = ?").get(info.lastInsertRowid); isNew = true;
+    logEvent(user.id, "register");
+  } else logEvent(user.id, "login");
+  db.prepare("UPDATE login_codes SET used = 1 WHERE id = ?").run(row.id);
   setSession(res, user.id);
-  res.json(profile(user));
+  res.json({ ...profile(user), isNew });
 });
 app.post("/api/logout", (req, res) => { if (req.cookies.session) db.prepare("DELETE FROM sessions WHERE token = ?").run(req.cookies.session); res.clearCookie("session"); res.json({ ok: true }); });
 app.get("/api/me", auth, (req, res) => res.json(profile(req.user)));
@@ -161,10 +214,38 @@ app.post("/api/profile", auth, (req, res) => {
   const p = req.body || {};
   const clean = { gender: p.gender === "neska" || p.gender === "mutila" ? p.gender : null, age: Number.isInteger(p.age) && p.age > 0 && p.age < 120 ? p.age : null,
     nebak: Math.max(0, Math.min(9, p.nebak | 0)), ahizpak: Math.max(0, Math.min(9, p.ahizpak | 0)), town: String(p.town || "").slice(0, 40), origin: String(p.origin || "").slice(0, 40) };
-  db.prepare("UPDATE users SET profile = ? WHERE id = ?").run(JSON.stringify(clean), req.user.id);
-  res.json(clean);
+  const name = cleanName(p.name);
+  db.prepare("UPDATE users SET profile = ?" + (name.length >= 2 ? ", name = ?" : "") + " WHERE id = ?").run(...(name.length >= 2 ? [JSON.stringify(clean), name, req.user.id] : [JSON.stringify(clean), req.user.id]));
+  logEvent(req.user.id, "profile", { complete: !!clean.gender });
+  res.json({ ...clean, name: name.length >= 2 ? name : req.user.name });
 });
-app.get("/api/users", auth, (req, res) => res.json(db.prepare("SELECT name FROM users WHERE id != ? ORDER BY name").all(req.user.id).map(u => u.name)));
+
+// ---------- lagunak: a quién puedes retar y con quién te comparas ----------
+const personView = (u) => { const pr = J(u.profile, {}); return { id: u.id, name: u.name, town: pr.town || "", consolidated: itemStats(u.id).consolidated, streak: u.streak, lastSeen: u.last_seen }; };
+const circleIds = (me) => new Set(db.prepare("SELECT friend_id id FROM friends WHERE user_id = ? UNION SELECT user_id id FROM friends WHERE friend_id = ?").all(me, me).map(r => r.id));
+app.get("/api/people", auth, (req, res) => {
+  const q = cleanName(req.query.q).toLowerCase();
+  if (q.length < 2) return res.json([]);
+  const rows = db.prepare("SELECT * FROM users WHERE id != ? AND lower(name) LIKE ? ORDER BY last_seen DESC LIMIT 12").all(req.user.id, q + "%");
+  const mine = new Set(db.prepare("SELECT friend_id FROM friends WHERE user_id = ?").all(req.user.id).map(r => r.friend_id));
+  res.json(rows.map(u => ({ ...personView(u), added: mine.has(u.id) })));
+});
+app.get("/api/friends", auth, (req, res) => {
+  const out = db.prepare("SELECT friend_id id FROM friends WHERE user_id = ?").all(req.user.id).map(r => r.id);
+  const inn = db.prepare("SELECT user_id id FROM friends WHERE friend_id = ?").all(req.user.id).map(r => r.id);
+  const ids = [...new Set([...out, ...inn])];
+  const O = new Set(out), I = new Set(inn);
+  res.json(ids.map(id => db.prepare("SELECT * FROM users WHERE id = ?").get(id)).filter(Boolean).map(u => ({ ...personView(u), added: O.has(u.id), addedMe: I.has(u.id) })));
+});
+app.post("/api/friends", auth, (req, res) => {
+  const id = req.body.id | 0; const u = db.prepare("SELECT id FROM users WHERE id = ?").get(id);
+  if (!u || id === req.user.id) return res.status(400).json({ error: "Persona no encontrada." });
+  db.prepare("INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?)").run(req.user.id, id);
+  logEvent(req.user.id, "friend_add");
+  sendPush(id, { title: `${displayName(req.user)} te ha añadido`, body: "Ya podéis retaros en Taldea.", url: "/#taldea", tag: "friend" }, "challenges").catch(() => {});
+  res.json({ ok: true });
+});
+app.post("/api/friends/remove", auth, (req, res) => { db.prepare("DELETE FROM friends WHERE user_id = ? AND friend_id = ?").run(req.user.id, req.body.id | 0); res.json({ ok: true }); });
 
 // ---------- repetición espaciada ----------
 app.get("/api/items", auth, (req, res) => res.json(db.prepare("SELECT key, eu, es, lesson_id, interval, ease, due, reps, lapses, last FROM items WHERE user_id = ?").all(req.user.id)));
@@ -210,6 +291,7 @@ app.post("/api/round", auth, (req, res) => {
     if (lessonId) db.prepare(`INSERT INTO progress (user_id, lesson_id, rounds, best) VALUES (?, ?, 1, ?) ON CONFLICT(user_id, lesson_id) DO UPDATE SET rounds = rounds + 1, best = MAX(best, excluded.best)`).run(u.id, lessonId, ok);
     db.prepare("INSERT INTO rounds (user_id, lesson_id, ok, total, day) VALUES (?, ?, ?, ?, ?)").run(u.id, lessonId || null, ok, total, today);
   })();
+  logEvent(u.id, "round", { lessonId: lessonId || null, ok, total });
   res.json(profile(db.prepare("SELECT * FROM users WHERE id = ?").get(u.id)));
 });
 app.post("/api/weak", auth, (req, res) => {
@@ -221,19 +303,21 @@ app.post("/api/weak", auth, (req, res) => {
 // ---------- multijugador ----------
 const chView = (c, meId) => {
   const from = db.prepare("SELECT name FROM users WHERE id = ?").get(c.from_id), to = db.prepare("SELECT name FROM users WHERE id = ?").get(c.to_id);
-  return { id: c.id, kind: c.kind, from: from ? from.name : "?", to: to ? to.name : "?", mine: c.from_id === meId, forMe: c.to_id === meId, payload: J(c.payload, {}), fromResult: J(c.from_result, null), toResult: J(c.to_result, null), status: c.status, createdAt: c.created_at };
+  return { id: c.id, kind: c.kind, fromId: c.from_id, toId: c.to_id, from: from ? from.name : "?", to: to ? to.name : "?", mine: c.from_id === meId, forMe: c.to_id === meId, payload: J(c.payload, {}), fromResult: J(c.from_result, null), toResult: J(c.to_result, null), status: c.status, createdAt: c.created_at };
 };
 app.get("/api/challenges", auth, (req, res) => {
   const rows = db.prepare("SELECT * FROM challenges WHERE from_id = ? OR to_id = ? ORDER BY id DESC LIMIT 40").all(req.user.id, req.user.id);
   res.json(rows.map(c => chView(c, req.user.id)));
 });
 app.post("/api/challenges", auth, (req, res) => {
-  const to = db.prepare("SELECT id FROM users WHERE name = ?").get(norm(req.body.to));
+  const to = db.prepare("SELECT id FROM users WHERE id = ?").get(req.body.toId | 0);
   if (!to || to.id === req.user.id) return res.status(400).json({ error: "Elige a otra persona." });
+  if (!circleIds(req.user.id).has(to.id)) return res.status(403).json({ error: "Solo puedes retar a gente de tu círculo. Añádela primero en Taldea." });
   const kind = req.body.kind === "task" ? "task" : "duel";
   const payload = req.body.payload && typeof req.body.payload === "object" ? req.body.payload : {};
   const info = db.prepare("INSERT INTO challenges (from_id, to_id, kind, payload, from_result) VALUES (?, ?, ?, ?, ?)").run(req.user.id, to.id, kind, JSON.stringify(payload), req.body.fromResult ? JSON.stringify(req.body.fromResult) : null);
-  const from = req.user.name[0].toUpperCase() + req.user.name.slice(1);
+  const from = displayName(req.user);
+  logEvent(req.user.id, "challenge", { kind });
   sendPush(to.id, kind === "task" ? { title: `${from} te manda una tarea`, body: "Confirma si lo que escribió está bien. Taldea → Historia.", url: "/#taldea", tag: "challenge" } : { title: `${from} te reta! ⚔️`, body: payload.transform ? "6 transformaciones. ¿Aceptas?" : "6 frases escribiendo. ¿Aceptas?", url: "/#taldea", tag: "challenge" }, "challenges").catch(() => {});
   res.json(chView(db.prepare("SELECT * FROM challenges WHERE id = ?").get(info.lastInsertRowid), req.user.id));
 });
@@ -246,7 +330,7 @@ app.post("/api/challenges/:id/result", auth, (req, res) => {
   const c2 = db.prepare("SELECT * FROM challenges WHERE id = ?").get(c.id);
   if (c2.from_result && c2.to_result) {
     db.prepare("UPDATE challenges SET status = 'done' WHERE id = ?").run(c.id);
-    const other = c.from_id === req.user.id ? c.to_id : c.from_id; const me = req.user.name[0].toUpperCase() + req.user.name.slice(1);
+    const other = c.from_id === req.user.id ? c.to_id : c.from_id; const me = displayName(req.user);
     const a = J(c2.from_result, {}), b = J(c2.to_result, {});
     const body = c.kind === "task" ? (b.ok ? `${me} confirma: correcto ✓` : `${me} lo ha corregido: ${b.fix || ""}`) : `${me} ya ha jugado: ${a.score}/${a.total} vs ${b.score}/${b.total}. Mira el marcador.`;
     sendPush(other, { title: c.kind === "task" ? "Tarea revisada" : "Erronka amaituta ⚔️", body, url: "/#taldea", tag: "challenge" }, "challenges").catch(() => {});
@@ -263,60 +347,107 @@ function admin(req, res, next) {
   next();
 }
 app.get("/api/admin/users", admin, (req, res) => {
-  res.json(db.prepare("SELECT id, name, xp, streak, last_day, created_at FROM users ORDER BY created_at").all().map(u => ({ ...u, items: itemStats(u.id) })));
-});
-app.post("/api/admin/reset-pin", admin, (req, res) => {
-  const name = norm(req.body.name), pin = String(req.body.pin || "");
-  if (!/^\d{4,8}$/.test(pin)) return res.status(400).json({ error: "El PIN debe tener entre 4 y 8 cifras." });
-  const u = db.prepare("SELECT id FROM users WHERE name = ?").get(name);
-  if (!u) return res.status(404).json({ error: "No existe ese usuario." });
-  const salt = crypto.randomBytes(16).toString("hex");
-  db.prepare("UPDATE users SET salt = ?, hash = ? WHERE id = ?").run(salt, hashPin(pin, salt), u.id);
-  db.prepare("DELETE FROM sessions WHERE user_id = ?").run(u.id);
-  res.json({ ok: true, name });
+  const q = String(req.query.q || "").trim().toLowerCase();
+  const rows = q ? db.prepare("SELECT * FROM users WHERE lower(name) LIKE ? OR email LIKE ? ORDER BY created_at DESC LIMIT 200").all("%" + q + "%", "%" + q + "%")
+                 : db.prepare("SELECT * FROM users ORDER BY created_at DESC LIMIT 200").all();
+  res.json(rows.map(u => ({ id: u.id, name: u.name, email: u.email, xp: u.xp, streak: u.streak, last_day: u.last_day, last_seen: u.last_seen, created_at: u.created_at, profile: J(u.profile, {}), items: itemStats(u.id) })));
 });
 function deleteUser(id) {
   db.transaction(() => {
-    for (const t of ["sessions", "progress", "rounds", "items", "push_subs"]) db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(id);
+    for (const t of ["sessions", "progress", "rounds", "items", "push_subs", "events"]) db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(id);
+    db.prepare("DELETE FROM friends WHERE user_id = ? OR friend_id = ?").run(id, id);
     db.prepare("DELETE FROM challenges WHERE from_id = ? OR to_id = ?").run(id, id);
     db.prepare("DELETE FROM users WHERE id = ?").run(id);
   })();
 }
 app.post("/api/admin/delete-user", admin, (req, res) => {
-  const u = db.prepare("SELECT id FROM users WHERE name = ?").get(norm(req.body.name));
+  const u = db.prepare("SELECT id FROM users WHERE id = ? OR email = ?").get(req.body.id | 0, normEmail(req.body.email));
   if (!u) return res.status(404).json({ error: "No existe ese usuario." });
   deleteUser(u.id);
   res.json({ ok: true });
 });
-// Borrado de cuenta por el propio usuario (requisito de Google Play / App Store).
+// Borrado de cuenta por el propio usuario (requisito de Google Play / App Store): confirma escribiendo su email.
 app.post("/api/account/delete", auth, (req, res) => {
-  const u = db.prepare("SELECT id, salt, hash FROM users WHERE id = ?").get(req.user.id);
-  const pin = String(req.body.pin || "");
-  if (!u || hashPin(pin, u.salt) !== u.hash) return res.status(400).json({ error: "El PIN no es correcto." });
-  deleteUser(u.id);
+  if (normEmail(req.body.email) !== req.user.email) return res.status(400).json({ error: "Escribe exactamente tu correo para confirmar." });
+  logEvent(null, "account_deleted", { days: Math.round((Date.now() - new Date(req.user.created_at + "Z").getTime()) / 86400000) });
+  deleteUser(req.user.id);
   res.clearCookie("session");
   res.json({ ok: true });
 });
+// Copia de seguridad de la base de datos (descarga un fichero SQLite consistente).
+app.get("/api/admin/backup", admin, async (req, res) => {
+  const tmp = path.join(path.dirname(DB_PATH), `backup-${madridDay()}.db`);
+  try { fs.rmSync(tmp, { force: true }); await db.backup(tmp); res.download(tmp, `euskara-${madridDay()}.db`, () => fs.rmSync(tmp, { force: true })); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+// Métricas de producto: altas, activos, retención, embudo, lecciones y frases difíciles.
+app.get("/api/admin/metrics", admin, (req, res) => {
+  const today = madridDay();
+  const days = Array.from({ length: 30 }, (_, i) => madridDay(i - 29));
+  const n = (sql, ...a) => db.prepare(sql).get(...a).n;
+  const map = (rows, k = "day") => Object.fromEntries(rows.map(r => [r[k], r.n]));
+  const signups = map(db.prepare("SELECT substr(created_at,1,10) day, COUNT(*) n FROM users WHERE created_at >= ? GROUP BY day").all(days[0]));
+  const active = map(db.prepare("SELECT day, COUNT(DISTINCT user_id) n FROM rounds WHERE day >= ? GROUP BY day").all(days[0]));
+  const roundsPer = map(db.prepare("SELECT day, COUNT(*) n FROM rounds WHERE day >= ? GROUP BY day").all(days[0]));
+  const seen = map(db.prepare("SELECT day, COUNT(DISTINCT user_id) n FROM events WHERE day >= ? AND user_id IS NOT NULL GROUP BY day").all(days[0]));
+  const totals = {
+    users: n("SELECT COUNT(*) n FROM users"),
+    newToday: signups[today] || 0, new7: n("SELECT COUNT(*) n FROM users WHERE created_at >= ?", madridDay(-6)),
+    dau: active[today] || 0,
+    wau: n("SELECT COUNT(DISTINCT user_id) n FROM rounds WHERE day >= ?", madridDay(-6)),
+    mau: n("SELECT COUNT(DISTINCT user_id) n FROM rounds WHERE day >= ?", madridDay(-29)),
+    roundsToday: roundsPer[today] || 0,
+    reviewsToday: n("SELECT COUNT(*) n FROM items WHERE last = ?", today),
+    pushUsers: n("SELECT COUNT(DISTINCT user_id) n FROM push_subs"),
+    withFriends: n("SELECT COUNT(DISTINCT user_id) n FROM friends"),
+    deleted30: n("SELECT COUNT(*) n FROM events WHERE name = 'account_deleted' AND day >= ?", days[0]),
+  };
+  // Embudo sobre todos los registrados
+  const funnel = {
+    registered: totals.users,
+    profile: n("SELECT COUNT(*) n FROM users WHERE json_extract(profile, '$.gender') IS NOT NULL"),
+    firstRound: n("SELECT COUNT(DISTINCT user_id) n FROM rounds"),
+    threeDays: n("SELECT COUNT(*) n FROM (SELECT user_id FROM rounds GROUP BY user_id HAVING COUNT(DISTINCT day) >= 3)"),
+    secondWeek: n("SELECT COUNT(DISTINCT r.user_id) n FROM rounds r JOIN users u ON u.id = r.user_id WHERE r.day >= date(substr(u.created_at,1,10), '+7 days')"),
+    firm10: n("SELECT COUNT(*) n FROM (SELECT user_id FROM items WHERE interval >= 7 GROUP BY user_id HAVING COUNT(*) >= 10)"),
+  };
+  // Retención: de quienes se registraron hace N+1..N+30 días, % que practicó el día N o después (D1, D7, D30)
+  const ret = (d) => {
+    const cohort = db.prepare("SELECT id, substr(created_at,1,10) d0 FROM users WHERE substr(created_at,1,10) <= ? AND substr(created_at,1,10) >= ?").all(madridDay(-d), madridDay(-d - 30));
+    if (!cohort.length) return null;
+    const q = db.prepare("SELECT 1 FROM rounds WHERE user_id = ? AND day >= date(?, ?) LIMIT 1");
+    const kept = cohort.filter(u => q.get(u.id, u.d0, `+${d} days`)).length;
+    return { n: cohort.length, pct: Math.round(kept / cohort.length * 100) };
+  };
+  const retention = { d1: ret(1), d7: ret(7), d30: ret(30) };
+  const lessons = db.prepare("SELECT lesson_id, COUNT(*) rounds, COUNT(DISTINCT user_id) users, ROUND(100.0*SUM(ok)/SUM(total)) acc FROM rounds WHERE lesson_id IS NOT NULL GROUP BY lesson_id ORDER BY rounds DESC").all();
+  const hardest = db.prepare("SELECT eu, es, SUM(lapses) lapses, COUNT(*) users, ROUND(AVG(interval),1) avgInterval FROM items WHERE reps >= 2 GROUP BY key HAVING COUNT(*) >= 2 ORDER BY 1.0*SUM(lapses)/COUNT(*) DESC, lapses DESC LIMIT 20").all();
+  const towns = db.prepare("SELECT lower(json_extract(profile,'$.town')) town, COUNT(*) n FROM users WHERE json_extract(profile,'$.town') != '' GROUP BY town ORDER BY n DESC LIMIT 12").all();
+  res.json({ today, days, series: { signups: days.map(d => signups[d] || 0), active: days.map(d => active[d] || 0), rounds: days.map(d => roundsPer[d] || 0), seen: days.map(d => seen[d] || 0) }, totals, funnel, retention, lessons, hardest, towns, mail: MAIL_ON, push: PUSH_ON });
+});
 
-// ---------- estadísticas ----------
+// ---------- estadísticas (ranking global top 20 + tu círculo) ----------
 app.get("/api/stats", auth, (req, res) => {
   const today = madridDay(), yesterday = madridDay(-1);
   const days = Array.from({ length: 7 }, (_, i) => madridDay(i - 6));
-  const users = db.prepare("SELECT id, name, xp, streak, last_day FROM users ORDER BY xp DESC").all();
-  const totals = db.prepare("SELECT user_id, COUNT(*) n, SUM(ok) ok, SUM(total) total FROM rounds GROUP BY user_id").all();
-  const week = db.prepare("SELECT user_id, day, SUM(ok)*10 xp FROM rounds WHERE day >= ? GROUP BY user_id, day").all(days[0]);
-  const lessonsDone = db.prepare("SELECT user_id, COUNT(*) n FROM progress WHERE rounds >= 3 GROUP BY user_id").all();
-  const by = (rows, f) => Object.fromEntries(rows.map(r => [r.user_id, f(r)]));
-  const T = by(totals, r => r), L = by(lessonsDone, r => r.n);
-  res.json({ days, users: users.map(u => {
-    const t = T[u.id] || { n: 0, ok: 0, total: 0 }; const it = itemStats(u.id);
+  const me = req.user.id; const circle = circleIds(me);
+  const weekRows = db.prepare("SELECT user_id, SUM(ok)*10 xp FROM rounds WHERE day >= ? GROUP BY user_id ORDER BY xp DESC").all(days[0]);
+  const W = Object.fromEntries(weekRows.map(r => [r.user_id, r.xp]));
+  const activeCount = weekRows.length; const myRank = weekRows.findIndex(r => r.user_id === me) + 1;
+  const totalUsers = db.prepare("SELECT COUNT(*) n FROM users").get().n;
+  const ids = [...new Set([...weekRows.slice(0, 20).map(r => r.user_id), me, ...circle])];
+  const totals = Object.fromEntries(db.prepare(`SELECT user_id, COUNT(*) n, SUM(ok) ok, SUM(total) total FROM rounds WHERE user_id IN (${ids.map(() => "?").join(",")}) GROUP BY user_id`).all(...ids).map(r => [r.user_id, r]));
+  const week = db.prepare(`SELECT user_id, day, SUM(ok)*10 xp FROM rounds WHERE day >= ? AND user_id IN (${ids.map(() => "?").join(",")}) GROUP BY user_id, day`).all(days[0], ...ids);
+  const lessonsDone = Object.fromEntries(db.prepare(`SELECT user_id, COUNT(*) n FROM progress WHERE rounds >= 3 AND user_id IN (${ids.map(() => "?").join(",")}) GROUP BY user_id`).all(...ids).map(r => [r.user_id, r.n]));
+  const users = ids.map(id => db.prepare("SELECT id, name, xp, streak, last_day FROM users WHERE id = ?").get(id)).filter(Boolean).map(u => {
+    const t = totals[u.id] || { n: 0, ok: 0, total: 0 }; const it = itemStats(u.id);
     const perDay = days.map(d => { const w = week.find(x => x.user_id === u.id && x.day === d); return w ? w.xp : 0; });
-    return { name: u.name, me: u.id === req.user.id, xp: u.xp, streak: u.last_day === today || u.last_day === yesterday ? u.streak : 0, rounds: t.n,
-      accuracy: t.total ? Math.round(t.ok / t.total * 100) : 0, lessonsDone: L[u.id] || 0, learned: it.learned, consolidated: it.consolidated,
-      weekXp: perDay.reduce((a, b) => a + b, 0), perDay, practicedToday: u.last_day === today };
-  }) });
+    return { id: u.id, name: u.name, me: u.id === me, friend: circle.has(u.id), xp: u.xp, streak: u.last_day === today || u.last_day === yesterday ? u.streak : 0, rounds: t.n,
+      accuracy: t.total ? Math.round(t.ok / t.total * 100) : 0, lessonsDone: lessonsDone[u.id] || 0, learned: it.learned, consolidated: it.consolidated,
+      weekXp: W[u.id] || 0, perDay, practicedToday: u.last_day === today };
+  });
+  res.json({ days, users, rank: { position: myRank || null, active: activeCount, total: totalUsers } });
 });
-app.get("/api/board", auth, (req, res) => res.json(db.prepare("SELECT name, xp FROM users ORDER BY xp DESC LIMIT 10").all()));
 
 // ---------- audio en euskera (generado una vez por frase y guardado en disco) ----------
 const AUDIO_DIR = path.join(path.dirname(DB_PATH), "audio");

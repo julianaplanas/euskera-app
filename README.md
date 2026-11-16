@@ -1,49 +1,35 @@
 # Euskara Praktika
 
-App tipo Duolingo para practicar euskera, con login por nombre + PIN y progreso guardado en el servidor (sirve desde cualquier teléfono).
+App para practicar euskera entre clases (nivel A1): repaso espaciado frase a frase, dictados con voz, gramática, retos con tu círculo y ranking semanal. Node + Express + SQLite, PWA instalable; pensada para publicarse en las stores como TWA.
 
 ## Desplegar en Railway
 
-1. Sube esta carpeta a un repo de GitHub (sin `node_modules` ni `data/`, el `.gitignore` ya los excluye).
-2. En Railway: **New Project → Deploy from GitHub repo** y elige el repo. Railway detecta Node y ejecuta `npm start`.
-3. Añade un **Volume** al servicio (pestaña del servicio → Volumes → Add Volume) montado en `/data`. Sin volumen, la base de datos se borra en cada deploy.
-4. En **Variables** añade:
-   - `DB_PATH` = `/data/app.db`
-   - `NODE_ENV` = `production`
-   - (opcional) `INVITE_CODE` = una palabra secreta, para que solo quien la conozca pueda crear cuenta.
-   - (recomendado) `ADMIN_KEY` = una clave larga para el panel `/admin` (ver usuarios, restablecer PIN, borrar cuentas).
-   - (Android) `ANDROID_SHA256` = huellas SHA-256 de la app de Google Play separadas por coma, y opcionalmente `ANDROID_PACKAGE` (por defecto `eus.euskarapraktika.app`). Sirven `/.well-known/assetlinks.json`. Guía completa en `store/android/README.md`.
-   - Audio en euskera (necesario para dictados y altavoces). Opción A, Google: `GOOGLE_TTS_KEY` (clave de API de Google Cloud con *Cloud Text-to-Speech API* activada; 1 M caracteres/mes gratis). Voz por defecto `eu-ES-Standard-A`, opcional `GOOGLE_TTS_VOICE=eu-ES-Standard-B`. Opción B, Azure: `AZURE_TTS_KEY` + `AZURE_TTS_REGION` (recurso *Speech* en plan F0; voz `eu-ES-AinhoaNeural`, opcional `TTS_VOICE=eu-ES-AnderNeural`). Los mp3 se generan una vez por frase y se guardan en el volumen (`/data/audio`). Sin clave, la app funciona sin audio.
-5. En **Settings → Networking → Generate Domain** para obtener la URL pública.
+1. Nuevo proyecto desde este repo. Añadir un **volumen** montado en `/data`.
+2. Variables:
+   - `DB_PATH=/data/app.db` · `NODE_ENV=production`
+   - `APP_SECRET` — cadena larga aleatoria (firma los códigos de acceso).
+   - `ADMIN_KEY` — clave del panel `/admin`.
+   - `RESEND_API_KEY` y `MAIL_FROM` (p. ej. `Euskara Praktika <kaixo@tudominio.eus>`) — envío de los códigos de acceso. Sin ellas la app funciona en modo pruebas y muestra el código en pantalla.
+   - `GOOGLE_TTS_KEY` — voz en euskera (Google Cloud Text-to-Speech, `eu-ES-Standard-A`). Opcional: `TTS_PROVIDER`, `GOOGLE_VOICE`.
+   - `VAPID_PUBLIC`, `VAPID_PRIVATE`, `VAPID_SUBJECT` — avisos push (`npx web-push generate-vapid-keys`).
+   - `ANDROID_SHA256` (y opcional `ANDROID_PACKAGE`) — huellas de la app Android para `/.well-known/assetlinks.json`.
+3. Dominio propio en Settings → Domains (CNAME en el registrador).
 
-## Administrar usuarios
+## Cuentas
 
-Abre `https://TU-DOMINIO/admin`, pega la `ADMIN_KEY` y podrás ver la lista de usuarios, restablecer el PIN de alguien que lo olvidó y borrar cuentas. Nada se guarda en el navegador.
+Email + código de 6 cifras (10 minutos, 5 intentos, máximo 5 códigos por hora y correo). Sesión en cookie `httpOnly` durante un año. El nombre es solo para mostrar y no es único: la gente se busca por nombre en Taldea y se añade a su círculo; solo el círculo puede retar y compararse. Borrado de cuenta desde Profila (confirmando el correo) o por `/admin`.
 
-## Añadir la app al inicio del móvil
+## Admin
 
-- **iPhone (Safari):** abre la URL → botón Compartir → *Añadir a pantalla de inicio*.
-- **Android (Chrome):** abre la URL → menú ⋮ → *Añadir a pantalla de inicio* / *Instalar app*.
+`/admin` con `ADMIN_KEY`: métricas (altas, activos, embudo, retención D1/D7/D30, lecciones, frases más difíciles, ciudades), buscador de usuarios, borrado y descarga de copia de la base de datos.
 
-Se abre a pantalla completa, con icono propio, y recuerda la sesión.
+## Contenido
 
-## Añadir una lección nueva
+Todo en `public/lessons.js`: `LESSONS` (pares, frases, patrón, diálogo, escena…), `GRAMMAR` (fichas con drills), `NOTES` (explicaciones de errores) y `TRANSFORMS` (transformaciones por frase). Al añadir contenido, subir el número de caché en `public/sw.js`.
 
-Edita `public/lessons.js` y añade un objeto al array:
-
-```js
-{
-  id: "l6", title: "Título", desc: "Resumen corto",
-  pairs: [["euskera", "castellano"], ...],      // elección múltiple
-  sentences: [["Frase en euskera.", "Frase en castellano."], ...]  // fichas y escritura
-}
-```
-
-Haz push y Railway redespliega solo.
-
-## En local
+## Desarrollo
 
 ```
 npm install
-npm start      # http://localhost:3000
+APP_SECRET=dev ADMIN_KEY=dev node server.js   # http://localhost:3000 (modo pruebas: el código sale en pantalla)
 ```

@@ -7,58 +7,113 @@
 <meta name="robots" content="noindex">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@500;600;700&display=swap">
 <style>
-:root{--bg:#FFF9EC;--ink:#141414;--muted:#5A5A5A;--red:#C8281F;--green:#15733A;--ochre:#F2C230;--line:rgba(20,20,20,.18)}
-@media (prefers-color-scheme:dark){:root{--bg:#1C1B18;--ink:#FFF9EC;--muted:#B8B2A6;--line:rgba(255,249,236,.2)}}
+:root{--bg:#FFF9EC;--card:#FFFDF6;--ink:#141414;--muted:#5A5A5A;--red:#C8281F;--green:#15733A;--ochre:#F2C230;--blue:#1F4E79;--line:rgba(20,20,20,.18)}
+@media (prefers-color-scheme:dark){:root{--bg:#1C1B18;--card:#24231F;--ink:#FFF9EC;--muted:#B8B2A6;--line:rgba(255,249,236,.2)}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:500 17px/1.5 'Work Sans',system-ui,sans-serif;padding:24px 20px;max-width:720px;margin:0 auto}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.5 'Work Sans',system-ui,sans-serif;padding:24px 20px;max-width:1040px;margin:0 auto}
 h1{font:400 34px/1 Anton,Impact,sans-serif;margin:0 0 4px}
-h2{font:400 22px/1 Anton,Impact,sans-serif;margin:28px 0 10px}
+h2{font:400 22px/1 Anton,Impact,sans-serif;margin:30px 0 10px}
+h2 small{display:block;font:600 12px/1.4 'Work Sans',sans-serif;color:var(--muted);text-transform:none;letter-spacing:0;margin-top:4px}
 .sub{color:var(--muted);font-size:14px}
-input,button{font:inherit}
-input{width:100%;padding:12px 14px;border:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:0}
-.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+input,button,select{font:inherit}
+input{width:100%;padding:11px 14px;border:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .row input{flex:1;min-width:140px}
-button{padding:12px 16px;border:2px solid var(--ink);background:var(--red);color:#FFF9EC;font-weight:700;cursor:pointer}
+button{padding:11px 16px;border:2px solid var(--ink);background:var(--red);color:#FFF9EC;font-weight:700;cursor:pointer}
 button.ghost{background:transparent;color:var(--ink)}
 button.danger{background:var(--ink);color:#FFF9EC}
-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:15px}
-th,td{padding:9px 6px;text-align:left;border-top:1px solid var(--line);white-space:nowrap}
-th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-top:0}
-td.n{font-family:Anton,Impact,sans-serif;font-size:18px}
+button.sm{padding:5px 10px;font-size:13px}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+th,td{padding:8px 6px;text-align:left;border-top:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-top:0}
+td.n{font-family:Anton,Impact,sans-serif;font-size:17px}
 .msg{margin-top:10px;font-weight:700;min-height:1.5em}
 .msg.ok{color:var(--green)} .msg.err{color:var(--red)}
 .wrap{overflow-x:auto}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:10px}
+.tile{border:2px solid var(--ink);background:var(--card);padding:10px 12px}
+.tile b{display:block;font:400 30px/1 Anton,Impact,sans-serif}
+.tile span{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.tile.g{background:var(--green);color:#FFF9EC}.tile.g span{color:#FFF9EC}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.chart{display:flex;align-items:flex-end;gap:2px;height:120px;border-bottom:2px solid var(--ink);padding-top:6px}
+.chart i{flex:1;display:block;background:var(--blue);min-height:1px}
+.chart i.b{background:var(--red)}
+.axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.funnel div{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:14px}
+.funnel i{display:block;height:22px;background:var(--ochre);border:2px solid var(--ink);min-width:2px}
+.funnel b{font-family:Anton,Impact,sans-serif;font-size:18px;min-width:50px}
+.funnel span{color:var(--muted);min-width:170px}
+.ret{display:flex;gap:10px}
+.ret .tile{flex:1}
+code{background:var(--card);padding:1px 5px;border:1px solid var(--line)}
 </style>
 </head>
 <body>
 <h1>Admin</h1>
-<p class="sub">Panel para Euskara Praktika. La clave es la variable <code>ADMIN_KEY</code> de Railway; no se guarda en ningún sitio.</p>
+<p class="sub">Panel de Euskara Praktika. La clave es la variable <code>ADMIN_KEY</code> del servidor; no se guarda en ningún sitio.</p>
 
-<h2>Clave</h2>
-<div class="row"><input id="key" type="password" placeholder="ADMIN_KEY" autocomplete="current-password"><button id="load">Cargar usuarios</button></div>
+<div class="row"><input id="key" type="password" placeholder="ADMIN_KEY" autocomplete="current-password"><button id="load">Entrar</button><button class="ghost" id="backup" hidden>Descargar copia de la base de datos</button></div>
 <p class="msg" id="m1"></p>
 
-<h2>Usuarios</h2>
-<div class="wrap"><table id="users"><tr><th>Nombre</th><th>Firmes</th><th>Estudio</th><th>XP</th><th>Último día</th><th>Alta</th></tr></table></div>
+<div id="panel" hidden>
+<h2>Gaur <small>hoy y últimos 30 días</small></h2>
+<div class="tiles" id="tiles"></div>
 
-<h2>Restablecer PIN</h2>
-<p class="sub">Pon un PIN nuevo; la persona lo cambiará si quiere entrando con él. Cierra sus sesiones abiertas.</p>
-<div class="row"><input id="rname" placeholder="Nombre de usuario"><input id="rpin" placeholder="PIN nuevo (4-8 cifras)" inputmode="numeric"><button id="reset">Restablecer</button></div>
+<div class="cols">
+  <div><h2>Altas por día <small>usuarios nuevos, últimos 30 días</small></h2><div class="chart" id="c-signups"></div><div class="axis" id="a1"></div></div>
+  <div><h2>Activos por día <small>personas que hicieron al menos una ronda</small></h2><div class="chart" id="c-active"></div><div class="axis" id="a2"></div></div>
+</div>
+
+<div class="cols">
+  <div><h2>Embudo <small>de todos los registrados, cuántos llegan a cada paso</small></h2><div class="funnel" id="funnel"></div></div>
+  <div><h2>Retención <small>% que vuelve a practicar el día N o después (cohortes de 30 días)</small></h2><div class="ret" id="ret"></div>
+  <h2>Ciudades <small>según el perfil</small></h2><div id="towns" class="sub"></div></div>
+</div>
+
+<div class="cols">
+  <div><h2>Lecciones <small>rondas, personas y % de acierto</small></h2><div class="wrap"><table id="lessons"></table></div></div>
+  <div><h2>Frases más difíciles <small>más fallos por persona (mín. 2 personas)</small></h2><div class="wrap"><table id="hardest"></table></div></div>
+</div>
+
+<h2>Usuarios <small>busca por nombre o correo · borrar elimina todo lo de esa persona</small></h2>
+<div class="row"><input id="q" placeholder="Buscar…"><button class="ghost" id="search">Buscar</button></div>
+<div class="wrap"><table id="t"></table></div>
 <p class="msg" id="m2"></p>
-
-<h2>Borrar usuario</h2>
-<p class="sub">Borra la cuenta y todo su progreso. No se puede deshacer.</p>
-<div class="row"><input id="dname" placeholder="Nombre de usuario"><input id="dconfirm" placeholder="Escribe BORRAR para confirmar"><button class="danger" id="del">Borrar</button></div>
-<p class="msg" id="m3"></p>
+</div>
 
 <script>
-const $=id=>document.getElementById(id);
-const key=()=>$("key").value.trim();
-async function api(path,body){ const r=await fetch("/api/admin/"+path,{method:body?"POST":"GET",headers:{"Content-Type":"application/json","x-admin-key":key()},body:body?JSON.stringify(body):undefined}); const d=await r.json().catch(()=>({error:"Error"})); if(!r.ok) throw new Error(d.error||"Error"); return d; }
-function say(id,t,ok){ const m=$(id); m.textContent=t; m.className="msg "+(ok?"ok":"err"); }
-$("load").onclick=async()=>{ try{ const us=await api("users"); const t=$("users"); t.querySelectorAll("tr:not(:first-child)").forEach(r=>r.remove()); for(const u of us){ const tr=document.createElement("tr"); tr.innerHTML=`<td class="n">${u.name}</td><td>${u.items.consolidated}</td><td>${u.items.learned}</td><td>${u.xp}</td><td>${u.last_day||"–"}</td><td>${(u.created_at||"").slice(0,10)}</td>`; t.appendChild(tr); } say("m1",`${us.length} usuarios`,true); }catch(e){ say("m1",e.message,false); } };
-$("reset").onclick=async()=>{ try{ const d=await api("reset-pin",{name:$("rname").value,pin:$("rpin").value}); say("m2",`PIN de ${d.name} restablecido`,true); $("rpin").value=""; }catch(e){ say("m2",e.message,false); } };
-$("del").onclick=async()=>{ if($("dconfirm").value!=="BORRAR") return say("m3","Escribe BORRAR para confirmar",false); try{ await api("delete-user",{name:$("dname").value}); say("m3","Usuario borrado",true); $("dname").value=$("dconfirm").value=""; $("load").click(); }catch(e){ say("m3",e.message,false); } };
+const $=id=>document.getElementById(id); const key=()=>$("key").value.trim();
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function api(path,body){ const r=await fetch("/api/admin/"+path,{method:body?"POST":"GET",headers:{"Content-Type":"application/json","x-admin-key":key()},body:body?JSON.stringify(body):undefined}); const d=await r.json().catch(()=>({error:"Error de red"})); if(!r.ok) throw new Error(d.error||"Error"); return d; }
+const bars=(el,arr,cls="")=>{ const mx=Math.max(1,...arr); el.innerHTML=arr.map(v=>`<i class="${cls}" style="height:${Math.round(v/mx*100)}%" title="${v}"></i>`).join(""); };
+async function load(){
+  $("m1").textContent=""; $("m1").className="msg";
+  try{
+    const m=await api("metrics");
+    $("panel").hidden=false; $("backup").hidden=false;
+    const T=m.totals;
+    $("tiles").innerHTML=[["g",T.users,"usuarios"],["",T.dau,"activos hoy"],["",T.wau,"activos 7 días"],["",T.mau,"activos 30 días"],["",T.newToday,"altas hoy"],["",T.new7,"altas 7 días"],["",T.roundsToday,"rondas hoy"],["",T.reviewsToday,"frases hoy"],["",T.pushUsers,"con avisos"],["",T.withFriends,"con círculo"],["",T.deleted30,"bajas 30 días"]].map(([c,v,l])=>`<div class="tile ${c}"><b>${v}</b><span>${l}</span></div>`).join("")+`<div class="tile"><b style="font-size:16px;margin-top:6px">${m.mail?"✓":"✗"} correo · ${m.push?"✓":"✗"} push</b><span>servicios</span></div>`;
+    bars($("c-signups"),m.series.signups); bars($("c-active"),m.series.active,"b");
+    $("a1").innerHTML=$("a2").innerHTML=`<span>${m.days[0].slice(5)}</span><span>${m.days[29].slice(5)}</span>`;
+    const F=m.funnel, steps=[["registered","Registrados"],["profile","Perfil completo"],["firstRound","Primera ronda"],["threeDays","3 días distintos"],["secondWeek","Siguen en 2ª semana"],["firm10","10 frases firmes"]];
+    $("funnel").innerHTML=steps.map(([k,l])=>`<div><span>${l}</span><b>${F[k]}</b><i style="width:${F.registered?Math.round(F[k]/F.registered*100):0}%"></i><small class="sub">${F.registered?Math.round(F[k]/F.registered*100):0}%</small></div>`).join("");
+    const R=m.retention; $("ret").innerHTML=[["d1","D1"],["d7","D7"],["d30","D30"]].map(([k,l])=>`<div class="tile"><b>${R[k]?R[k].pct+"%":"–"}</b><span>${l}${R[k]?" · n="+R[k].n:""}</span></div>`).join("");
+    $("towns").textContent=m.towns.length?m.towns.map(t=>`${t.town} (${t.n})`).join(" · "):"Sin datos todavía.";
+    $("lessons").innerHTML=`<tr><th>Lección</th><th>Rondas</th><th>Personas</th><th>Acierto</th></tr>`+m.lessons.map(l=>`<tr><td>${esc(l.lesson_id)}</td><td class="n">${l.rounds}</td><td>${l.users}</td><td>${l.acc}%</td></tr>`).join("");
+    $("hardest").innerHTML=`<tr><th>Frase</th><th>Fallos</th><th>Personas</th><th>Intervalo medio</th></tr>`+m.hardest.map(h=>`<tr><td title="${esc(h.es)}">${esc(h.eu)}</td><td class="n">${h.lapses}</td><td>${h.users}</td><td>${h.avgInterval} d</td></tr>`).join("");
+    await users();
+  }catch(e){ $("m1").textContent=e.message; $("m1").className="msg err"; }
+}
+async function users(){
+  const list=await api("users"+($("q").value.trim()?"?q="+encodeURIComponent($("q").value.trim()):""));
+  $("t").innerHTML=`<tr><th>Nombre</th><th>Correo</th><th>Alta</th><th>Visto</th><th>Firmes</th><th>Estudio</th><th>XP</th><th>🔥</th><th></th></tr>`+list.map(u=>`<tr><td>${esc(u.name)}${u.profile.town?` <span class="sub">· ${esc(u.profile.town)}</span>`:""}</td><td>${esc(u.email)}</td><td>${u.created_at.slice(0,10)}</td><td>${u.last_seen||"–"}</td><td class="n">${u.items.consolidated}</td><td>${u.items.learned}</td><td>${u.xp}</td><td>${u.streak}</td><td><button class="danger sm" data-del="${u.id}" data-name="${esc(u.name)}">Borrar</button></td></tr>`).join("");
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ if(!confirm(`¿Borrar a ${b.dataset.name} y todos sus datos?`)) return; try{ await api("delete-user",{id:+b.dataset.del}); $("m2").textContent="Borrado."; $("m2").className="msg ok"; users(); }catch(e){ $("m2").textContent=e.message; $("m2").className="msg err"; } });
+}
+$("load").onclick=load; $("key").onkeydown=e=>{ if(e.key==="Enter") load(); };
+$("search").onclick=users; $("q").onkeydown=e=>{ if(e.key==="Enter") users(); };
+$("backup").onclick=()=>{ const a=document.createElement("a"); a.href="/api/admin/backup?key="+encodeURIComponent(key()); a.click(); };
 </script>
 </body>
 </html>
