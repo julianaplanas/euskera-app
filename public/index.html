@@ -278,9 +278,13 @@ input.ans.ok{border-color:var(--green);box-shadow:0 0 0 4px rgba(26,122,69,.14)}
   .top{padding-top:22px}
   .bottom{position:static;border-top:0;margin-top:10px;padding-bottom:24px}
   .exercise-wrap{max-width:720px;margin:0 auto;width:100%}
-  .sheet{left:232px}
-  .sheet .in{max-width:720px}
-  body.notabs .sheet{left:0}
+  body.notabs .pad{max-width:800px}
+  body.notabs .exercise-wrap .pad,body.notabs .top.pad{max-width:720px}
+  .sheet{left:calc(50% + 116px);right:auto;width:min(720px,calc(100% - 296px));bottom:24px;border-radius:20px;transform:translate(-50%,120%);padding-left:28px;padding-right:28px;padding-bottom:24px}
+  .sheet.show{transform:translate(-50%,0)}
+  body.notabs .sheet{left:50%;width:min(720px,calc(100% - 64px))}
+  .head .row{max-width:960px}
+  .lessons-grid .lrow{align-items:center}
   .toast{bottom:32px}
   .keys{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-weight:500}
   .keys kbd{display:inline-block;border:1px solid var(--line2);border-radius:4px;padding:1px 6px;font-family:var(--body);font-weight:600;margin-right:4px;background:var(--card)}
@@ -389,7 +393,7 @@ function header(sub,mood="wave"){
     <div class="row"><div style="min-width:0;flex:1"><p class="sub">${sub||date}</p><h1>Kaixo, ${esc(P.name)}</h1></div>
     <span class="streak" title="${T("Egunak · seguidos")}">${ic("flame")}${P.streak||0}</span><button class="avatar" id="avbtn" aria-label="${T("Perfil")}">${esc(P.name[0].toUpperCase())}</button></div></header>`;
 }
-function setTab(t){ document.onkeydown=null; TAB=t; tabs.hidden=false; document.body.classList.remove("notabs"); tabs.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.tab===t)); const bd=document.getElementById("tbadge"); bd.hidden=!(P&&P.pendingChallenges); bd.textContent=P?P.pendingChallenges:""; ({gaur:renderToday,ikasgaiak:renderLessons,taldea:renderTeam,datuak:renderStats})[t](); const av=document.getElementById("avbtn"); if(av) av.onclick=()=>renderProfile(); window.scrollTo(0,0); }
+function setTab(t){ document.onkeydown=null; const shh=document.getElementById("sheet"); if(shh) shh.className="sheet"; TAB=t; tabs.hidden=false; document.body.classList.remove("notabs"); tabs.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.tab===t)); const bd=document.getElementById("tbadge"); bd.hidden=!(P&&P.pendingChallenges); bd.textContent=P?P.pendingChallenges:""; ({gaur:renderToday,ikasgaiak:renderLessons,taldea:renderTeam,datuak:renderStats})[t](); const av=document.getElementById("avbtn"); if(av) av.onclick=()=>renderProfile(); window.scrollTo(0,0); }
 tabs.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 function noTabs(){ tabs.hidden=true; document.body.classList.add("notabs"); }
 
@@ -550,6 +554,7 @@ async function renderToday(){
    <div class="stack pad cols" style="padding-top:20px"><div class="col">
     ${todayCard}
     ${firstTime?"":`<div class="quick">${(total||pend)?`<button class="qbtn" id="free" ${ITEMS.length<4?"disabled":""}><span class="ic" style="color:var(--blue)">${ic("shuffle")}</span>Txanda librea</button>`:""}<button class="qbtn" id="hardb" ${hard.length<3?"disabled":""}><span class="ic" style="color:var(--ochre-ink)">${ic("bulb")}</span>Zailenak · ${hard.length}</button></div>`}
+    </div><div class="col">
     <p class="eyebrow" data-es="${T("tu huerto")}">Zure baratzea</p>
     <div class="card garden"><div class="gbar"><i class="t" style="width:${P.items.consolidated/Math.max(1,cat.length)*100}%"></i><i class="s" style="width:${(ITEMS.length-P.items.consolidated)/Math.max(1,cat.length)*100}%"></i></div><div class="glegend"><span class="t"><i></i>${P.items.consolidated} sendo</span><span class="s"><i></i>${ITEMS.length-P.items.consolidated} ikasten</span><span class="n"><i></i>${cat.length-ITEMS.length} hazi</span></div></div>
     ${!firstTime&&!pend&&nextLesson?`<p class="eyebrow" data-es="${T("Siguiente lección · aprender nuevas")}">Hurrengo ikasgaia</p><button class="nextrow" id="nextlesson"><span class="n">${LESSONS.indexOf(nextLesson)+1}</span><span class="t"><b>${esc(T(nextLesson.title))}</b><small>${lessonItems(nextLesson).length} esaldi</small></span><span class="ic" style="color:var(--muted);font-size:20px">${ic("chev")}</span></button>`:""}
