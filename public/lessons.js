@@ -125,6 +125,48 @@ window.LESSONS = [
     pattern: "Norengana zoaz? → ___rengana noa",
     tips: [{ t: "La pregunta va al principio", b: "Nor, zer, zein, non, nongoa, zenbat, norengana: siempre primero, y el verbo justo detrás: Non bizi zara? Zenbat urte dituzu?" }, { t: "-rengana = hacia una persona", b: "Norengana? pregunta a casa de quién o hacia quién vas. La respuesta: persona + -(r)engana: ama → amarengana, aita → aitarengana, laguna → lagunarengana, medikua → medikuarengana." }, { t: "Non vs nongoa", b: "Non = dónde (estás, vives). Nongoa = de dónde (eres). Non bizi zara? Bilbon. Nongoa zara? Bilbokoa." }],
     dialogue: [["A", "Norengana zoaz?", "¿A casa de quién vas?"], ["B", "Amarengana noa. Eta zu, non bizi zara?", "Voy a casa de mi madre. Y tú, ¿dónde vives?"], ["A", "Donostian. Zenbat urte dauzka zure amak?", "En Donostia. ¿Cuántos años tiene tu madre?"], ["B", "Hirurogei.", "Sesenta."]]
+  },
+  {
+    id: "l14", module: 3, title: "La casa y sus habitaciones", desc: "Etxea, pisua, logela, sukaldea…", emoji: "🏠", scene: { emoji: "🏠", title: "Etxe berrian · en la casa nueva" },
+    pairs: [["etxea", "casa", "🏠"], ["pisua", "piso", "🏢"], ["gela", "habitación", "🚪"], ["logela", "dormitorio", "🛏️"], ["sukaldea", "cocina", "🍳"], ["egongela", "salón", "🛋️"], ["komuna", "baño (váter)", "🚽"], ["bainugela", "cuarto de baño", "🛁"], ["balkoia", "balcón", "🌿"], ["atea", "puerta", "🚪"], ["leihoa", "ventana", "🪟"], ["korridorea", "pasillo", "➡️"], ["handia", "grande", "🐘"], ["txikia", "pequeño/a", "🐭"], ["argia", "luminoso/a", "☀️"]],
+    sentences: [["Pisu batean bizi naiz.", "Vivo en un piso."], ["Etxe batean bizi naiz.", "Vivo en una casa."], ["Nire etxea txikia da.", "Mi casa es pequeña."], ["Etxeak hiru gela ditu.", "La casa tiene tres habitaciones."], ["Nire pisuak bi logela ditu.", "Mi piso tiene dos dormitorios."], ["Sukaldea handia da.", "La cocina es grande."], ["Egongela oso argia da.", "El salón es muy luminoso."], ["Balkoia dauka.", "Tiene balcón."], ["Ez du balkoirik.", "No tiene balcón."], ["Non dago komuna?", "¿Dónde está el baño?"], ["Komuna hor dago.", "El baño está ahí."]],
+    pattern: "Nire etxeak ___ ditu",
+    tips: [{ t: "Tener con -k en el sujeto", b: "Etxeak hiru gela ditu: la casa (etxea + -k) tiene (ditu, plural) tres habitaciones. Con una sola cosa: Pisuak balkoi bat du." }, { t: "No tener: ez du … -rik", b: "Ez du balkoirik = no tiene balcón. En negativo la cosa que no se tiene lleva -rik y el verbo va justo detrás de ez." }, { t: "Dónde está: egon", b: "Non dago komuna? Komuna hor dago. Para lugares y estados se usa egon (dago), no izan (da)." }],
+    dialogue: [["A", "Non bizi zara, pisu batean?", "¿Dónde vives, en un piso?"], ["B", "Bai, pisu txiki batean bizi naiz. Bi logela ditu.", "Sí, vivo en un piso pequeño. Tiene dos dormitorios."], ["A", "Eta balkoia?", "¿Y balcón?"], ["B", "Ez, ez du balkoirik, baina egongela oso argia da.", "No, no tiene balcón, pero el salón es muy luminoso."]]
+  },
+  {
+    id: "l15", module: 3, title: "Muebles y objetos: ba al dago?", desc: "Non dago? Gainean, azpian, ondoan…", emoji: "🛋️", scene: { emoji: "📦", title: "Etxe aldaketan · en la mudanza" },
+    grid: { title: "Dónde está: cosa + -(r)en + posposición + dago", cols: ["euskera", "castellano"], rows: [["gainean", "encima"], ["azpian", "debajo"], ["ondoan", "al lado"], ["aurrean", "delante"], ["atzean", "detrás"], ["barruan", "dentro"]] },
+    pairs: [["mahaia", "mesa", "🪑"], ["aulkia", "silla", "💺"], ["ohea", "cama", "🛏️"], ["armairua", "armario", "🚪"], ["sofa", "sofá", "🛋️"], ["telebista", "televisión", "📺"], ["lanpara", "lámpara", "💡"], ["hozkailua", "nevera", "🧊"], ["apalategia", "estantería", "📚"], ["ispilua", "espejo", "🪞"], ["landarea", "planta", "🪴"], ["katua", "gato", "🐈"], ["gainean", "encima", "⬆️"], ["azpian", "debajo", "⬇️"], ["ondoan", "al lado", "↔️"]],
+    sentences: [["Mahaia sukaldean dago.", "La mesa está en la cocina."], ["Liburua mahaiaren gainean dago.", "El libro está encima de la mesa."], ["Katua ohearen azpian dago.", "El gato está debajo de la cama."], ["Lanpara sofaren ondoan dago.", "La lámpara está al lado del sofá."], ["Ispilua atearen atzean dago.", "El espejo está detrás de la puerta."], ["Landarea leihoaren aurrean dago.", "La planta está delante de la ventana."], ["Aulkiak sukaldean daude.", "Las sillas están en la cocina."], ["Ba al dago telebistarik?", "¿Hay televisión?"], ["Bai, badago.", "Sí, hay."], ["Ez, ez dago telebistarik.", "No, no hay televisión."], ["Non dago armairua?", "¿Dónde está el armario?"], ["Armairua logelan dago.", "El armario está en el dormitorio."]],
+    pattern: "___ ___ren gainean dago",
+    tips: [{ t: "De la mesa: -(r)en", b: "mahaia → mahaiaren gainean (encima de la mesa), ohea → ohearen azpian. La cosa de referencia lleva -ren (o -en tras consonante) y después la posposición." }, { t: "¿Hay…? Ba al dago …-rik?", b: "Ba al dago telebistarik? = ¿hay televisión? Se responde Bai, badago o Ez, ez dago telebistarik. En preguntas y negaciones la cosa lleva -rik." }, { t: "dago / daude", b: "Una cosa: Mahaia sukaldean dago. Varias: Aulkiak sukaldean daude. Igual que da / dira." }],
+    dialogue: [["A", "Ba al dago hozkailurik?", "¿Hay nevera?"], ["B", "Bai, badago. Sukaldean dago, leihoaren ondoan.", "Sí, hay. Está en la cocina, al lado de la ventana."], ["A", "Eta telebista?", "¿Y televisión?"], ["B", "Ez, ez dago telebistarik. Liburuak bai, asko!", "No, no hay televisión. Libros sí, ¡muchos!"]]
+  },
+  {
+    id: "l16", module: 3, title: "El barrio: tiendas y servicios", desc: "Auzoa, okindegia, farmazia, taberna…", emoji: "🏘️", scene: { emoji: "🏘️", title: "Auzoan · en el barrio" },
+    pairs: [["auzoa", "barrio", "🏘️"], ["kalea", "calle", "🛣️"], ["plaza", "plaza", "⛲"], ["denda", "tienda", "🏪"], ["okindegia", "panadería", "🥖"], ["farmazia", "farmacia", "💊"], ["supermerkatua", "supermercado", "🛒"], ["taberna", "bar", "🍺"], ["jatetxea", "restaurante", "🍽️"], ["liburutegia", "biblioteca", "📚"], ["parkea", "parque", "🌳"], ["geltokia", "estación / parada", "🚉"], ["udaletxea", "ayuntamiento", "🏛️"], ["ospitalea", "hospital", "🏥"], ["gertu", "cerca", "📍"], ["urrun", "lejos", "🔭"]],
+    sentences: [["Nire auzoan okindegi bat dago.", "En mi barrio hay una panadería."], ["Farmazia kalearen bukaeran dago.", "La farmacia está al final de la calle."], ["Ba al dago supermerkaturik hemen?", "¿Hay supermercado aquí?"], ["Taberna plazan dago.", "El bar está en la plaza."], ["Bi taberna daude plazan.", "Hay dos bares en la plaza."], ["Liburutegia udaletxearen ondoan dago.", "La biblioteca está al lado del ayuntamiento."], ["Parke handi bat dago etxetik gertu.", "Hay un parque grande cerca de casa."], ["Geltokia urrun dago.", "La estación está lejos."], ["Ospitalea gertu dago.", "El hospital está cerca."], ["Zer dago zure auzoan?", "¿Qué hay en tu barrio?"]],
+    pattern: "Nire auzoan ___ bat dago",
+    tips: [{ t: "Hay = dago / daude", b: "Okindegi bat dago = hay una panadería. Bi taberna daude = hay dos bares. No hay un verbo «haber»: es egon con lo que hay como sujeto." }, { t: "Cerca y lejos", b: "gertu (cerca) y urrun (lejos) van con dago: Geltokia urrun dago. Cerca de algo: etxetik gertu (de casa, -tik)." }, { t: "Al lado del ayuntamiento", b: "udaletxea → udaletxearen ondoan. Misma regla que con los muebles: -(r)en + posposición." }],
+    dialogue: [["A", "Zer dago zure auzoan?", "¿Qué hay en tu barrio?"], ["B", "Denda asko daude: okindegia, farmazia eta supermerkatu bat.", "Hay muchas tiendas: panadería, farmacia y un supermercado."], ["A", "Eta tabernarik?", "¿Y bares?"], ["B", "Bai, taberna bat plazan, oso polita.", "Sí, un bar en la plaza, muy bonito."]]
+  },
+  {
+    id: "l17", module: 3, title: "Direcciones: nora, nondik", desc: "Nora zoaz? Etxera noa. Ezkerrera, eskuinera", emoji: "🧭", scene: { emoji: "🗺️", title: "Kalean galduta · perdido por la calle" },
+    grid: { title: "Ir y venir: joan y etorri (formas cortas)", cols: ["joan · ir", "etorri · venir"], rows: [["ni", "noa", "nator"], ["zu", "zoaz", "zatoz"], ["hura", "doa", "dator"]] },
+    pairs: [["Nora zoaz?", "¿Adónde vas?", "🧭"], ["noa", "voy", "🚶"], ["zoaz", "vas", "🚶"], ["Nondik zatoz?", "¿De dónde vienes?", "↩️"], ["nator", "vengo", "🔙"], ["eskuinera", "a la derecha", "➡️"], ["ezkerrera", "a la izquierda", "⬅️"], ["zuzen", "recto", "⬆️"], ["hemen", "aquí", "📍"], ["hor", "ahí", "👉"], ["han", "allí", "🔭"], ["barkatu", "perdona", "🙏"], ["mesedez", "por favor", "🙏"]],
+    sentences: [["Nora zoaz?", "¿Adónde vas?"], ["Etxera noa.", "Voy a casa."], ["Lanera noa.", "Voy al trabajo."], ["Supermerkatura noa.", "Voy al supermercado."], ["Bilbora noa.", "Voy a Bilbao."], ["Nondik zatoz?", "¿De dónde vienes?"], ["Etxetik nator.", "Vengo de casa."], ["Lanetik nator.", "Vengo del trabajo."], ["Bilbotik nator.", "Vengo de Bilbao."], ["Barkatu, non dago geltokia?", "Perdona, ¿dónde está la estación?"], ["Zuzen joan eta gero ezkerrera.", "Sigue recto y luego a la izquierda."], ["Farmazia eskuinean dago.", "La farmacia está a la derecha."], ["Han dago, urrun.", "Está allí, lejos."], ["Ez horregatik.", "De nada."]],
+    pattern: "___ra noa · ___tik nator",
+    tips: [{ t: "Adónde: -ra", b: "etxea → etxera, lana → lanera, Bilbo → Bilbora. Tras consonante, -era: Madril → Madrilera, Irun → Irunera." }, { t: "De dónde: -tik", b: "etxetik, lanetik, Bilbotik. Tras -n o -l es -dik: Irundik, Madrildik. Nondik zatoz? Etxetik nator." }, { t: "Ir y venir sin auxiliar", b: "joan y etorri tienen formas cortas: noa (voy), zoaz (vas), doa (va); nator (vengo), zatoz (vienes), dator (viene). Etxera noa, no «etxera joaten naiz»." }],
+    dialogue: [["A", "Barkatu, non dago geltokia?", "Perdona, ¿dónde está la estación?"], ["B", "Zuzen joan, eta gero eskuinera. Bost minutu.", "Sigue recto, y luego a la derecha. Cinco minutos."], ["A", "Eskerrik asko!", "¡Muchas gracias!"], ["B", "Ez horregatik.", "De nada."]]
+  },
+  {
+    id: "l18", module: 3, title: "Describir lugares", desc: "Nolakoa da? Handia, polita, lasaia, garestia…", emoji: "🏞️", scene: { emoji: "🏖️", title: "Herrian · en el pueblo" },
+    pairs: [["Nolakoa da?", "¿Cómo es?", "❓"], ["handia", "grande", "🐘"], ["txikia", "pequeño/a", "🐭"], ["polita", "bonito/a", "🌸"], ["itsusia", "feo/a", "🪨"], ["zaharra", "viejo/a", "🏚️"], ["berria", "nuevo/a", "✨"], ["garbia", "limpio/a", "🧼"], ["zikina", "sucio/a", "🧹"], ["lasaia", "tranquilo/a", "😌"], ["zaratatsua", "ruidoso/a", "📢"], ["iluna", "oscuro/a", "🌑"], ["merkea", "barato/a", "💶"], ["garestia", "caro/a", "💎"], ["hondartza", "playa", "🏖️"], ["herria", "pueblo", "🏘️"], ["hiria", "ciudad", "🏙️"]],
+    sentences: [["Nolakoa da zure etxea?", "¿Cómo es tu casa?"], ["Oso argia da.", "Es muy luminosa."], ["Nire auzoa lasaia da.", "Mi barrio es tranquilo."], ["Kalea zaratatsua da.", "La calle es ruidosa."], ["Etxea zaharra baina polita da.", "La casa es vieja pero bonita."], ["Hiria handia eta garestia da.", "La ciudad es grande y cara."], ["Herria txikia eta lasaia da.", "El pueblo es pequeño y tranquilo."], ["Taberna merkea da.", "El bar es barato."], ["Hondartza bat dago.", "Hay una playa."], ["Nahiko merkea da.", "Es bastante barato."], ["Pisuak garestiak dira.", "Los pisos son caros."]],
+    pattern: "___ ___a da",
+    tips: [{ t: "¿Cómo es? Nolakoa da?", b: "La respuesta es adjetivo + -a + da: Etxea handia da, Auzoa lasaia da. El adjetivo va después del nombre y lleva el artículo." }, { t: "Pero y y", b: "baina = pero, eta = y: zaharra baina polita, handia eta garestia. Solo el último adjetivo suele llevar el verbo da." }, { t: "Muy y bastante", b: "oso = muy, nahiko = bastante, delante del adjetivo: oso polita, nahiko merkea. En plural: pisuak garestiak dira." }],
+    dialogue: [["A", "Nolakoa da zure herria?", "¿Cómo es tu pueblo?"], ["B", "Txikia eta lasaia. Hondartza bat dago.", "Pequeño y tranquilo. Hay una playa."], ["A", "Eta garestia da?", "¿Y es caro?"], ["B", "Ez, nahiko merkea da.", "No, es bastante barato."]]
   }
 ];
 
@@ -181,7 +223,25 @@ window.NOTES = [
   { m: /^norengana/i, t: "Norengana? = ¿a casa de quién? / ¿hacia quién? Se responde con persona + -rengana: amarengana." },
   { m: /^non /i, t: "non = dónde (estás, vives). Para «de dónde eres» es nongoa." },
   { m: /(seme-alabak|aiton-amonak|osaba-izebak)/i, t: "Compuesto con guion = los dos juntos: seme-alabak (hijos e hijas), aiton-amonak (abuelos), osaba-izebak (tíos)." },
-  { m: /(irakasle|ikasle|mediku|erizain|sukaldari|zerbitzari|abokatu|arkitekto|ingeniari|diseinatzaile|dendari)a\b/i, t: "La profesión lleva -a (artículo) en la frase: irakaslea naiz. En plural, -ak: irakasleak gara." }
+  { m: /(irakasle|ikasle|mediku|erizain|sukaldari|zerbitzari|abokatu|arkitekto|ingeniari|diseinatzaile|dendari)a\b/i, t: "La profesión lleva -a (artículo) en la frase: irakaslea naiz. En plural, -ak: irakasleak gara." },
+  { m: /ren gainean|ren azpian|ren ondoan|ren aurrean|ren atzean|ren barruan/i, t: "La cosa de referencia lleva -(r)en y después la posposición: mahaia → mahaiaren gainean, ohea → ohearen azpian." },
+  { m: /\bbadago\b/i, t: "badago = sí hay / sí está. Es ba- + dago, se escribe junto. Para negar: ez dago …-rik." },
+  { m: /ez dago \w+rik/i, t: "No hay: ez dago + cosa con -rik: ez dago telebistarik. La -rik solo aparece en negaciones y preguntas." },
+  { m: /ba al dago/i, t: "¿Hay…? = Ba al dago …-rik? La cosa lleva -rik en la pregunta." },
+  { m: /\bdaude\b/i, t: "daude = están (varios). Para uno solo: dago. Aulkiak sukaldean daude." },
+  { m: /\bditu\b.*gela|gela ditu/i, t: "Etxeak … ditu: con «tener» el sujeto lleva -k (etxea → etxeak) y el verbo es plural si son varias cosas." },
+  { m: /ez du \w+rik/i, t: "No tener: ez du + cosa con -rik: ez du balkoirik." },
+  { m: /\bnoa\b/i, t: "noa = voy (forma corta de joan). Adónde lleva -ra: etxera noa." },
+  { m: /\bnator\b/i, t: "nator = vengo (forma corta de etorri). De dónde lleva -tik: etxetik nator." },
+  { m: /\bzoaz\b/i, t: "zoaz = vas. noa (voy), zoaz (vas), doa (va)." },
+  { m: /\bzatoz\b/i, t: "zatoz = vienes. nator (vengo), zatoz (vienes), dator (viene)." },
+  { m: /tik nator|tik zatoz|tik dator/i, t: "De dónde: -tik tras vocal (Bilbotik); -dik tras -n o -l (Irundik, Madrildik)." },
+  { m: /ra noa|ra zoaz|ra doa/i, t: "Adónde: -ra (etxera, Bilbora); tras consonante -era (Madrilera)." },
+  { m: /eskuinera|ezkerrera/i, t: "eskuinera = a la derecha, ezkerrera = a la izquierda (con -ra, hacia). Está a la derecha: eskuinean dago." },
+  { m: /nolakoa/i, t: "Nolakoa da? = ¿cómo es? Se responde con adjetivo + -a + da: Etxea handia da." },
+  { m: /\bgarestiak dira|lasaiak dira|handiak dira|txikiak dira/i, t: "En plural el adjetivo también lleva -ak y el verbo es dira: pisuak garestiak dira." },
+  { m: /\bnahiko\b/i, t: "nahiko = bastante, delante del adjetivo: nahiko merkea." },
+  { m: /\bgertu\b|\burrun\b/i, t: "gertu = cerca, urrun = lejos; van con dago: Geltokia urrun dago." }
 ];
 
 // Fichas de gramática. Cada una: patrón con piezas, ejemplos de las lecciones y un ejercicio de transformación.
@@ -314,6 +374,30 @@ window.GRAMMAR = [
     table: { cols: ["pregunta", "respuesta"], rows: [["Nor zara?", "Ni Ane naiz."], ["Zer da hau?", "Liburua da."], ["Zein da zurea?", "Hori."], ["Non bizi zara?", "Bilbon."], ["Nongoa zara?", "Bilbokoa."], ["Zenbat urte dituzu?", "Hogei."], ["Norengana zoaz?", "Amarengana."]] },
     examples: [["Norengana zoaz?", "¿A casa de quién vas?"], ["Amarengana noa.", "Voy a casa de mi madre."], ["Non dago zure ama?", "¿Dónde está tu madre?"]],
     drills: [{ from: "Ni Bilbon bizi naiz.", to: "Non bizi zara?", es: "¿Dónde vives?", instr: "Haz la pregunta" }, { from: "Ni bilbokoa naiz.", to: "Nongoa zara?", es: "¿De dónde eres?", instr: "Haz la pregunta" }, { from: "Amarengana noa.", to: "Norengana zoaz?", es: "¿A casa de quién vas?", instr: "Haz la pregunta" }, { from: "Norengana zoaz?", to: "Aitarengana noa.", es: "Voy a casa de mi padre.", instr: "Responde: a casa de mi padre" }, { from: "Norengana zoaz?", to: "Medikuarengana noa.", es: "Voy al médico.", instr: "Responde: al médico" }, { from: "Hogei urte ditut.", to: "Zenbat urte dituzu?", es: "¿Cuántos años tienes?", instr: "Haz la pregunta" }]
+  },
+  {
+    id: "g-non-dago", title: "Dónde está: egon + -(r)en + posposición", lessons: ["l14", "l15", "l16"], emoji: "📍",
+    summary: "Para decir dónde está algo se usa egon (dago / daude). El lugar lleva -n (sukaldean) o la cosa de referencia lleva -(r)en + gainean, azpian, ondoan… Hay = dago; no hay = ez dago …-rik.",
+    pieces: [{ t: "Liburua", k: "subj" }, { t: "mahaiaren", k: "obj" }, { t: "gainean", k: "num" }, { t: "dago", k: "verb" }],
+    table: { cols: ["euskera", "castellano"], rows: [["X -n dago", "X está en"], ["X Y-ren gainean dago", "X está encima de Y"], ["X Y-ren azpian dago", "X está debajo de Y"], ["Ba al dago X-rik?", "¿Hay X?"], ["Ez dago X-rik", "No hay X"]] },
+    examples: [["Mahaia sukaldean dago.", "La mesa está en la cocina."], ["Katua ohearen azpian dago.", "El gato está debajo de la cama."], ["Aulkiak sukaldean daude.", "Las sillas están en la cocina."], ["Ez, ez dago telebistarik.", "No, no hay televisión."]],
+    drills: [{ from: "Liburua mahaiaren gainean dago.", to: "Liburua mahaiaren azpian dago.", instr: "Ahora está debajo" }, { from: "Katua ohearen azpian dago.", to: "Katuak ohearen azpian daude.", instr: "Ahora son varios gatos" }, { from: "Non dago komuna?", to: "Komuna hor dago.", instr: "Responde: está ahí" }, { from: "Telebista egongelan dago.", to: "Ez dago telebistarik.", instr: "Niega: no hay" }, { from: "Lanpara sofaren ondoan dago.", to: "Lanpara sofaren atzean dago.", instr: "Ahora está detrás" }, { from: "Ba al dago hozkailurik?", to: "Bai, badago.", instr: "Responde que sí" }]
+  },
+  {
+    id: "g-nora-nondik", title: "Ir y venir: -ra / -tik", lessons: ["l17"], emoji: "🧭",
+    summary: "Adónde (NORA) lleva -ra; de dónde (NONDIK) lleva -tik. joan y etorri tienen formas cortas sin auxiliar: noa / nator.",
+    pieces: [{ t: "Etxera", k: "obj" }, { t: "noa", k: "verb" }],
+    table: { cols: ["pronombre", "joan · ir", "etorri · venir"], rows: [["ni", "noa", "nator"], ["zu", "zoaz", "zatoz"], ["hura", "doa", "dator"]] },
+    examples: [["Etxera noa.", "Voy a casa."], ["Lanetik nator.", "Vengo del trabajo."], ["Nora zoaz?", "¿Adónde vas?"], ["Bilbotik nator.", "Vengo de Bilbao."]],
+    drills: [{ from: "Etxera noa.", to: "Etxetik nator.", instr: "Ahora vienes de ahí" }, { from: "Bilbora noa.", to: "Bilbotik nator.", instr: "Ahora vienes de ahí" }, { from: "Nora zoaz?", to: "Nondik zatoz?", instr: "Pregunta de dónde viene" }, { from: "Lanera noa.", to: "Lanera zoaz.", instr: "Cámbialo a «tú»" }, { from: "Etxera noa.", to: "Etxera doa.", instr: "Dilo de él/ella" }, { from: "Supermerkatura noa.", to: "Supermerkatutik nator.", instr: "Ahora vienes de ahí" }]
+  },
+  {
+    id: "g-nolakoa", title: "Cómo es: adjetivo + -a + da", lessons: ["l14", "l18"], emoji: "🏞️",
+    summary: "Nolakoa da? se responde con el adjetivo después del nombre, con -a y el verbo da al final. oso / nahiko delante; baina / eta unen adjetivos.",
+    pieces: [{ t: "Etxea", k: "subj" }, { t: "oso", k: "num" }, { t: "handia", k: "obj" }, { t: "da", k: "verb" }],
+    table: { cols: ["euskera", "castellano"], rows: [["handia / txikia", "grande / pequeño"], ["polita / itsusia", "bonito / feo"], ["zaharra / berria", "viejo / nuevo"], ["lasaia / zaratatsua", "tranquilo / ruidoso"], ["merkea / garestia", "barato / caro"]] },
+    examples: [["Nire auzoa lasaia da.", "Mi barrio es tranquilo."], ["Etxea zaharra baina polita da.", "La casa es vieja pero bonita."], ["Pisuak garestiak dira.", "Los pisos son caros."]],
+    drills: [{ from: "Etxea handia da.", to: "Etxea txikia da.", instr: "Di lo contrario" }, { from: "Kalea lasaia da.", to: "Kalea zaratatsua da.", instr: "Di lo contrario" }, { from: "Etxea polita da.", to: "Etxea oso polita da.", instr: "Añade «muy»" }, { from: "Auzoa lasaia da.", to: "Auzoak lasaiak dira.", instr: "Ponlo en plural" }, { from: "Taberna garestia da.", to: "Taberna merkea da.", instr: "Di lo contrario" }, { from: "Hiria handia da.", to: "Hiria handia eta garestia da.", instr: "Añade «y cara»" }]
   }
 ];
 
@@ -424,5 +508,38 @@ window.TRANSFORMS = {
   "medikuarengana noa.": [{ i: "Ahora a casa de un amigo", to: "Lagunarengana noa.", es: "Voy a casa de un amigo." }],
   "non bizi zara?": [{ i: "Pregunta de dónde es (origen)", to: "Nongoa zara?", es: "¿De dónde eres?" }, { i: "Responde: en Bilbao", to: "Bilbon.", es: "En Bilbao." }],
   "nongoa zara?": [{ i: "Pregunta dónde vive", to: "Non bizi zara?", es: "¿Dónde vives?" }, { i: "Responde: de Bilbao", to: "Bilbokoa.", es: "De Bilbao." }],
-  "non dago?": [{ i: "Pregunta por una persona: ¿quién está en casa?", to: "Nor dago etxean?", es: "¿Quién está en casa?" }]
+  "non dago?": [{ i: "Pregunta por una persona: ¿quién está en casa?", to: "Nor dago etxean?", es: "¿Quién está en casa?" }],
+  "nire etxea txikia da.": [{ i: "Di lo contrario", to: "Nire etxea handia da.", es: "Mi casa es grande." }, { i: "Ahora es el piso", to: "Nire pisua txikia da.", es: "Mi piso es pequeño." }],
+  "etxeak hiru gela ditu.": [{ i: "Ahora son dos", to: "Etxeak bi gela ditu.", es: "La casa tiene dos habitaciones." }, { i: "Ahora es el piso (pisua)", to: "Pisuak hiru gela ditu.", es: "El piso tiene tres habitaciones." }],
+  "balkoia dauka.": [{ i: "Ponlo en negativo", to: "Ez du balkoirik.", es: "No tiene balcón." }],
+  "ez du balkoirik.": [{ i: "Ponlo en afirmativo", to: "Balkoia dauka.", es: "Tiene balcón." }],
+  "non dago komuna?": [{ i: "Responde: está ahí", to: "Komuna hor dago.", es: "El baño está ahí." }, { i: "Pregunta por la cocina", to: "Non dago sukaldea?", es: "¿Dónde está la cocina?" }],
+  "komuna hor dago.": [{ i: "Ahora está aquí", to: "Komuna hemen dago.", es: "El baño está aquí." }],
+  "sukaldea handia da.": [{ i: "Di lo contrario", to: "Sukaldea txikia da.", es: "La cocina es pequeña." }, { i: "Añade «muy»", to: "Sukaldea oso handia da.", es: "La cocina es muy grande." }],
+  "liburua mahaiaren gainean dago.": [{ i: "Ahora está debajo", to: "Liburua mahaiaren azpian dago.", es: "El libro está debajo de la mesa." }, { i: "Ahora son varios libros", to: "Liburuak mahaiaren gainean daude.", es: "Los libros están encima de la mesa." }],
+  "katua ohearen azpian dago.": [{ i: "Ahora está encima", to: "Katua ohearen gainean dago.", es: "El gato está encima de la cama." }, { i: "Ahora está al lado del sofá", to: "Katua sofaren ondoan dago.", es: "El gato está al lado del sofá." }],
+  "lanpara sofaren ondoan dago.": [{ i: "Ahora está detrás", to: "Lanpara sofaren atzean dago.", es: "La lámpara está detrás del sofá." }],
+  "aulkiak sukaldean daude.": [{ i: "Ahora es una sola silla", to: "Aulkia sukaldean dago.", es: "La silla está en la cocina." }],
+  "ba al dago telebistarik?": [{ i: "Responde que sí", to: "Bai, badago.", es: "Sí, hay." }, { i: "Responde que no", to: "Ez, ez dago telebistarik.", es: "No, no hay televisión." }, { i: "Pregunta por la nevera", to: "Ba al dago hozkailurik?", es: "¿Hay nevera?" }],
+  "ez, ez dago telebistarik.": [{ i: "Ahora sí hay", to: "Bai, badago.", es: "Sí, hay." }],
+  "armairua logelan dago.": [{ i: "Ahora está en el salón", to: "Armairua egongelan dago.", es: "El armario está en el salón." }],
+  "nire auzoan okindegi bat dago.": [{ i: "Ahora es una farmacia", to: "Nire auzoan farmazia bat dago.", es: "En mi barrio hay una farmacia." }, { i: "Ahora son dos panaderías", to: "Nire auzoan bi okindegi daude.", es: "En mi barrio hay dos panaderías." }],
+  "taberna plazan dago.": [{ i: "Ahora está en la calle", to: "Taberna kalean dago.", es: "El bar está en la calle." }, { i: "Ahora son dos bares", to: "Bi taberna daude plazan.", es: "Hay dos bares en la plaza." }],
+  "geltokia urrun dago.": [{ i: "Di lo contrario", to: "Geltokia gertu dago.", es: "La estación está cerca." }],
+  "ospitalea gertu dago.": [{ i: "Di lo contrario", to: "Ospitalea urrun dago.", es: "El hospital está lejos." }],
+  "liburutegia udaletxearen ondoan dago.": [{ i: "Ahora está delante", to: "Liburutegia udaletxearen aurrean dago.", es: "La biblioteca está delante del ayuntamiento." }],
+  "nora zoaz?": [{ i: "Responde: a casa", to: "Etxera noa.", es: "Voy a casa." }, { i: "Pregunta de dónde viene", to: "Nondik zatoz?", es: "¿De dónde vienes?" }],
+  "etxera noa.": [{ i: "Ahora vienes de ahí", to: "Etxetik nator.", es: "Vengo de casa." }, { i: "Cámbialo a «tú»", to: "Etxera zoaz.", es: "Vas a casa." }, { i: "Ahora vas al trabajo", to: "Lanera noa.", es: "Voy al trabajo." }],
+  "lanera noa.": [{ i: "Ahora vienes de ahí", to: "Lanetik nator.", es: "Vengo del trabajo." }],
+  "bilbora noa.": [{ i: "Ahora vienes de ahí", to: "Bilbotik nator.", es: "Vengo de Bilbao." }, { i: "Dilo de él/ella", to: "Bilbora doa.", es: "Va a Bilbao." }],
+  "nondik zatoz?": [{ i: "Responde: de casa", to: "Etxetik nator.", es: "Vengo de casa." }, { i: "Pregunta adónde va", to: "Nora zoaz?", es: "¿Adónde vas?" }],
+  "etxetik nator.": [{ i: "Ahora vas hacia ahí", to: "Etxera noa.", es: "Voy a casa." }],
+  "farmazia eskuinean dago.": [{ i: "Ahora está a la izquierda", to: "Farmazia ezkerrean dago.", es: "La farmacia está a la izquierda." }],
+  "zuzen joan eta gero ezkerrera.": [{ i: "Ahora a la derecha", to: "Zuzen joan eta gero eskuinera.", es: "Sigue recto y luego a la derecha." }],
+  "nolakoa da zure etxea?": [{ i: "Responde: es muy luminosa", to: "Oso argia da.", es: "Es muy luminosa." }, { i: "Pregunta por el barrio", to: "Nolakoa da zure auzoa?", es: "¿Cómo es tu barrio?" }],
+  "nire auzoa lasaia da.": [{ i: "Di lo contrario", to: "Nire auzoa zaratatsua da.", es: "Mi barrio es ruidoso." }, { i: "Añade «muy»", to: "Nire auzoa oso lasaia da.", es: "Mi barrio es muy tranquilo." }],
+  "etxea zaharra baina polita da.": [{ i: "Ahora es nueva pero fea", to: "Etxea berria baina itsusia da.", es: "La casa es nueva pero fea." }],
+  "hiria handia eta garestia da.": [{ i: "Ahora es el pueblo: pequeño y barato", to: "Herria txikia eta merkea da.", es: "El pueblo es pequeño y barato." }],
+  "taberna merkea da.": [{ i: "Di lo contrario", to: "Taberna garestia da.", es: "El bar es caro." }, { i: "Añade «bastante»", to: "Taberna nahiko merkea da.", es: "El bar es bastante barato." }],
+  "pisuak garestiak dira.": [{ i: "Ponlo en singular", to: "Pisua garestia da.", es: "El piso es caro." }]
 };

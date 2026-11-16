@@ -757,7 +757,7 @@ function renderGrammar(g){
     <p style="font-size:17px">${esc(T(g.summary))}</p>
     <p class="eyebrow" data-es="${T("cómo se arma")}">Egitura</p>
     <div class="card stack" style="gap:12px"><div class="pieces">${g.pieces.map(p=>`<span class="pc ${p.k}">${esc(T(p.t))}</span>`).join("")}</div><div class="pclegend">${kinds.map(k=>`<span><i class="pc ${k}" style="padding:0"></i>${PK[k]}</span>`).join("")}</div></div>
-    ${g.table?`<table class="gtab"><tr>${g.table.cols.map(c=>`<th>${esc(T(c))}</th>`).join("")}</tr>${g.table.rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${i===0?"lab":""}">${i===0?esc(T(c)):`<b>${esc(c)}</b>`}</td>`).join("")}</tr>`).join("")}</table>`:""}
+    ${g.table?`<table class="gtab"><tr>${g.table.cols.map(c=>`<th>${esc(T(c))}</th>`).join("")}</tr>${g.table.rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${i===0?"lab":""}">${i===0?esc(T(c)):`<b>${esc(T(c))}</b>`}</td>`).join("")}</tr>`).join("")}</table>`:""}
     <p class="eyebrow" data-es="${T("Ejemplos de")} ${esc(lessonsTxt)}">Adibideak</p>
     <div class="card list">${g.examples.map(([eu,es])=>`<div class="it"><span class="tx"><b>${esc(eu)}</b><small>${esc(T(es))}</small></span>${spkBtn(eu)}</div>`).join("")}</div>
     <p class="eyebrow" data-es="${T("Transforma la frase")}">Eraldatu (${g.drills.length})</p>
@@ -794,7 +794,7 @@ function renderLesson(l){
   app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1;min-width:0"><p class="eyebrow">${LESSONS.indexOf(l)+1}. ikasgaia</p><h2>${esc(T(l.title))}</h2></div>${ring(firmN/its.length,40)}</div>
    <div class="stack pad" style="flex:1;gap:18px">
     ${l.pattern?`<div class="pattern"><div style="flex:1;min-width:0"><p class="eyebrow">Egitura</p><p class="pat">${esc(T(l.pattern)).replace("___",'<span class="blank">___</span>')}</p></div></div>`:""}
-    ${l.grid?`<p class="eyebrow" data-es="${esc(T(l.grid.title))}">Nork esaten du</p><table class="gtab"><tr><th></th>${l.grid.cols.map(c=>`<th>${esc(T(c))}</th>`).join("")}</tr>${l.grid.rows.map(r=>`<tr><td class="lab">${esc(T(r[0]))}</td>${r.slice(1).map(c=>`<td><b>${esc(c)}</b></td>`).join("")}</tr>`).join("")}</table>`:""}
+    ${l.grid?`<p class="eyebrow" data-es="${esc(T(l.grid.title))}">Nork esaten du</p><table class="gtab"><tr><th></th>${l.grid.cols.map(c=>`<th>${esc(T(c))}</th>`).join("")}</tr>${l.grid.rows.map(r=>`<tr><td class="lab">${esc(T(r[0]))}</td>${r.slice(1).map(c=>`<td><b>${esc(T(c))}</b></td>`).join("")}</tr>`).join("")}</table>`:""}
     <p class="eyebrow" data-es="${VOICE?T("Vocabulario y frases · toca para escuchar"):T("Vocabulario y frases")}">Hiztegia eta esaldiak</p>
     <div class="vocab">${its.map(it=>{ const q=it.count?qty(it.count,it.countEm):""; const sg=stage(m[it.key]); const pct=m[it.key]?Math.min(1,(m[it.key].interval||0)/7):0; return `<button class="v ${sg.k}" data-say="${esc(it.eu)}"><span class="tag">${ring(m[it.key]?Math.max(pct,.08):0,22)}</span><span class="em ${q?"q":""}">${esc(q||it.emoji||(it.chunk?"💬":"•"))}</span><b>${esc(it.eu)}</b><small>${esc(T(it.es))}</small></button>`; }).join("")}</div>
     ${(()=>{ const n=its.reduce((a,x)=>a+transformsFor(x.eu).length,0); return n?`<button class="gcard" id="lessondrills"><span class="em">${ic("refresh")}</span><span class="t"><strong>Eraldatu</strong><small>${n} ${T("transformaciones con las frases de esta lección")}</small></span><span class="pill">${n}</span></button>`:""; })()}
