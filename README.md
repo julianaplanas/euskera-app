@@ -1,6 +1,6 @@
 # Euskara Praktika
 
-App para practicar euskera entre clases (A1 completo, A2 en construcción): repaso espaciado frase a frase, dictados con voz, gramática, retos con tu círculo y ranking semanal. Node + Express + SQLite, PWA instalable; pensada para publicarse en las stores como TWA.
+App para practicar euskera entre clases (A1 y A2 completos): repaso espaciado frase a frase, dictados con voz, gramática, retos con tu círculo y ranking semanal. Node + Express + SQLite, PWA instalable; pensada para publicarse en las stores como TWA.
 
 ## Desplegar en Railway
 
@@ -25,7 +25,7 @@ Email + código de 6 cifras (10 minutos, 5 intentos, máximo 5 códigos por hora
 
 ## Contenido
 
-Todo en `public/lessons.js`: `MODULES` (8 módulos del A1, Baiona → Portugalete, y los del A2 a partir de Durango; cada uno con un pueblo del camino y `level`), `LESSONS` (48 lecciones: pares, frases, patrón, consejos, diálogo, escena), `GRAMMAR` (38 fichas con tabla, ejemplos y drills), `NOTES` (explicaciones que saltan al fallar) y `TRANSFORMS` (transformaciones por frase). El castellano es la clave; las traducciones al inglés van en `public/i18n-content.js` y al francés en `public/i18n-fr.js`. Al añadir contenido, subir el número de caché en `public/sw.js`.
+Todo en `public/lessons.js`: `MODULES` (16 módulos: 8 del A1, Baiona → Portugalete, y 8 del A2, Durango → Maule; cada uno con un pueblo del camino y `level`), `LESSONS` (84 lecciones: pares, frases, patrón, consejos, diálogo, escena), `GRAMMAR` (66 fichas con tabla, ejemplos y drills), `NOTES` (explicaciones que saltan al fallar) y `TRANSFORMS` (transformaciones por frase). El castellano es la clave; las traducciones al inglés van en `public/i18n-content.js` y al francés en `public/i18n-fr.js`. Al añadir contenido, subir el número de caché en `public/sw.js`.
 
 Para añadir una lección: entrada en `LESSONS` con `module`, `eu` (título en euskera) y `title` (castellano); después, las cadenas nuevas en castellano se traducen a inglés y francés (un script que compare claves contra `EN`/`FR` las lista). Las fichas de gramática se colocan en el camino detrás de la primera lección de su lista `lessons`.
 
