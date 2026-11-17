@@ -6,14 +6,14 @@
 // dialogue:  [[quién, euskera, castellano], ...] -> mini diálogo de ejemplo
 // Módulos del A1 (según el currículo HEOC adaptado): las lecciones llevan `module`. Los que aún no tienen lecciones muestran las previstas.
 window.MODULES = [
-  { id: 1, eu: "Ni", es: "Yo", en: "Me", desc: "Saludar, presentarte, cómo estás, edad, gustos" },
-  { id: 2, eu: "Nire mundua", es: "Mi mundo", en: "My world", desc: "Familia, ser y estar, profesiones, preguntas, dónde vives, tener" },
-  { id: 3, eu: "Etxea eta hiria", es: "Casa y ciudad", en: "Home and city", desc: "La casa, el barrio, dónde está, direcciones", planned: ["La casa y sus habitaciones", "Muebles y objetos: ba al dago?", "El barrio: tiendas y servicios", "Direcciones: nora, nondik", "Describir lugares"] },
-  { id: 4, eu: "Jendea", es: "La gente", en: "People", desc: "Describir personas, carácter, amigos, de quién es, números hasta 100", planned: ["Describir personas: aspecto", "Carácter y ánimo", "Amigos, pareja, vecinos", "Noren da? Posesión", "Números 20–100, teléfono, dirección"] },
-  { id: 5, eu: "On egin!", es: "¡Que aproveche!", en: "Enjoy your meal!", desc: "Comida, pedir en el bar, gustos, compras y precios", planned: ["Comidas y bebidas", "En el bar: pedir", "Gustos de comida", "Compras: cuánto cuesta", "Pintxo-pote y costumbres"] },
-  { id: 6, eu: "Egunerokoa", es: "El día a día", en: "Everyday life", desc: "Las horas, fechas, rutina, frecuencia, planes", planned: ["Las horas", "Días, meses y fechas", "Rutina diaria", "Frecuencia: beti, askotan, inoiz ez", "Planes: bihar, asteburuan"] },
-  { id: 7, eu: "Aisia eta eguraldia", es: "Ocio y tiempo", en: "Leisure and weather", desc: "Aficiones, fin de semana, el tiempo, quedar, cómo te sientes", planned: ["Deportes y aficiones", "Fin de semana: nora zoaz?", "El tiempo: euria ari du", "Quedar: invitar y rechazar", "Cuerpo y cómo me siento"] },
-  { id: 8, eu: "Atzo", es: "Ayer", en: "Yesterday", desc: "El pasado de ser y tener, contar el fin de semana, Euskal Herria", planned: ["Pasado de izan", "Pasado de ukan", "Contar el fin de semana", "Euskal Herria: territorios y fiestas", "Repaso del A1"] }
+  { id: 1, town: "Hondarribia", eu: "Ni", es: "Yo", en: "Me", desc: "Saludar, presentarte, cómo estás, edad, gustos" },
+  { id: 2, town: "Donostia", eu: "Nire mundua", es: "Mi mundo", en: "My world", desc: "Familia, ser y estar, profesiones, preguntas, dónde vives, tener" },
+  { id: 3, town: "Zarautz", eu: "Etxea eta hiria", es: "Casa y ciudad", en: "Home and city", desc: "La casa, el barrio, dónde está, direcciones", planned: ["La casa y sus habitaciones", "Muebles y objetos: ba al dago?", "El barrio: tiendas y servicios", "Direcciones: nora, nondik", "Describir lugares"] },
+  { id: 4, town: "Deba", eu: "Jendea", es: "La gente", en: "People", desc: "Describir personas, carácter, amigos, de quién es, números hasta 100", planned: ["Describir personas: aspecto", "Carácter y ánimo", "Amigos, pareja, vecinos", "Noren da? Posesión", "Números 20–100, teléfono, dirección"] },
+  { id: 5, town: "Markina", eu: "On egin!", es: "¡Que aproveche!", en: "Enjoy your meal!", desc: "Comida, pedir en el bar, gustos, compras y precios", planned: ["Comidas y bebidas", "En el bar: pedir", "Gustos de comida", "Compras: cuánto cuesta", "Pintxo-pote y costumbres"] },
+  { id: 6, town: "Gernika", eu: "Egunerokoa", es: "El día a día", en: "Everyday life", desc: "Las horas, fechas, rutina, frecuencia, planes", planned: ["Las horas", "Días, meses y fechas", "Rutina diaria", "Frecuencia: beti, askotan, inoiz ez", "Planes: bihar, asteburuan"] },
+  { id: 7, town: "Bilbo", eu: "Aisia eta eguraldia", es: "Ocio y tiempo", en: "Leisure and weather", desc: "Aficiones, fin de semana, el tiempo, quedar, cómo te sientes", planned: ["Deportes y aficiones", "Fin de semana: nora zoaz?", "El tiempo: euria ari du", "Quedar: invitar y rechazar", "Cuerpo y cómo me siento"] },
+  { id: 8, town: "Portugalete", eu: "Atzo", es: "Ayer", en: "Yesterday", desc: "El pasado de ser y tener, contar el fin de semana, Euskal Herria", planned: ["Pasado de izan", "Pasado de ukan", "Contar el fin de semana", "Euskal Herria: territorios y fiestas", "Repaso del A1"] }
 ];
 window.LESSONS = [
   {
