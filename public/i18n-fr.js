@@ -1,6 +1,7 @@
 // Traductions françaises de l’interface et du contenu (clé = texte en castellano, comme dans i18n.js).
 // En attente de relecture par un·e francophone.
 window.FR = {
+"empezar una ronda nueva": "commencer une nouvelle série",
 "Camino de lecciones": "Chemin des leçons",
 "Disponible para retos": "Disponible pour des défis",
 "Días practicados · tú / media": "Jours de pratique · toi / moyenne",
