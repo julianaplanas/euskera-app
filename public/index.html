@@ -787,8 +787,17 @@ function renderGrammarList(){
   document.getElementById("app").scrollTo(0,0);
 }
 // progreso de drills por teléfono (ligero; no va al calendario)
-function gramDone(id){ try{ return (JSON.parse(localStorage.getItem("euskara.gram."+(P?P.id:""))||"{}")[id]||0); }catch(e){ return 0; } }
-function gramSet(id,n){ try{ const k="euskara.gram."+(P?P.id:""); const d=JSON.parse(localStorage.getItem(k)||"{}"); d[id]=Math.max(d[id]||0,n); localStorage.setItem(k,JSON.stringify(d)); }catch(e){} }
+// Progreso de gramática: la fuente es el servidor (P.gram); localStorage queda como caché y cola si no hay red.
+const gramKey=()=>"euskara.gram."+(P?P.id:"");
+function gramLocal(){ try{ return JSON.parse(localStorage.getItem(gramKey())||"{}"); }catch(e){ return {}; } }
+function gramDone(id){ const srv=(P&&P.gram&&P.gram[id])||0, loc=gramLocal()[id]||0; return Math.max(srv,loc); }
+function gramSet(id,n){ // P.gram es lo que el servidor ya tiene; lo nuevo va a local y gramSync lo sube
+  try{ const d=gramLocal(); d[id]=Math.max(d[id]||0,n); localStorage.setItem(gramKey(),JSON.stringify(d)); }catch(e){}
+  gramSync();
+}
+let gramT=null;
+// Envía al servidor lo que localmente va por delante (nuevo progreso o lo guardado antes de sincronizar); reintenta en la próxima carga si falla.
+function gramSync(){ clearTimeout(gramT); gramT=setTimeout(async()=>{ if(!P) return; const loc=gramLocal(), cards={}; for(const [id,n] of Object.entries(loc)) if(n>((P.gram||{})[id]||0)) cards[id]=n; if(!Object.keys(cards).length) return; try{ const r=await api("gram",{cards}); P.gram=r.gram||P.gram; }catch(e){} },400); }
 const PK0={subj:"sujeto",obj:"nombre / adjetivo",verb:"verbo",neg:"negación / unión",num:"número / plural",q:"interrogativo"}; const PK=new Proxy(PK0,{get:(o,k)=>T(o[k])});
 function renderGrammar(g){
   noTabs();
@@ -978,7 +987,7 @@ function renderLangPick(){
 }
 const _renderLogin=renderLogin; renderLogin=function(){ if(!LANG) return renderLangPick(); _renderLogin(); const cl=document.getElementById("chlang"); if(cl) cl.onclick=()=>{ try{ localStorage.removeItem("euskara.lang"); }catch(e){} window.LANG=null; renderLangPick(); }; };
 applyStatic();
-api("me").then(async p=>{ P=p; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["ikasgaiak","taldea","datuak"].includes(h)?h:"ikasgaiak"); }).catch(()=>renderLogin());
+api("me").then(async p=>{ P=p; gramSync(); if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["ikasgaiak","taldea","datuak"].includes(h)?h:"ikasgaiak"); }).catch(()=>renderLogin());
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>

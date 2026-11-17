@@ -25,6 +25,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT NOT NULL, meta TEXT, day TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
   CREATE INDEX IF NOT EXISTS events_day ON events (day, name);
   CREATE TABLE IF NOT EXISTS progress (user_id INTEGER NOT NULL, lesson_id TEXT NOT NULL, rounds INTEGER NOT NULL DEFAULT 0, best INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, lesson_id));
+  CREATE TABLE IF NOT EXISTS grammar (user_id INTEGER NOT NULL, card_id TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, card_id));
   CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
   CREATE INDEX IF NOT EXISTS sessions_user ON sessions (user_id);
   CREATE TABLE IF NOT EXISTS rounds (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, lesson_id TEXT, ok INTEGER NOT NULL, total INTEGER NOT NULL, day TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
@@ -121,8 +122,10 @@ function profile(user) {
   const streak = user.last_day === today || user.last_day === yesterday ? user.streak : 0;
   const lessons = {};
   for (const p of db.prepare("SELECT lesson_id, rounds, best FROM progress WHERE user_id = ?").all(user.id)) lessons[p.lesson_id] = { rounds: p.rounds, best: p.best };
+  const gram = {};
+  for (const g of db.prepare("SELECT card_id, done FROM grammar WHERE user_id = ?").all(user.id)) gram[g.card_id] = g.done;
   const pending = db.prepare("SELECT COUNT(*) n FROM challenges WHERE to_id = ? AND status = 'open' AND to_result IS NULL").get(user.id).n;
-  return { id: user.id, name: user.name, email: user.email, lang: user.lang || "es", openDuel: !!user.open_duel, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
+  return { id: user.id, name: user.name, email: user.email, lang: user.lang || "es", openDuel: !!user.open_duel, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, gram, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
 }
 
 // ---------- notificaciones push (web-push, sin servicio externo) ----------
@@ -322,6 +325,16 @@ app.post("/api/round", auth, (req, res) => {
   logEvent(u.id, "round", { lessonId: lessonId || null, ok, total });
   res.json(profile(db.prepare("SELECT * FROM users WHERE id = ?").get(u.id)));
 });
+// Progreso en las fichas de gramática: transformaciones completadas por ficha (solo sube, nunca baja).
+app.post("/api/gram", auth, (req, res) => {
+  const cards = req.body && typeof req.body.cards === "object" && req.body.cards ? req.body.cards : {};
+  const up = db.prepare("INSERT INTO grammar (user_id, card_id, done) VALUES (?, ?, ?) ON CONFLICT(user_id, card_id) DO UPDATE SET done = MAX(done, excluded.done)");
+  let n = 0;
+  db.transaction(() => { for (const [id, done] of Object.entries(cards)) { if (/^g-[a-z0-9-]{1,40}$/.test(id) && Number.isInteger(done) && done > 0 && done <= 50) { up.run(req.user.id, id, done); n++; } } })();
+  const gram = {};
+  for (const g of db.prepare("SELECT card_id, done FROM grammar WHERE user_id = ?").all(req.user.id)) gram[g.card_id] = g.done;
+  res.json({ ok: true, saved: n, gram });
+});
 app.post("/api/weak", auth, (req, res) => {
   const weak = Array.isArray(req.body.weak) ? req.body.weak.filter(w => Array.isArray(w) && w.length === 2).slice(0, 200) : [];
   db.prepare("UPDATE users SET weak = ? WHERE id = ?").run(JSON.stringify(weak), req.user.id);
@@ -401,7 +414,7 @@ app.get("/api/admin/users", admin, (req, res) => {
 });
 function deleteUser(id) {
   db.transaction(() => {
-    for (const t of ["sessions", "progress", "rounds", "items", "push_subs", "events"]) db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(id);
+    for (const t of ["sessions", "progress", "grammar", "rounds", "items", "push_subs", "events"]) db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(id);
     db.prepare("DELETE FROM friends WHERE user_id = ? OR friend_id = ?").run(id, id);
     db.prepare("DELETE FROM challenges WHERE from_id = ? OR to_id = ?").run(id, id);
     db.prepare("DELETE FROM users WHERE id = ?").run(id);
