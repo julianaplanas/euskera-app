@@ -81,6 +81,8 @@ const addDays = (day, n) => new Date(new Date(day + "T12:00:00Z").getTime() + n 
 const J = (s, d) => { try { return JSON.parse(s); } catch (e) { return d; } };
 
 const app = express();
+const compression = require("compression");
+app.use(compression({ threshold: 1024 })); // gzip/brotli (brotli calidad 4 por defecto: rápido y ~70 % menos bytes)
 app.use(express.json({ limit: "200kb" }));
 app.use(cookieParser());
 // Digital Asset Links: verifica que la app Android (TWA) pertenece a este sitio.

@@ -3,6 +3,13 @@
 // El castellano es la clave del diccionario, así el código y el contenido (lessons.js) siguen escribiéndose en es.
 window.LANGS = ["es", "en", "fr"];
 window.LANG = (() => { try { const l = localStorage.getItem("euskara.lang"); return window.LANGS.includes(l) ? l : null; } catch (e) { return null; } })();
+// Carga bajo demanda el diccionario de contenido del idioma (inglés o francés); el castellano no necesita ninguno.
+window._langLoaded = { es: true };
+window.loadLang = (l) => new Promise((ok, ko) => {
+  if (!window.LANGS.includes(l) || window._langLoaded[l]) return ok();
+  const s = document.createElement("script"); s.src = l === "en" ? "i18n-content.js" : "i18n-fr.js";
+  s.onload = () => { window._langLoaded[l] = true; ok(); }; s.onerror = () => ko(new Error("No se pudo cargar el idioma")); document.head.appendChild(s);
+});
 window.setLang = (l) => { window.LANG = window.LANGS.includes(l) ? l : "es"; try { localStorage.setItem("euskara.lang", window.LANG); } catch (e) {} document.documentElement.lang = window.LANG; };
 const dictOf = () => window.LANG === "en" ? [window.EN, window.ENX] : window.LANG === "fr" ? [window.FR, window.FRX] : null;
 window.T = (s) => { const d = dictOf(); if (!d || s == null) return s; const k = String(s); const v = d[0] && d[0][k]; if (v !== undefined) return v; if (d[1]) { for (const [re, f] of d[1]) { const m = k.match(re); if (m) return f(m); } } return k; };

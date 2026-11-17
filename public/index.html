@@ -327,8 +327,7 @@ a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-deco
 </div></nav>
 
 <script src="i18n.js"></script>
-<script src="i18n-content.js"></script>
-<script src="i18n-fr.js"></script>
+<script>(function(){ var l=window.LANG; if(l==="en"||l==="fr"){ window._langLoaded[l]=true; document.write('<script src="'+(l==="en"?"i18n-content.js":"i18n-fr.js")+'"><\/script>'); } })();</script>
 <script src="lessons.js"></script>
 <script>
 const app=document.getElementById("app"), tabs=document.getElementById("tabs");
@@ -402,11 +401,12 @@ function personalItems(){
   }
   return out;
 }
+const LI_CACHE=new Map(); // el contenido es estático: se calcula una vez por lección (antes se recalculaba cientos de veces al pintar el camino)
 function lessonItems(l){
-  const out=[];
-  for(const [eu,es,em] of l.pairs) out.push({key:`${l.id}:${norm(eu)}`,eu,es,lesson_id:l.id,emoji:em,count:l.countable&&/^\d+$/.test(es)?+es:null,countEm:l.countable});
-  for(const [eu,es] of l.sentences) if(!out.some(o=>norm(o.eu)===norm(eu))) out.push({key:`${l.id}:${norm(eu)}`,eu,es,lesson_id:l.id,chunk:true});
-  return out;
+  let out=LI_CACHE.get(l); if(out) return out; out=[]; const seen=new Set();
+  for(const [eu,es,em] of l.pairs){ const k=norm(eu); seen.add(k); out.push({key:`${l.id}:${k}`,eu,es,lesson_id:l.id,emoji:em,count:l.countable&&/^\d+$/.test(es)?+es:null,countEm:l.countable}); }
+  for(const [eu,es] of l.sentences){ const k=norm(eu); if(!seen.has(k)){ seen.add(k); out.push({key:`${l.id}:${k}`,eu,es,lesson_id:l.id,chunk:true}); } }
+  LI_CACHE.set(l,out); return out;
 }
 const catalog=()=>[...LESSONS.flatMap(lessonItems),...personalItems()];
 function lessonOf(id){ return LESSONS.find(l=>l.id===id); }
@@ -456,7 +456,7 @@ function renderCode(email,info={}){
   document.getElementById("resend").onclick=async()=>{ try{ const r=await api("auth/request",{email,lang:LANG}); toast("Kodea bidalita · "+T("código reenviado")); if(r.devCode) renderCode(email,r); }catch(e){ toast(e.message); } };
   document.getElementById("f").onsubmit=async e=>{ e.preventDefault(); const err=document.getElementById("err"); err.textContent=""; const name=(document.getElementById("newname")||{}).value||"";
     try{ const r=await api("auth/verify",{email,code:code.value,name,lang:LANG}); if(r.needName){ err.textContent=T("Dinos cómo te llamas (al menos 2 letras)."); (document.getElementById("newname")||code).focus(); return; }
-      P=r; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); if(!P.profile.gender) renderProfile(true); else setTab("ikasgaiak"); }
+      P=r; if(P.lang&&P.lang!==LANG){ try{ await loadLang(P.lang); setLang(P.lang); applyStatic(); }catch(e){} } await Promise.all([loadItems(),checkVoice()]); if(!P.profile.gender) renderProfile(true); else setTab("ikasgaiak"); }
     catch(ex){ err.textContent=ex.message; if(ex.expired) document.getElementById("resend").focus(); } };
 }
 
@@ -495,7 +495,7 @@ function renderProfile(first=false){
   const da=document.getElementById("delacc"); if(da) da.onclick=async()=>{ const email=document.getElementById("delmail").value; const m=document.getElementById("delmsg"); if(!email){ m.textContent=T("Escribe tu correo."); return; } if(!confirm(T("¿Borrar tu cuenta y todo tu progreso? No se puede deshacer."))) return; try{ await api("account/delete",{email}); P=null; try{ localStorage.clear(); }catch(e){} renderLogin(); }catch(e){ m.textContent=e.message||T("No se pudo borrar."); } };
   renderPushBox();
   app.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{ SLOW=b.dataset.sp==="1"; try{ localStorage.setItem("euskara.slow",SLOW?"1":"0"); }catch(e){} app.querySelectorAll("[data-sp]").forEach(x=>x.setAttribute("aria-pressed",(x.dataset.sp==="1")===SLOW)); if(VOICE) speak("Kaixo, zer moduz?"); });
-  app.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ setLang(b.dataset.lang); applyStatic(); renderProfile(first); });
+  app.querySelectorAll("[data-lang]").forEach(b=>b.onclick=async()=>{ try{ await loadLang(b.dataset.lang); }catch(e){ toast(e.message); return; } setLang(b.dataset.lang); applyStatic(); renderProfile(first); });
   let g=pr.gender||null;
   app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ g=b.dataset.g; app.querySelectorAll("[data-g]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.g===g)); });
   document.getElementById("back").onclick=()=>first?null:setTab("ikasgaiak");
@@ -1006,11 +1006,11 @@ function renderLangPick(){
   app.innerHTML=`<div class="head pad" style="padding-bottom:26px"><div class="lb">${LAUBURU}</div><div class="row" style="gap:18px;position:relative"><div class="olen">${OLEN("wave",80)}</div><div><p class="eyebrow">Euskara praktika</p><h1>Ongi etorri!</h1><p style="color:var(--muted);font-weight:500;font-size:14px">Bienvenido/a · Welcome · Bienvenue</p></div></div></div>
    <div class="stack pad" style="padding-top:22px"><p class="eyebrow">Zein hizkuntzatan?</p><p class="muted">Las traducciones y explicaciones, ¿en qué idioma?<br>Translations and explanations in which language?<br>Les traductions et explications, dans quelle langue ?</p>
     <button class="btn red" data-lang="es">Gaztelania<small>Castellano</small></button><button class="btn" data-lang="en">Ingelesa<small>English</small></button><button class="btn" data-lang="fr">Frantsesa<small>Français</small></button></div>`;
-  app.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ setLang(b.dataset.lang); applyStatic(); renderLogin(); });
+  app.querySelectorAll("[data-lang]").forEach(b=>b.onclick=async()=>{ try{ await loadLang(b.dataset.lang); }catch(e){ toast(e.message); return; } setLang(b.dataset.lang); applyStatic(); renderLogin(); });
 }
 const _renderLogin=renderLogin; renderLogin=function(){ if(!LANG) return renderLangPick(); _renderLogin(); const cl=document.getElementById("chlang"); if(cl) cl.onclick=()=>{ try{ localStorage.removeItem("euskara.lang"); }catch(e){} window.LANG=null; renderLangPick(); }; };
 applyStatic();
-api("me").then(async p=>{ P=p; gramSync(); if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["ikasgaiak","taldea","datuak"].includes(h)?h:"ikasgaiak"); }).catch(()=>renderLogin());
+api("me").then(async p=>{ P=p; gramSync(); if(P.lang&&P.lang!==LANG){ try{ await loadLang(P.lang); setLang(P.lang); applyStatic(); }catch(e){} } await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["ikasgaiak","taldea","datuak"].includes(h)?h:"ikasgaiak"); }).catch(()=>renderLogin());
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
