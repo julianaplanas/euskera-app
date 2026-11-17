@@ -75,7 +75,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 /* pestañas con icono */
 .tabs{flex:none;z-index:15;background:var(--bg);border-top:1px solid var(--line2);padding-bottom:var(--sab)}
 .tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
-.tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0 8px;color:var(--muted);font-size:11px;font-weight:600;transition:color .15s}
+.tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 6px;color:var(--muted);font-size:11px;font-weight:600;transition:color .15s}
 .tab .ic svg{width:22px;height:22px}
 .tab .es{display:none}
 .tab.on{color:var(--red)}
@@ -313,8 +313,8 @@ input.ans.ok{border-color:var(--green);box-shadow:0 0 0 4px rgba(26,122,69,.14)}
 <div class="app" id="app"></div>
 <div class="sheet" id="sheet"><div class="in" id="sh-in"></div></div>
 <nav class="tabs" id="tabs" hidden><div class="in">
+ <button class="tab" data-tab="ikasgaiak"><span class="ic" data-ic="book"></span><span class="eu">Bidea</span></button>
  <button class="tab" data-tab="gaur"><span class="ic" data-ic="home"></span><span class="eu">Gaur</span></button>
- <button class="tab" data-tab="ikasgaiak"><span class="ic" data-ic="book"></span><span class="eu">Ikasgaiak</span></button>
  <button class="tab" data-tab="taldea"><span class="ic" data-ic="users"></span><span class="eu">Taldea</span><span class="badge" id="tbadge" hidden></span></button>
  <button class="tab" data-tab="datuak"><span class="ic" data-ic="chart"></span><span class="eu">Datuak</span></button>
 </div></nav>
@@ -369,7 +369,7 @@ function wireSpeak(root=app){ root.querySelectorAll("[data-say]").forEach(b=>{ l
 
 // ---------- API y estado ----------
 async function api(path,body){ const r=await fetch("/api/"+path, body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:{}); const d=await r.json().catch(()=>({error:T("Error de red.")})); if(!r.ok) throw Object.assign(new Error(d.error||"Error"),d); return d; }
-let P=null, ITEMS=[], TAB="gaur";
+let P=null, ITEMS=[], TAB="ikasgaiak";
 const imap=()=>Object.fromEntries(ITEMS.map(i=>[i.key,i]));
 async function loadItems(){ ITEMS=await api("items"); }
 
@@ -481,6 +481,7 @@ function renderProfile(first=false){
       <p class="hint" id="delmsg"></p>
       <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Pribatutasuna · ${T("Política de privacidad")}</a></p>
     </details>`}
+    <p class="hint" style="text-align:center;opacity:.6">v54 · ${window.innerWidth}×${window.innerHeight} · ${screen.width}×${screen.height} · sab ${(()=>{ const d=document.createElement("div"); d.style.cssText="position:absolute;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px)"; document.body.appendChild(d); const v=getComputedStyle(d).paddingBottom; d.remove(); return v; })()} · ${matchMedia("(display-mode: standalone)").matches?"standalone":"browser"}</p>
    </div>
    <div class="bottom pad"><button class="btn red bi" id="save">Gorde<small>${T("Guardar")}</small></button></div>`;
   const lo=document.getElementById("logout"); if(lo) lo.onclick=async()=>{ await api("logout",{}); P=null; renderLogin(); };
@@ -547,7 +548,7 @@ function renderWelcome(){
   ]; let i=0;
   const show=()=>{ const sl=slides[i]; app.innerHTML=`<div class="stack pad" style="padding-top:calc(60px + env(safe-area-inset-top,0px));min-height:100%;justify-content:center;align-items:center;text-align:center;gap:18px"><div>${sl.em}</div><h1 style="font-size:36px">${esc(sl.t)}</h1><p class="muted" style="margin-top:-10px">${esc(sl.es)}</p><p style="max-width:420px;font-size:17px">${sl.b}</p><div class="row" style="justify-content:center;gap:8px">${slides.map((_,k)=>`<span style="width:10px;height:10px;background:${k===i?"var(--red)":"var(--line-soft)"}"></span>`).join("")}</div><button class="btn red" id="wnext" style="max-width:360px">${i<slides.length-1?`Hurrengoa<small>${T("Siguiente")}</small>`:`Hasi!<small>${T("Empezar")}</small>`}</button>${i<slides.length-1?`<button class="link" id="wskip">${T("Saltar")}</button>`:""}</div>`;
     document.getElementById("wnext").onclick=()=>{ i++; i<slides.length?show():done(); }; const sk=document.getElementById("wskip"); if(sk) sk.onclick=done; };
-  const done=()=>{ try{ localStorage.setItem("euskara.welcome."+P.id,"1"); }catch(e){} setTab("gaur"); };
+  const done=()=>{ try{ localStorage.setItem("euskara.welcome."+P.id,"1"); }catch(e){} setTab("ikasgaiak"); };
   show();
 }
 const seenWelcome=()=>{ try{ return localStorage.getItem("euskara.welcome."+P.id)==="1"; }catch(e){ return true; } };
@@ -568,9 +569,9 @@ async function renderToday(){
   const total=due.length+nNew; const pend=loadSes(); const t=todayStr();
   const doneToday=ITEMS.filter(i=>i.last===t); const upcoming=ITEMS.filter(i=>i.due>t).sort((a,b)=>a.due<b.due?-1:1);
   const nextLesson=(()=>{ const ul=unlockedIds(); return LESSONS.find(l=>ul.has(l.id)&&lessonItems(l).some(x=>!imap()[x.key])); })();
-  const sub = pend?"Txanda bat erdizka · "+T("tienes una ronda a medias") : firstTime?"Ongi etorri · "+T("empieza por la primera lección") : total?`Gaur: ${due.length} ${T("para repasar")}${nNew?` eta ${nNew} berri`:""}` : "Gaurkoa eginda · "+T("lo de hoy está hecho");
+  const sub = null;
   const mins=Math.max(2,Math.round(total*0.5));
-  const todayCard=pend?`<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">Txanda bat erdizka</p><p class="ts">${pend.i}/${pend.ex.length} · ${T("tienes una ronda a medias")}</p></div></div><button class="btn red" id="resume">${ic("play")} Jarraitu</button></div>`
+  const todayCard=pend?`<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">Txanda bat erdizka</p><p class="ts">${pend.i}/${pend.ex.length}</p></div></div><button class="btn red" id="resume">${ic("play")} Jarraitu</button></div>`
     : firstTime?`<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">${T("Kaixo! Así funciona:")}</p></div></div><p>${T("1 · Abres una lección: lees, escuchas y miras la estructura.")}</p><p>${T("2 · Pulsas <b>Ikasi</b>: te presento unas pocas frases, eliges su significado y las copias. Sin examen el primer día.")}</p><p>${T("3 · Al día siguiente, aquí en <b>Gaur</b>, te las pido de memoria. Lo que aciertas se aleja en el calendario; lo que fallas vuelve mañana.")}</p><button class="btn red" id="golesson">${esc(T(LESSONS[0].title))}<small>${T("Empezar por la lección 1")}</small></button></div>`
     : total?`<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">Gaurko txanda</p><p class="ts">${due.length} esaldi berrikusteko${nNew?` · ${nNew} berri`:""}</p><p class="ts">≈ ${mins} min</p></div></div><button class="btn red" id="start">${ic("play")} Hasi</button></div>`
     : `<div class="card today"><div class="who"><div class="olen">${OLEN("happy",52)}</div><div><p class="tt">Gaurkoa eginda</p><p class="ts">${T("lo de hoy está hecho")}${upcoming.length?` · ${dueLabel(upcoming[0])}`:""}</p></div></div><button class="btn" id="free" ${ITEMS.length<4?"disabled":""}>${ic("shuffle")} Txanda librea</button></div>`;
@@ -581,7 +582,7 @@ async function renderToday(){
     </div><div class="col">
     <p class="eyebrow" data-es="${T("tu huerto")}">Zure baratzea</p>
     <div class="card garden"><div class="gbar"><i class="t" style="width:${P.items.consolidated/Math.max(1,cat.length)*100}%"></i><i class="s" style="width:${(ITEMS.length-P.items.consolidated)/Math.max(1,cat.length)*100}%"></i></div><div class="glegend"><span class="t"><i></i>${P.items.consolidated} sendo</span><span class="s"><i></i>${ITEMS.length-P.items.consolidated} ikasten</span><span class="n"><i></i>${cat.length-ITEMS.length} hazi</span></div></div>
-    ${!firstTime&&!pend&&nextLesson?`<p class="eyebrow" data-es="${T("Siguiente lección · aprender nuevas")}">Hurrengo ikasgaia</p><button class="nextrow" id="nextlesson"><span class="n">${LESSONS.indexOf(nextLesson)+1}</span><span class="t"><b>${esc(T(nextLesson.title))}</b><small>${lessonItems(nextLesson).length} esaldi</small></span><span class="ic" style="color:var(--muted);font-size:20px">${ic("chev")}</span></button>`:""}
+    ${!firstTime&&!pend&&nextLesson?`<p class="eyebrow" data-es="${T("Siguiente lección")}">Hurrengo ikasgaia</p><button class="nextrow" id="nextlesson"><span class="n">${LESSONS.indexOf(nextLesson)+1}</span><span class="t"><b>${esc(nextLesson.eu||T(nextLesson.title))}</b><small>${esc(T(nextLesson.title))} · ${lessonItems(nextLesson).length} esaldi</small></span><span class="ic" style="color:var(--muted);font-size:20px">${ic("chev")}</span></button>`:""}
     <button class="link" id="how" style="align-self:center;font-size:13px">${T("¿Cómo funciona?")}</button>
    </div></div>`;
   const rs=document.getElementById("resume"); if(rs) rs.onclick=()=>{ const d=loadSes(); d?resumeSession(d):renderToday(); };
@@ -729,8 +730,8 @@ function renderLessons(){
   const stops=[]; let y=PADT, k=0;
   MODULES.forEach(mod=>{ const ls=LESSONS.filter(l=>l.module===mod.id); const pr=moduleProgress(mod,m); const reached=!!(ls.length&&ul.has(ls[0].id));
     y+=TOWN/2; stops.push({type:"town",mod,x:CX,y,reached,done:!!(ls.length&&pr.firm>=0.7)}); y+=TOWN/2;
-    const items=ls.length?ls.map(l=>({l})):(mod.planned||[]).map(t=>({plan:t}));
-    items.forEach(it=>{ y+=STEP/2; stops.push({type:"node",x:Math.round(CX+AMP*Math.sin(k*1.1)),y,...it}); k++; y+=STEP/2; }); });
+    const items=[]; if(ls.length){ ls.forEach(l=>{ items.push({l}); GRAMMAR.filter(g=>g.lessons[0]===l.id).forEach(g=>items.push({g,after:l})); }); } else (mod.planned||[]).forEach(t=>items.push({plan:t}));
+    items.forEach(it=>{ const st=it.g?STEP*0.78:STEP; y+=st/2; stops.push({type:"node",x:Math.round(CX+AMP*Math.sin(k*1.1)),y,...it}); k++; y+=st/2; }); });
   const H=y+PADB;
   const seg=(a,b)=>`C${a.x} ${(a.y+b.y)/2} ${b.x} ${(a.y+b.y)/2} ${b.x} ${b.y}`;
   const dOf=pts=>pts.map((p,i)=>i===0?`M${p.x} ${p.y}`:seg(pts[i-1],p)).join(" ");
@@ -742,6 +743,9 @@ function renderLessons(){
   const node=(s,i)=>{
     if(s.type==="town"){ const mod=s.mod; return fo(CX-130,s.y-TOWN/2+6,260,TOWN-8,`<div class="town ${s.done?"done":s.reached?"":"locked"}" style="width:100%"><span>${s.done?ic("check",3):""}${esc(mod.town)}</span><br><small>${mod.id} · ${esc(mod.eu)} · ${esc(L2(mod.es,mod.en))}</small></div>`); }
     const right=s.x<=CX; const lx=right?s.x+32:s.x-32-LW; const lab=(cls,t,sub)=>fo(lx,s.y-30,LW,60,`<div class="plab ${cls} ${right?"":"r"}"><b>${esc(t)}</b><small>${sub}</small></div>`);
+    if(s.g){ const g=s.g, open=ul.has(s.after.id)&&seenPct(s.after,m)>0, done=gramDone(g.id), n=g.drills.length, ok=done>=n; const sz=17;
+      const box=`<rect x="${s.x-sz}" y="${s.y-sz}" width="${sz*2}" height="${sz*2}" rx="9" fill="${ok?"var(--green)":open?"var(--ochre)":"var(--soft)"}" transform="rotate(45 ${s.x} ${s.y})"/><g transform="translate(${s.x-10} ${s.y-10}) scale(.83)" style="color:${ok?"#fff":open?"#141414":"var(--muted)"}">${ic(ok?"check":"bulb",2.4).replace("<svg ",'<svg width="24" height="24" ')}</g>`;
+      return `<g class="pn ${open?"":"locked"}" data-g="${g.id}" role="button" tabindex="0" aria-label="${esc(g.eu||g.title)}">${box}</g>${lab(open?"":"locked",g.eu||T(g.title),`${L2("Gramatika","Grammar")} · ${done}/${n}`)}`; }
     if(s.plan) return `<g class="pn locked"><circle cx="${s.x}" cy="${s.y}" r="15" fill="var(--soft)"/><g transform="translate(${s.x-8} ${s.y-8}) scale(.67)" style="color:var(--muted)">${ic("lock",2.2).replace("<svg ",'<svg width="24" height="24" ')}</g></g>${lab("locked",T(s.plan),L2("laster","soon"))}`;
     const l=s.l, its=lessonItems(l), seen=seenPct(l,m), firm=firmPct(l,m), open=ul.has(l.id), dueN=its.filter(x=>m[x.key]&&m[x.key].due<=todayStr()).length, isActive=active&&l.id===active.id;
     const status=!open?L2("bloqueada","locked"):seen===0?T("Sin empezar"):firm>=1?T("Completa: todo firme"):dueN?T(`${dueN} para repasar hoy`):seen<0.8?L2("en curso","in progress"):T("Al día");
@@ -750,12 +754,11 @@ function renderLessons(){
     else if(isActive) g=`<circle cx="${s.x}" cy="${s.y}" r="24" fill="var(--bg)" stroke="var(--red)" stroke-width="3"/><g transform="translate(${s.x-21} ${s.y-52})">${OLEN(firm>=1?"happy":"wave",42)}</g>`;
     else if(firm>=1) g=`<circle cx="${s.x}" cy="${s.y}" r="20" fill="var(--green)"/><g transform="translate(${s.x-11} ${s.y-11}) scale(.92)" style="color:#fff">${ic("check",3).replace("<svg ",'<svg width="24" height="24" ')}</g>`;
     else { const r=17,c=2*Math.PI*r; g=`<circle cx="${s.x}" cy="${s.y}" r="20" fill="var(--bg)" stroke="var(--line2)" stroke-width="1.5"/>${seen?`<circle cx="${s.x}" cy="${s.y}" r="${r}" fill="none" stroke="var(--soft)" stroke-width="4"/><circle cx="${s.x}" cy="${s.y}" r="${r}" fill="none" stroke="${firm>0?"var(--green)":"var(--ochre)"}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c*(1-Math.max(firm,.06))).toFixed(1)}" transform="rotate(-90 ${s.x} ${s.y})"/>`:""}<text x="${s.x}" y="${s.y+5}" text-anchor="middle" font-family="var(--display)" font-weight="700" font-size="14" fill="var(--ink)">${LESSONS.indexOf(l)+1}</text>`; }
-    return `<g class="pn ${open?"":"locked"} ${isActive?"active":""}" data-l="${l.id}" role="button" tabindex="0" aria-label="${esc(T(l.title))} · ${status}">${g}</g>${lab(open?"":"locked",T(l.title),`${its.length} ${L2("frases","phrases")} · ${status}`)}`; };
-  const total=GRAMMAR.reduce((a,g)=>a+g.drills.length,0), gdone=GRAMMAR.reduce((a,g)=>a+Math.min(g.drills.length,gramDone(g.id)),0);
-  app.innerHTML=header("Ikasgaiak · "+T("lee, escucha, luego practica"))+`<div class="stack pad" style="padding-top:20px;gap:10px"><div class="row" style="justify-content:space-between;align-items:center"><p class="eyebrow" data-es="A1 · Hondarribia → Portugalete">Bidea</p><button class="pill" id="togram" style="cursor:pointer">${ic("bulb")} Gramatika <span style="color:var(--muted);font-weight:600">${gdone}/${total}</span></button></div>
+    return `<g class="pn ${open?"":"locked"} ${isActive?"active":""}" data-l="${l.id}" role="button" tabindex="0" aria-label="${esc(T(l.title))} · ${status}">${g}</g>${lab(open?"":"locked",l.eu||T(l.title),`${its.length} ${L2("frases","phrases")} · ${status}`)}`; };
+  app.innerHTML=header()+`<div class="stack pad" style="padding-top:16px;gap:10px"><p class="eyebrow" data-es="A1 · Hondarribia → Portugalete">Bidea</p>
    <svg class="path" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-label="${L2("Camino de lecciones","Lesson path")}">${hills}<path d="${dOf(stops)}" fill="none" stroke="var(--line2)" stroke-width="3" stroke-dasharray="1 9" stroke-linecap="round"/><path d="${dOf(donePts)}" fill="none" stroke="var(--green)" stroke-width="3.5" stroke-linecap="round"/>${stops.map(node).join("")}</svg></div>`;
+  app.querySelectorAll("[data-g]").forEach(b=>{ const g=GRAMMAR.find(x=>x.id===b.dataset.g); const go=()=>{ if(b.classList.contains("locked")){ toast(L2("Empieza su lección para abrir esta ficha","Start its lesson to unlock this card")); return; } renderGrammar(g); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
   app.querySelectorAll("[data-l]").forEach(b=>{ const go=()=>{ const l=lessonOf(b.dataset.l); if(!ul.has(l.id)){ toast(L2("Termina la lección anterior para abrir esta","Finish the previous lesson to unlock this one")); return; } renderLesson(l); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
-  document.getElementById("togram").onclick=renderGrammarList;
   if(ai>=0){ const svg=app.querySelector(".path"); setTimeout(()=>{ const sc=svg.clientWidth/W; const top=svg.offsetTop+stops[ai].y*sc-app.clientHeight*0.45; app.scrollTo({top:Math.max(0,top),behavior:"smooth"}); },200); }
 }
 function renderGrammarList(){
@@ -776,7 +779,7 @@ function renderGrammar(g){
   noTabs();
   const lessonsTxt=g.lessons.map(id=>T((lessonOf(id)||{}).title)).filter(Boolean).join(", ");
   const kinds=[...new Set(g.pieces.map(p=>p.k))];
-  app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1;min-width:0"><p class="eyebrow">Gramatika</p><h2>${esc(g.emoji)} ${esc(T(g.title))}</h2></div></div>
+  app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1;min-width:0"><p class="eyebrow">Gramatika</p><h2>${esc(g.eu||T(g.title))}</h2><p class="sub" style="margin-top:2px">${esc(T(g.title))}</p></div></div>
    <div class="stack pad" style="flex:1;gap:18px">
     <p style="font-size:17px">${esc(T(g.summary))}</p>
     <p class="eyebrow" data-es="${T("cómo se arma")}">Egitura</p>
@@ -789,7 +792,7 @@ function renderGrammar(g){
    </div>
    <div class="bottom pad"><button class="btn bi" id="back2">Itzuli<small>${T("Volver")}</small></button></div>`;
   wireSpeak();
-  document.getElementById("back").onclick=document.getElementById("back2").onclick=()=>{ tabs.hidden=false; document.body.classList.remove("notabs"); renderGrammarList(); };
+  document.getElementById("back").onclick=document.getElementById("back2").onclick=()=>{ tabs.hidden=false; document.body.classList.remove("notabs"); setTab("ikasgaiak"); };
   let i=gramDone(g.id)>=g.drills.length?0:gramDone(g.id), ok=0;
   const box=document.getElementById("drill");
   const show=()=>{
@@ -815,7 +818,7 @@ function renderLesson(l){
   noTabs(); const m=imap(); const its=lessonItems(l); const fresh=its.filter(x=>!m[x.key]);
   const st=k=>!m[k]?"":m[k].interval>=7?"ok":"new";
   const firmN=its.filter(x=>m[x.key]&&m[x.key].interval>=7).length;
-  app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1;min-width:0"><p class="eyebrow">${LESSONS.indexOf(l)+1}. ikasgaia</p><h2>${esc(T(l.title))}</h2></div>${ring(firmN/its.length,40)}</div>
+  app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1;min-width:0"><p class="eyebrow">${LESSONS.indexOf(l)+1}. ikasgaia</p><h2>${esc(l.eu||T(l.title))}</h2><p class="sub" style="margin-top:2px">${esc(T(l.title))}</p></div>${ring(firmN/its.length,40)}</div>
    <div class="stack pad" style="flex:1;gap:18px">
     ${l.pattern?`<div class="pattern"><div style="flex:1;min-width:0"><p class="eyebrow">Egitura</p><p class="pat">${esc(T(l.pattern)).replace("___",'<span class="blank">___</span>')}</p></div></div>`:""}
     ${l.grid?`<p class="eyebrow" data-es="${esc(T(l.grid.title))}">Nork esaten du</p><table class="gtab"><tr><th></th>${l.grid.cols.map(c=>`<th>${esc(T(c))}</th>`).join("")}</tr>${l.grid.rows.map(r=>`<tr><td class="lab">${esc(T(r[0]))}</td>${r.slice(1).map(c=>`<td><b>${esc(T(c))}</b></td>`).join("")}</tr>`).join("")}</table>`:""}
@@ -952,7 +955,7 @@ function renderLangPick(){
 }
 const _renderLogin=renderLogin; renderLogin=function(){ if(!LANG) return renderLangPick(); _renderLogin(); const cl=document.getElementById("chlang"); if(cl) cl.onclick=()=>{ setLang(LANG==="en"?"es":"en"); applyStatic(); renderLogin(); }; };
 applyStatic();
-api("me").then(async p=>{ P=p; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["gaur","ikasgaiak","taldea","datuak"].includes(h)?h:"gaur"); }).catch(()=>renderLogin());
+api("me").then(async p=>{ P=p; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["gaur","ikasgaiak","taldea","datuak"].includes(h)?h:"ikasgaiak"); }).catch(()=>renderLogin());
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
