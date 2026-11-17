@@ -72,7 +72,7 @@ const normEmail = (e) => String(e || "").trim().toLowerCase();
 const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) && e.length <= 120;
 const cleanName = (n) => String(n || "").trim().normalize("NFC").replace(/\s+/g, " ").slice(0, 30);
 const displayName = (u) => u.name ? u.name[0].toUpperCase() + u.name.slice(1) : "?";
-const cleanLang = (l) => l === "en" ? "en" : "es";
+const cleanLang = (l) => l === "en" || l === "fr" ? l : "es";
 function logEvent(userId, name, meta) { try { db.prepare("INSERT INTO events (user_id, name, meta, day) VALUES (?, ?, ?, ?)").run(userId || null, name, meta ? JSON.stringify(meta) : null, madridDay()); } catch (e) {} }
 const norm = (s) => String(s || "").trim().toLowerCase().normalize("NFC").replace(/\s+/g, " ");
 const madridDay = (offsetDays = 0) => new Date(Date.now() + offsetDays * 86400000).toLocaleDateString("sv-SE", { timeZone: process.env.TZ_NAME || "Europe/Madrid" });
@@ -166,7 +166,7 @@ async function dailyReminders() {
     const due = db.prepare("SELECT COUNT(*) n FROM items WHERE user_id = ? AND due <= ?").get(u.id, today).n;
     if (!due) continue;
     const name = displayName(u);
-    const body = u.lang === "en" ? `${due} ${due === 1 ? "phrase" : "phrases"} to review today. Bost minutu · five minutes.` : `${due} ${due === 1 ? "frase" : "frases"} para repasar hoy. Bost minutu · cinco minutos.`;
+    const body = u.lang === "en" ? `${due} ${due === 1 ? "phrase" : "phrases"} to review today. Bost minutu · five minutes.` : u.lang === "fr" ? `${due} ${due === 1 ? "phrase" : "phrases"} à réviser aujourd'hui. Bost minutu · cinq minutes.` : `${due} ${due === 1 ? "frase" : "frases"} para repasar hoy. Bost minutu · cinco minutos.`;
     const n = await sendPush(u.id, { title: `Kaixo, ${name}!`, body, url: "/", tag: "daily" }, "daily");
     if (n) db.prepare("UPDATE push_subs SET last_sent = ? WHERE user_id = ? AND daily = 1").run(today, u.id);
   }
@@ -201,6 +201,8 @@ app.post("/api/auth/request", async (req, res) => {
   const pretty = code.slice(0, 3) + " " + code.slice(3);
   const M = lang === "en"
     ? { subj: `${pretty} · zure kodea / your code`, sub: "Your code to sign in", valid: "Balio du 10 minutuz · Valid for 10 minutes.", ignore: "If you didn't request this code, just ignore this email." }
+    : lang === "fr"
+    ? { subj: `${pretty} · zure kodea / ton code`, sub: "Ton code pour te connecter", valid: "Balio du 10 minutuz · Valable 10 minutes.", ignore: "Si tu n'as pas demandé ce code, ignore cet e-mail." }
     : { subj: `${pretty} · zure kodea / tu código`, sub: "Tu código para entrar", valid: "Balio du 10 minutuz · Vale 10 minutos.", ignore: "Si no has pedido este código, ignora este correo." };
   try {
     const sent = await sendMail(email, M.subj,
@@ -267,8 +269,8 @@ app.post("/api/friends", auth, (req, res) => {
   if (!u || id === req.user.id) return res.status(400).json({ error: "Persona no encontrada." });
   db.prepare("INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?)").run(req.user.id, id);
   logEvent(req.user.id, "friend_add");
-  const tl = db.prepare("SELECT lang FROM users WHERE id = ?").get(id).lang === "en";
-  sendPush(id, tl ? { title: `${displayName(req.user)} added you`, body: "You can now challenge each other in Taldea.", url: "/#taldea", tag: "friend" } : { title: `${displayName(req.user)} te ha añadido`, body: "Ya podéis retaros en Taldea.", url: "/#taldea", tag: "friend" }, "challenges").catch(() => {});
+  const tl0 = db.prepare("SELECT lang FROM users WHERE id = ?").get(id).lang; const tl = tl0 === "en";
+  sendPush(id, tl ? { title: `${displayName(req.user)} added you`, body: "You can now challenge each other in Taldea.", url: "/#taldea", tag: "friend" } : tl0 === "fr" ? { title: `${displayName(req.user)} t'a ajouté·e`, body: "Vous pouvez maintenant vous défier dans Taldea.", url: "/#taldea", tag: "friend" } : { title: `${displayName(req.user)} te ha añadido`, body: "Ya podéis retaros en Taldea.", url: "/#taldea", tag: "friend" }, "challenges").catch(() => {});
   res.json({ ok: true });
 });
 app.post("/api/friends/remove", auth, (req, res) => { db.prepare("DELETE FROM friends WHERE user_id = ? AND friend_id = ?").run(req.user.id, req.body.id | 0); res.json({ ok: true }); });
@@ -345,9 +347,9 @@ app.post("/api/challenges", auth, (req, res) => {
   const info = db.prepare("INSERT INTO challenges (from_id, to_id, kind, payload, from_result) VALUES (?, ?, ?, ?, ?)").run(req.user.id, to.id, kind, JSON.stringify(payload), req.body.fromResult ? JSON.stringify(req.body.fromResult) : null);
   const from = displayName(req.user);
   logEvent(req.user.id, "challenge", { kind });
-  const en = db.prepare("SELECT lang FROM users WHERE id = ?").get(to.id).lang === "en";
-  sendPush(to.id, kind === "task" ? (en ? { title: `${from} sent you a task`, body: "Confirm whether what they wrote is right. Taldea → History.", url: "/#taldea", tag: "challenge" } : { title: `${from} te manda una tarea`, body: "Confirma si lo que escribió está bien. Taldea → Historia.", url: "/#taldea", tag: "challenge" })
-    : (en ? { title: `${from} challenges you! ⚔️`, body: payload.transform ? "6 transformations. Accept?" : "6 phrases, typed. Accept?", url: "/#taldea", tag: "challenge" } : { title: `${from} te reta! ⚔️`, body: payload.transform ? "6 transformaciones. ¿Aceptas?" : "6 frases escribiendo. ¿Aceptas?", url: "/#taldea", tag: "challenge" }), "challenges").catch(() => {});
+  const lg = db.prepare("SELECT lang FROM users WHERE id = ?").get(to.id).lang; const en = lg === "en", fr = lg === "fr";
+  sendPush(to.id, kind === "task" ? (en ? { title: `${from} sent you a task`, body: "Confirm whether what they wrote is right. Taldea → History.", url: "/#taldea", tag: "challenge" } : fr ? { title: `${from} t'envoie une tâche`, body: "Confirme si ce qu'il/elle a écrit est juste. Taldea → Historia.", url: "/#taldea", tag: "challenge" } : { title: `${from} te manda una tarea`, body: "Confirma si lo que escribió está bien. Taldea → Historia.", url: "/#taldea", tag: "challenge" })
+    : (en ? { title: `${from} challenges you! ⚔️`, body: payload.transform ? "6 transformations. Accept?" : "6 phrases, typed. Accept?", url: "/#taldea", tag: "challenge" } : fr ? { title: `${from} te défie ! ⚔️`, body: payload.transform ? "6 transformations. Tu acceptes ?" : "6 phrases à écrire. Tu acceptes ?", url: "/#taldea", tag: "challenge" } : { title: `${from} te reta! ⚔️`, body: payload.transform ? "6 transformaciones. ¿Aceptas?" : "6 frases escribiendo. ¿Aceptas?", url: "/#taldea", tag: "challenge" }), "challenges").catch(() => {});
   res.json(chView(db.prepare("SELECT * FROM challenges WHERE id = ?").get(info.lastInsertRowid), req.user.id));
 });
 // Reto a una persona al azar entre quienes se han marcado disponibles (activas en los últimos 21 días).
@@ -360,8 +362,8 @@ app.post("/api/challenges/random", auth, (req, res) => {
   const payload = req.body.payload && typeof req.body.payload === "object" ? req.body.payload : {};
   const info = db.prepare("INSERT INTO challenges (from_id, to_id, kind, payload, from_result) VALUES (?, ?, 'duel', ?, ?)").run(req.user.id, to.id, JSON.stringify({ ...payload, random: true }), req.body.fromResult ? JSON.stringify(req.body.fromResult) : null);
   logEvent(req.user.id, "challenge", { kind: "duel", random: true });
-  const from = displayName(req.user); const en = db.prepare("SELECT lang FROM users WHERE id = ?").get(to.id).lang === "en";
-  sendPush(to.id, en ? { title: `${from} challenges you! ⚔️`, body: payload.transform ? "6 transformations. Accept?" : "6 phrases, typed. Accept?", url: "/#taldea", tag: "challenge" } : { title: `${from} te reta! ⚔️`, body: payload.transform ? "6 transformaciones. ¿Aceptas?" : "6 frases escribiendo. ¿Aceptas?", url: "/#taldea", tag: "challenge" }, "challenges").catch(() => {});
+  const from = displayName(req.user); const lg = db.prepare("SELECT lang FROM users WHERE id = ?").get(to.id).lang; const en = lg === "en", fr = lg === "fr";
+  sendPush(to.id, en ? { title: `${from} challenges you! ⚔️`, body: payload.transform ? "6 transformations. Accept?" : "6 phrases, typed. Accept?", url: "/#taldea", tag: "challenge" } : fr ? { title: `${from} te défie ! ⚔️`, body: payload.transform ? "6 transformations. Tu acceptes ?" : "6 phrases à écrire. Tu acceptes ?", url: "/#taldea", tag: "challenge" } : { title: `${from} te reta! ⚔️`, body: payload.transform ? "6 transformaciones. ¿Aceptas?" : "6 frases escribiendo. ¿Aceptas?", url: "/#taldea", tag: "challenge" }, "challenges").catch(() => {});
   res.json(chView(db.prepare("SELECT * FROM challenges WHERE id = ?").get(info.lastInsertRowid), req.user.id));
 });
 app.get("/api/challenges/open-count", auth, (req, res) => res.json({ n: db.prepare("SELECT COUNT(*) n FROM users WHERE open_duel = 1 AND id != ? AND last_seen >= ?").get(req.user.id, madridDay(-21)).n }));
@@ -376,9 +378,9 @@ app.post("/api/challenges/:id/result", auth, (req, res) => {
     db.prepare("UPDATE challenges SET status = 'done' WHERE id = ?").run(c.id);
     const other = c.from_id === req.user.id ? c.to_id : c.from_id; const me = displayName(req.user);
     const a = J(c2.from_result, {}), b = J(c2.to_result, {});
-    const en = db.prepare("SELECT lang FROM users WHERE id = ?").get(other).lang === "en";
-    const body = c.kind === "task" ? (b.ok ? (en ? `${me} confirms: correct ✓` : `${me} confirma: correcto ✓`) : (en ? `${me} corrected it: ${b.fix || ""}` : `${me} lo ha corregido: ${b.fix || ""}`)) : (en ? `${me} has played: ${a.score}/${a.total} vs ${b.score}/${b.total}. See the score.` : `${me} ya ha jugado: ${a.score}/${a.total} vs ${b.score}/${b.total}. Mira el marcador.`);
-    sendPush(other, { title: c.kind === "task" ? (en ? "Task reviewed" : "Tarea revisada") : "Erronka amaituta ⚔️", body, url: "/#taldea", tag: "challenge" }, "challenges").catch(() => {});
+    const lg = db.prepare("SELECT lang FROM users WHERE id = ?").get(other).lang; const en = lg === "en", fr = lg === "fr";
+    const body = c.kind === "task" ? (b.ok ? (en ? `${me} confirms: correct ✓` : fr ? `${me} confirme : correct ✓` : `${me} confirma: correcto ✓`) : (en ? `${me} corrected it: ${b.fix || ""}` : fr ? `${me} l'a corrigé : ${b.fix || ""}` : `${me} lo ha corregido: ${b.fix || ""}`)) : (en ? `${me} has played: ${a.score}/${a.total} vs ${b.score}/${b.total}. See the score.` : fr ? `${me} a joué : ${a.score}/${a.total} vs ${b.score}/${b.total}. Regarde le score.` : `${me} ya ha jugado: ${a.score}/${a.total} vs ${b.score}/${b.total}. Mira el marcador.`);
+    sendPush(other, { title: c.kind === "task" ? (en ? "Task reviewed" : fr ? "Tâche vérifiée" : "Tarea revisada") : "Erronka amaituta ⚔️", body, url: "/#taldea", tag: "challenge" }, "challenges").catch(() => {});
   }
   res.json(chView(db.prepare("SELECT * FROM challenges WHERE id = ?").get(c.id), req.user.id));
 });
@@ -447,6 +449,7 @@ app.get("/api/admin/metrics", admin, (req, res) => {
     withFriends: n("SELECT COUNT(DISTINCT user_id) n FROM friends"),
     deleted30: n("SELECT COUNT(*) n FROM events WHERE name = 'account_deleted' AND day >= ?", days[0]),
     en: n("SELECT COUNT(*) n FROM users WHERE lang = 'en'"),
+    fr: n("SELECT COUNT(*) n FROM users WHERE lang = 'fr'"),
   };
   // Embudo sobre todos los registrados
   const funnel = {

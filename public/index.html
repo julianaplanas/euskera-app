@@ -322,6 +322,7 @@ a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-deco
 
 <script src="i18n.js"></script>
 <script src="i18n-content.js"></script>
+<script src="i18n-fr.js"></script>
 <script src="lessons.js"></script>
 <script>
 const app=document.getElementById("app"), tabs=document.getElementById("tabs");
@@ -379,17 +380,17 @@ function locIn(p){ const w=p.trim(); if(!w) return ""; const last=w.slice(-1).to
 function locFrom(p){ const w=p.trim(); if(!w) return ""; const l=w.toLowerCase(); const last=l.slice(-1); return l.endsWith("n")? l+"goa" : /[aeiou]/.test(last)? l+"koa" : l+"ekoa"; }
 function personalItems(){
   const pr=P.profile||{}; const out=[]; const Name=P.name[0].toUpperCase()+P.name.slice(1);
-  out.push({key:"me:naiz",eu:`Ni ${Name} naiz`,es:L2(`Yo soy ${Name}`,`I am ${Name}`),lesson_id:"me",emoji:"🙋"});
-  out.push({key:"me:izena",eu:`Nire izena ${Name} da`,es:L2(`Mi nombre es ${Name}`,`My name is ${Name}`),lesson_id:"me",emoji:"✍️"});
+  out.push({key:"me:naiz",eu:`Ni ${Name} naiz`,es:L2(`Yo soy ${Name}`,`I am ${Name}`,`Je suis ${Name}`),lesson_id:"me",emoji:"🙋"});
+  out.push({key:"me:izena",eu:`Nire izena ${Name} da`,es:L2(`Mi nombre es ${Name}`,`My name is ${Name}`,`Mon prénom est ${Name}`),lesson_id:"me",emoji:"✍️"});
   if(pr.age){ out.push({key:"me:adina",eu:`${numEu(pr.age)} urte ditut`,es:`Tengo ${pr.age} años`,lesson_id:"me",emoji:"🎂"}); }
-  if(pr.town){ out.push({key:"me:bizi",eu:`Ni ${locIn(pr.town)} bizi naiz`,es:L2(`Yo vivo en ${pr.town}`,`I live in ${pr.town}`),lesson_id:"me",emoji:"🏠"}); }
-  if(pr.origin){ out.push({key:"me:nongoa",eu:`Ni ${locFrom(pr.origin)} naiz`,es:L2(`Yo soy de ${pr.origin}`,`I am from ${pr.origin}`),lesson_id:"me",emoji:"🌍"}); }
+  if(pr.town){ out.push({key:"me:bizi",eu:`Ni ${locIn(pr.town)} bizi naiz`,es:L2(`Yo vivo en ${pr.town}`,`I live in ${pr.town}`,`J'habite à ${pr.town}`),lesson_id:"me",emoji:"🏠"}); }
+  if(pr.origin){ out.push({key:"me:nongoa",eu:`Ni ${locFrom(pr.origin)} naiz`,es:L2(`Yo soy de ${pr.origin}`,`I am from ${pr.origin}`,`Je suis de ${pr.origin}`),lesson_id:"me",emoji:"🌍"}); }
   if(pr.gender){
     const bro=pr.gender==="neska"?"neba":"anaia", sis=pr.gender==="neska"?"ahizpa":"arreba", mix=pr.gender==="neska"?"neba-arrebak":"anai-arrebak";
     const parts=[]; if(pr.nebak) parts.push(`${bro} ${numEu(pr.nebak)}`); if(pr.ahizpak) parts.push(`${sis} ${numEu(pr.ahizpak)}`);
     const n=(pr.nebak||0)+(pr.ahizpak||0);
     if(n===0) out.push({key:"me:anai",eu:"Ez dut anai-arrebarik",es:"No tengo hermanos",lesson_id:"me",emoji:"🚫"});
-    else out.push({key:"me:anai",eu:`${parts.join(" eta ")} ${n===1?"dut":"ditut"}`,es:L2(`Tengo ${[pr.nebak?`${pr.nebak} hermano${pr.nebak>1?"s":""}`:"",pr.ahizpak?`${pr.ahizpak} hermana${pr.ahizpak>1?"s":""}`:""].filter(Boolean).join(" y ")}`,`I have ${[pr.nebak?`${pr.nebak} brother${pr.nebak>1?"s":""}`:"",pr.ahizpak?`${pr.ahizpak} sister${pr.ahizpak>1?"s":""}`:""].filter(Boolean).join(" and ")}`),lesson_id:"me",emoji:"👨‍👩‍👧‍👦"});
+    else out.push({key:"me:anai",eu:`${parts.join(" eta ")} ${n===1?"dut":"ditut"}`,es:L2(`Tengo ${[pr.nebak?`${pr.nebak} hermano${pr.nebak>1?"s":""}`:"",pr.ahizpak?`${pr.ahizpak} hermana${pr.ahizpak>1?"s":""}`:""].filter(Boolean).join(" y ")}`,`I have ${[pr.nebak?`${pr.nebak} brother${pr.nebak>1?"s":""}`:"",pr.ahizpak?`${pr.ahizpak} sister${pr.ahizpak>1?"s":""}`:""].filter(Boolean).join(" and ")}`,`J'ai ${[pr.nebak?`${pr.nebak} frère${pr.nebak>1?"s":""}`:"",pr.ahizpak?`${pr.ahizpak} sœur${pr.ahizpak>1?"s":""}`:""].filter(Boolean).join(" et ")}`),lesson_id:"me",emoji:"👨‍👩‍👧‍👦"});
     out.push({key:"me:genero",eu:pr.gender==="neska"?"Ni neska naiz":"Ni mutila naiz",es:pr.gender==="neska"?"Yo soy chica":"Yo soy chico",lesson_id:"me",emoji:pr.gender==="neska"?"👧":"👦"});
     out.push({key:"me:mix",eu:mix,es:"hermanos (como lo digo yo)",lesson_id:"me",emoji:"👫"});
   }
@@ -430,7 +431,7 @@ function renderLogin(){
   app.innerHTML=loginHead("Kaixo!",T("Entra o crea tu cuenta con tu correo"))+`
    <div class="stack pad" style="padding-top:22px"><p class="muted">${T("Te mandamos un código de 6 cifras al correo. Sin contraseñas: la sesión se queda abierta en este dispositivo.")}</p>
     <form id="f" class="stack"><input class="ans" id="email" type="email" placeholder="${T("tu@correo.com")}" autocomplete="email" autocapitalize="none" inputmode="email" required value="${esc(saved)}"><p class="err" id="err"></p><button class="btn red bi" type="submit">Bidali kodea<small>${T("Enviar código")}</small></button></form>
-    <p class="hint" style="text-align:center">${T("Al entrar aceptas la")} <a href="privacy.html" target="_blank" rel="noopener">${T("política de privacidad")}</a>. <button class="link" id="chlang" type="button" style="font-size:13px">🌐 ${L2("English","Castellano")}</button></p></div>`;
+    <p class="hint" style="text-align:center">${T("Al entrar aceptas la")} <a href="privacy.html" target="_blank" rel="noopener">${T("política de privacidad")}</a>. <button class="link" id="chlang" type="button" style="font-size:13px">🌐 ${LANG==="es"?"English · Français":LANG==="en"?"Castellano · Français":"Castellano · English"}</button></p></div>`;
   document.getElementById("f").onsubmit=async e=>{ e.preventDefault(); const email=document.getElementById("email").value.trim().toLowerCase(); const err=document.getElementById("err"); err.textContent=""; const btn=e.target.querySelector("button"); btn.disabled=true;
     try{ const r=await api("auth/request",{email,lang:LANG}); try{ localStorage.setItem(EMAIL_KEY,email); }catch(x){} renderCode(email,r); }catch(ex){ err.textContent=ex.message; btn.disabled=false; } };
 }
@@ -460,7 +461,7 @@ function renderProfile(first=false){
    <div class="stack pad" style="flex:1">
     <p class="muted">${T("Con esto la app crea frases sobre ti (tu edad, tus hermanos…). Lo que dices de ti mismo se recuerda mucho mejor que lo de Ane y Mikel.")}</p>
     <p class="eyebrow" data-es="${T("Idioma de apoyo")}">Hizkuntza</p>
-    <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-lang="es" aria-pressed="${LANG!=="en"}">🇪🇸 Castellano</button><button class="opt" data-lang="en" aria-pressed="${LANG==="en"}">🇬🇧 English</button></div>
+    <div class="opts" style="grid-template-columns:1fr 1fr 1fr"><button class="opt" data-lang="es" aria-pressed="${LANG==="es"}">🇪🇸 Castellano</button><button class="opt" data-lang="en" aria-pressed="${LANG==="en"}">🇬🇧 English</button><button class="opt" data-lang="fr" aria-pressed="${LANG==="fr"}">🇫🇷 Français</button></div>
     <p class="eyebrow" data-es="${T("Tu nombre, como lo ven los demás")}">Izena</p><input class="ans" id="pname" placeholder="${T("Nombre")}" maxlength="30" autocomplete="nickname" value="${esc(P.name||"")}">
     <p class="eyebrow" data-es="${T("¿Chica o chico?")}">Neska ala mutila?</p>
     <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-g="neska" aria-pressed="${pr.gender==="neska"}">👧 Neska<br><small class="muted">${T("chica · neba / ahizpa")}</small></button><button class="opt" data-g="mutila" aria-pressed="${pr.gender==="mutila"}">👦 Mutila<br><small class="muted">${T("chico · anaia / arreba")}</small></button></div>
@@ -614,7 +615,7 @@ function wireHelp(){ app.querySelectorAll("[data-help]").forEach(b=>b.onclick=ev
 let SES=null;
 const sesKey=()=>"euskara.ses2."+(P?P.id:"");
 function saveSes(){ try{ if(SES) localStorage.setItem(sesKey(),JSON.stringify(SES)); }catch(e){} }
-function loadSes(){ try{ const d=JSON.parse(localStorage.getItem(sesKey())||"null"); return d&&d.ex&&d.i<d.ex.length?d:null; }catch(e){ return null; } }
+function loadSes(){ try{ const d=JSON.parse(localStorage.getItem(sesKey())||"null"); return d&&d.ex&&d.i>0&&d.i<d.ex.length?d:null; }catch(e){ return null; } }
 function clearSes(){ try{ localStorage.removeItem(sesKey()); }catch(e){} }
 const TR=(()=>{ const o={}; for(const [k,v] of Object.entries(window.TRANSFORMS||{})) o[norm(k)]=v; return o; })();
 function transformsFor(eu){ return TR[norm(eu)]||[]; }
@@ -842,15 +843,16 @@ function renderLesson(l){
     ${l.tips&&l.tips.length?`<p class="eyebrow" data-es="${T("Cómo funciona")}">Nola funtzionatzen du</p>${l.tips.map(t=>`<div class="tip"><span class="ic">${ic("bulb")}</span><div><b>${esc(T(t.t))}</b><p>${esc(T(t.b))}</p></div></div>`).join("")}`:""}
     ${l.dialogue&&l.dialogue.length?`<p class="eyebrow" data-es="${T("diálogo")}">Elkarrizketa</p><div class="card dlg">${l.scene?`<div class="scene"><span>${esc(l.scene.emoji)}</span><p>${esc(T(l.scene.title))}</p></div>`:""}${VOICE?`<button class="btn ghost sm" id="playdlg" style="align-self:center;position:relative;z-index:1">🔊 Entzun osorik<small>${T("escuchar entero")}</small></button>`:""}${l.dialogue.map(([w,eu,es])=>`<div class="line ${w==="A"?"a":"b"}"><div><p class="eu">${esc(eu)}</p><p class="es">${esc(T(es))}</p></div>${spkBtn(eu)}</div>`).join("")}</div>`:""}
    </div>
-   <div class="bottom pad" style="display:flex;gap:10px">${pend?`<button class="btn red bi" id="resume" style="flex:1.3">${ic("play")} Jarraitu · ${pend.i}/${pend.ex.length}<small>${T("Continuar donde lo dejaste")}</small></button>`:fresh.length?`<button class="btn red bi" id="learn" style="flex:1.3">Ikasi · ${fresh.length}<small>${T("Aprender nuevas")}</small></button>`:""}<button class="btn bi ${(pend||fresh.length)?"ghost":"red"}" id="go" style="flex:1">Praktikatu<small>${T("Practicar esta lección")}</small></button></div>`;
+   <div class="bottom pad" style="display:flex;gap:10px;flex-wrap:wrap">${pend?`<button class="btn red bi" id="resume" style="flex:1 1 100%">${ic("play")} Jarraitu · ${pend.i}/${pend.ex.length}<small>${T("Continuar donde lo dejaste")}</small></button><button class="link" id="dropses" style="flex:1 1 100%;text-align:center;font-size:13px">Txanda utzi · ${T("descartar la ronda a medias")}</button>`:`${fresh.length?`<button class="btn red bi" id="learn" style="flex:1.3">Ikasi · ${fresh.length}<small>${T("Aprender nuevas")}</small></button>`:""}<button class="btn bi ${fresh.length?"ghost":"red"}" id="go" style="flex:1">Praktikatu<small>${T("Practicar esta lección")}</small></button>`}</div>`;
   wireSpeak();
   document.getElementById("back").onclick=()=>setTab("ikasgaiak");
   const pd=document.getElementById("playdlg"); if(pd) pd.onclick=()=>speakSeq(l.dialogue.map(d=>d[1]));
   preload(its.map(i=>i.eu));
   const ld=document.getElementById("lessondrills"); if(ld) ld.onclick=()=>{ const items=[]; for(const x of its) for(const tr of transformsFor(x.eu)) items.push({key:x.key,eu:x.eu,es:x.es,lesson_id:l.id,emoji:x.emoji||"",tr}); startSession({items:shuffle(items).slice(0,10),label:"Eraldatu · "+T(l.title),free:true,forceTransform:true}); };
   const rsb=document.getElementById("resume"); if(rsb) rsb.onclick=()=>resumeSession(pend);
+  const dsb=document.getElementById("dropses"); if(dsb) dsb.onclick=()=>{ clearSes(); renderLesson(l); };
   const lb=document.getElementById("learn"); if(lb) lb.onclick=async()=>{ const n=fresh.slice(0,6); try{ await api("items/introduce",{items:n}); await loadItems(); }catch(e){ toast(T("No se pudo guardar el progreso")+": "+(e.message||"")); return; } startSession({items:n.map(i=>({...i,isNew:true})),label:T(l.title),lessonId:l.id}); };
-  document.getElementById("go").onclick=()=>{ const mm=imap(); const known=its.filter(x=>mm[x.key]); startSession({items:shuffle(known.length?known:its).slice(0,10),label:T(l.title),lessonId:l.id,free:true}); };
+  const gob=document.getElementById("go"); if(gob) gob.onclick=()=>{ const mm=imap(); const known=its.filter(x=>mm[x.key]); startSession({items:shuffle(known.length?known:its).slice(0,10),label:T(l.title),lessonId:l.id,free:true}); };
   document.getElementById("app").scrollTo(0,0);
 }
 
@@ -939,7 +941,7 @@ async function renderStats(){
   const m=imap(); const cat=catalog();
   const hardest=ITEMS.filter(i=>i.lapses>0).sort((a,b)=>b.lapses-a.lapses).slice(0,5);
   const lessons=LESSONS.map(l=>{ const its=lessonItems(l); const firm=its.filter(x=>m[x.key]&&m[x.key].interval>=7).length; const seen=its.filter(x=>m[x.key]).length; return {l,its,firm,seen}; }).filter(x=>x.seen>0);
-  const pos=rk.position?L2(`${rk.position}ª de ${rk.active}`,`#${rk.position} of ${rk.active}`):L2("sin ronda esta semana","no round this week");
+  const pos=rk.position?L2(`${rk.position}ª de ${rk.active}`,`#${rk.position} of ${rk.active}`,`${rk.position}e sur ${rk.active}`):L2("sin ronda esta semana","no round this week");
   app.querySelector(".stack").classList.add("cols");
   const pl=todayPlan();
   app.querySelector(".stack").innerHTML=`<div class="col">
@@ -955,7 +957,7 @@ async function renderStats(){
       <div class="row" style="justify-content:space-between"><span class="hint">${L2("Posición","Position")}</span><b>${pos}</b></div>
       <div class="row" style="justify-content:space-between"><span class="hint">XP · ${L2("tú / mediana","you / median")}</span><b>${rk.myWeek||0} / ${rk.median||0}</b></div>
       <div class="row" style="justify-content:space-between"><span class="hint">${L2("Días practicados · tú / media","Days practised · you / average")}</span><b>${rk.myDays||0} / ${rk.avgDays||0}</b></div>
-      <div class="row" style="justify-content:space-between"><span class="hint">${L2("Frases firmes","Solid phrases")}</span><b>${L2(`más que el ${rk.firmPct}%`,`more than ${rk.firmPct}%`)}</b></div>
+      <div class="row" style="justify-content:space-between"><span class="hint">${L2("Frases firmes","Solid phrases")}</span><b>${L2(`más que el ${rk.firmPct}%`,`more than ${rk.firmPct}%`,`plus que ${rk.firmPct} %`)}</b></div>
     </div>
     </div><div class="col">
     ${lessons.length?`<p class="eyebrow" data-es="${L2("firmes por lección","solid per lesson")}">Ikasgaiak ${qmark("lessons")}</p><div class="card list">${lessons.map(x=>`<div class="it"><span class="em">${ring(x.firm/x.its.length,28)}</span><span class="tx"><b>${esc(T(x.l.title))}</b><small>${x.firm}/${x.its.length} sendo</small></span></div>`).join("")}</div>`:""}
@@ -968,12 +970,12 @@ async function renderStats(){
 function applyStatic(){ document.querySelectorAll("[data-t]").forEach(el=>el.textContent=T(el.dataset.t)); document.documentElement.lang=LANG||"es"; }
 function renderLangPick(){
   noTabs();
-  app.innerHTML=`<div class="head pad" style="padding-bottom:26px"><div class="lb">${LAUBURU}</div><div class="row" style="gap:18px;position:relative"><div class="olen">${OLEN("wave",80)}</div><div><p class="eyebrow">Euskara praktika</p><h1>Ongi etorri!</h1><p style="color:var(--muted);font-weight:500;font-size:14px">Bienvenido/a · Welcome</p></div></div></div>
-   <div class="stack pad" style="padding-top:22px"><p class="eyebrow">Zein hizkuntzatan?</p><p class="muted">Las traducciones y explicaciones, ¿en qué idioma?<br>Translations and explanations in which language?</p>
-    <button class="btn red" data-lang="es">Gaztelania<small>Castellano</small></button><button class="btn" data-lang="en">Ingelesa<small>English</small></button></div>`;
+  app.innerHTML=`<div class="head pad" style="padding-bottom:26px"><div class="lb">${LAUBURU}</div><div class="row" style="gap:18px;position:relative"><div class="olen">${OLEN("wave",80)}</div><div><p class="eyebrow">Euskara praktika</p><h1>Ongi etorri!</h1><p style="color:var(--muted);font-weight:500;font-size:14px">Bienvenido/a · Welcome · Bienvenue</p></div></div></div>
+   <div class="stack pad" style="padding-top:22px"><p class="eyebrow">Zein hizkuntzatan?</p><p class="muted">Las traducciones y explicaciones, ¿en qué idioma?<br>Translations and explanations in which language?<br>Les traductions et explications, dans quelle langue ?</p>
+    <button class="btn red" data-lang="es">Gaztelania<small>Castellano</small></button><button class="btn" data-lang="en">Ingelesa<small>English</small></button><button class="btn" data-lang="fr">Frantsesa<small>Français</small></button></div>`;
   app.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ setLang(b.dataset.lang); applyStatic(); renderLogin(); });
 }
-const _renderLogin=renderLogin; renderLogin=function(){ if(!LANG) return renderLangPick(); _renderLogin(); const cl=document.getElementById("chlang"); if(cl) cl.onclick=()=>{ setLang(LANG==="en"?"es":"en"); applyStatic(); renderLogin(); }; };
+const _renderLogin=renderLogin; renderLogin=function(){ if(!LANG) return renderLangPick(); _renderLogin(); const cl=document.getElementById("chlang"); if(cl) cl.onclick=()=>{ try{ localStorage.removeItem("euskara.lang"); }catch(e){} window.LANG=null; renderLangPick(); }; };
 applyStatic();
 api("me").then(async p=>{ P=p; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["ikasgaiak","taldea","datuak"].includes(h)?h:"ikasgaiak"); }).catch(()=>renderLogin());
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});

@@ -1,11 +1,13 @@
 // Idioma de apoyo de la interfaz: "es" (castellano) o "en" (inglés). El euskera es siempre la lengua meta.
 // T(texto) devuelve la traducción al inglés cuando LANG === "en"; si no existe, devuelve el castellano.
 // El castellano es la clave del diccionario, así el código y el contenido (lessons.js) siguen escribiéndose en es.
-window.LANG = (() => { try { const l = localStorage.getItem("euskara.lang"); return l === "en" || l === "es" ? l : null; } catch (e) { return null; } })();
-window.setLang = (l) => { window.LANG = l === "en" ? "en" : "es"; try { localStorage.setItem("euskara.lang", window.LANG); } catch (e) {} document.documentElement.lang = window.LANG; };
-window.T = (s) => { if (window.LANG !== "en" || s == null) return s; const k = String(s); const v = window.EN[k]; if (v !== undefined) return v; if (window.ENX) { for (const [re, f] of window.ENX) { const m = k.match(re); if (m) return f(m); } } return k; };
-// L2(es, en): para textos construidos dinámicamente.
-window.L2 = (es, en) => window.LANG === "en" ? en : es;
+window.LANGS = ["es", "en", "fr"];
+window.LANG = (() => { try { const l = localStorage.getItem("euskara.lang"); return window.LANGS.includes(l) ? l : null; } catch (e) { return null; } })();
+window.setLang = (l) => { window.LANG = window.LANGS.includes(l) ? l : "es"; try { localStorage.setItem("euskara.lang", window.LANG); } catch (e) {} document.documentElement.lang = window.LANG; };
+const dictOf = () => window.LANG === "en" ? [window.EN, window.ENX] : window.LANG === "fr" ? [window.FR, window.FRX] : null;
+window.T = (s) => { const d = dictOf(); if (!d || s == null) return s; const k = String(s); const v = d[0] && d[0][k]; if (v !== undefined) return v; if (d[1]) { for (const [re, f] of d[1]) { const m = k.match(re); if (m) return f(m); } } return k; };
+// L2(es, en, fr?): para textos construidos dinámicamente. Sin tercer argumento, el francés sale del diccionario FR (clave = es) o cae al castellano.
+window.L2 = (es, en, fr) => window.LANG === "en" ? en : window.LANG === "fr" ? (fr !== undefined ? fr : (window.FR && window.FR[es] !== undefined ? window.FR[es] : es)) : es;
 
 // ---------- interfaz ----------
 window.EN = {
@@ -16,7 +18,7 @@ window.EN = {
   "Entendido": "Got it", "Guardar": "Save", "Empezar": "Start", "Saltar": "Skip", "Otra vez": "Again", "Terminar": "Finish", "Kargatzen…": "Kargatzen…",
   "Hoy": "Today", "Lecciones": "Lessons", "Grupo": "Group", "Datos": "Stats",
   // idioma
-  "Castellano": "Spanish", "Inglés": "English", "Idioma de apoyo": "Support language", "Las traducciones y explicaciones, ¿en qué idioma?": "Translations and explanations in which language?",
+  "Castellano": "Spanish", "Inglés": "English", "Francés": "French", "Idioma de apoyo": "Support language", "Las traducciones y explicaciones, ¿en qué idioma?": "Translations and explanations in which language?",
   // login
   "Entra o crea tu cuenta con tu correo": "Sign in or create your account with your email",
   "Te mandamos un código de 6 cifras al correo. Sin contraseñas: la sesión se queda abierta en este dispositivo.": "We'll email you a 6-digit code. No passwords: you stay signed in on this device.",
@@ -57,7 +59,7 @@ window.EN = {
   "Escribe, no elijas": "Type, don't pick", "Casi siempre te pediré escribir la frase. Hay pista y opciones, pero cuentan menos. Escribir es lo que hace que se quede.": "Most of the time I'll ask you to type the phrase. There's a hint and options, but they count less. Typing is what makes it stick.",
   // gaur
   "tienes una ronda a medias": "you have a round in progress",
-  "rondas": "rounds", "Continuar donde lo dejaste": "Pick up where you left off", "No se pudo guardar el progreso": "Could not save progress", "Sin conexión: esta respuesta no se ha guardado": "Offline: this answer was not saved",
+  "rondas": "rounds", "descartar la ronda a medias": "discard the unfinished round", "Continuar donde lo dejaste": "Pick up where you left off", "No se pudo guardar el progreso": "Could not save progress", "Sin conexión: esta respuesta no se ha guardado": "Offline: this answer was not saved",
   "ranking de la semana": "weekly ranking",
   "Cómo funciona": "How it works",
   "<p>Busca a alguien por su nombre y añádelo. Con tu círculo puedes lanzar retos, proponer tareas en persona y ver su racha y progreso en el ranking.</p><p>No hace falta que te acepten: es una lista tuya, como los contactos.</p>": "<p>Search someone by name and add them. With your circle you can send duels, propose in-person tasks and see their streak and progress in the ranking.</p><p>No approval needed: it is your own list, like contacts.</p>",
