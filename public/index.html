@@ -6,7 +6,7 @@
 <title>Euskara Praktika</title>
 <meta name="theme-color" content="#FFFFFF">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Euskara">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="olentzero.svg" type="image/svg+xml">
@@ -481,7 +481,7 @@ function renderProfile(first=false){
       <p class="hint" id="delmsg"></p>
       <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Pribatutasuna · ${T("Política de privacidad")}</a></p>
     </details>`}
-    <p class="hint" style="text-align:center;opacity:.6">v54 · ${window.innerWidth}×${window.innerHeight} · ${screen.width}×${screen.height} · sab ${(()=>{ const d=document.createElement("div"); d.style.cssText="position:absolute;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px)"; document.body.appendChild(d); const v=getComputedStyle(d).paddingBottom; d.remove(); return v; })()} · ${matchMedia("(display-mode: standalone)").matches?"standalone":"browser"}</p>
+    <p class="hint" style="text-align:center;opacity:.6">v55 · ${window.innerWidth}×${window.innerHeight} · ${screen.width}×${screen.height} · sab ${(()=>{ const d=document.createElement("div"); d.style.cssText="position:absolute;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px)"; document.body.appendChild(d); const v=getComputedStyle(d).paddingBottom; d.remove(); return v; })()} · ${matchMedia("(display-mode: standalone)").matches?"standalone":"browser"}</p>
    </div>
    <div class="bottom pad"><button class="btn red bi" id="save">Gorde<small>${T("Guardar")}</small></button></div>`;
   const lo=document.getElementById("logout"); if(lo) lo.onclick=async()=>{ await api("logout",{}); P=null; renderLogin(); };
