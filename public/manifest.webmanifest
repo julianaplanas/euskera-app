@@ -43,10 +43,10 @@
   "prefer_related_applications": false,
   "shortcuts": [
     {
-      "name": "Gaurko saioa",
-      "short_name": "Gaur",
-      "description": "Ronda de hoy",
-      "url": "/#gaur",
+      "name": "Datuak",
+      "short_name": "Datuak",
+      "description": "Tu progreso",
+      "url": "/#datuak",
       "icons": [
         {
           "src": "icon-192.png",

@@ -50,6 +50,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .btn:active:not(:disabled){transform:scale(.985)}
 /* etiquetas de sección: euskera + apoyo en línea */
 .eyebrow{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--ink);line-height:1.2}
+.qmark{width:20px;height:20px;border-radius:999px;border:1.5px solid var(--line2);background:var(--bg);color:var(--muted);font-family:var(--body);font-weight:700;font-size:12px;line-height:1;display:inline-grid;place-items:center;cursor:pointer;align-self:center;order:9;margin-left:auto} .qmark:hover{color:var(--ink);border-color:var(--ink)}
 .eyebrow::after{content:attr(data-es);font-family:var(--body);font-size:12px;font-weight:500;letter-spacing:0;color:var(--muted)}
 .eyebrow:not([data-es])::after{content:none}
 .muted{color:var(--muted)}
@@ -177,6 +178,7 @@ input.ans.ok{border-color:var(--green);box-shadow:0 0 0 4px rgba(26,122,69,.14)}
 .stat b{display:block;font-family:var(--display);font-weight:700;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
 .stat span{display:block;font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;margin-top:6px}
 .stat.g{background:var(--green);color:var(--cream);border-color:transparent} .stat.g span{color:var(--on-color)}
+a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line2)} a:hover{text-decoration-color:var(--ink)}
 .link{color:var(--ink);font-weight:600;text-decoration:underline;text-underline-offset:3px;font-size:14px}
 .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
@@ -314,7 +316,6 @@ input.ans.ok{border-color:var(--green);box-shadow:0 0 0 4px rgba(26,122,69,.14)}
 <div class="sheet" id="sheet"><div class="in" id="sh-in"></div></div>
 <nav class="tabs" id="tabs" hidden><div class="in">
  <button class="tab" data-tab="ikasgaiak"><span class="ic" data-ic="book"></span><span class="eu">Bidea</span></button>
- <button class="tab" data-tab="gaur"><span class="ic" data-ic="home"></span><span class="eu">Gaur</span></button>
  <button class="tab" data-tab="taldea"><span class="ic" data-ic="users"></span><span class="eu">Taldea</span><span class="badge" id="tbadge" hidden></span></button>
  <button class="tab" data-tab="datuak"><span class="ic" data-ic="chart"></span><span class="eu">Datuak</span></button>
 </div></nav>
@@ -417,7 +418,7 @@ function header(sub,mood="wave"){
     <div class="row"><div style="min-width:0;flex:1"><p class="sub">${sub||date}</p><h1>Kaixo, ${esc(P.name)}</h1></div>
     <span class="streak" title="${T("Egunak · seguidos")}">${ic("flame")}${P.streak||0}</span><button class="avatar" id="avbtn" aria-label="${T("Perfil")}">${esc(P.name[0].toUpperCase())}</button></div></header>`;
 }
-function setTab(t){ document.onkeydown=null; const shh=document.getElementById("sheet"); if(shh) shh.className="sheet"; TAB=t; tabs.hidden=false; document.body.classList.remove("notabs"); tabs.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.tab===t)); const bd=document.getElementById("tbadge"); bd.hidden=!(P&&P.pendingChallenges); bd.textContent=P?P.pendingChallenges:""; ({gaur:renderToday,ikasgaiak:renderLessons,taldea:renderTeam,datuak:renderStats})[t](); const av=document.getElementById("avbtn"); if(av) av.onclick=()=>renderProfile(); document.getElementById("app").scrollTo(0,0); }
+function setTab(t){ document.onkeydown=null; const shh=document.getElementById("sheet"); if(shh) shh.className="sheet"; TAB=t; tabs.hidden=false; document.body.classList.remove("notabs"); tabs.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.tab===t)); const bd=document.getElementById("tbadge"); bd.hidden=!(P&&P.pendingChallenges); bd.textContent=P?P.pendingChallenges:""; ({ikasgaiak:renderLessons,taldea:renderTeam,datuak:renderStats})[t](); const av=document.getElementById("avbtn"); if(av) av.onclick=()=>renderProfile(); document.getElementById("app").scrollTo(0,0); }
 tabs.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 function noTabs(){ tabs.hidden=true; document.body.classList.add("notabs"); }
 
@@ -448,7 +449,7 @@ function renderCode(email,info={}){
   document.getElementById("resend").onclick=async()=>{ try{ const r=await api("auth/request",{email,lang:LANG}); toast("Kodea bidalita · "+T("código reenviado")); if(r.devCode) renderCode(email,r); }catch(e){ toast(e.message); } };
   document.getElementById("f").onsubmit=async e=>{ e.preventDefault(); const err=document.getElementById("err"); err.textContent=""; const name=(document.getElementById("newname")||{}).value||"";
     try{ const r=await api("auth/verify",{email,code:code.value,name,lang:LANG}); if(r.needName){ err.textContent=T("Dinos cómo te llamas (al menos 2 letras)."); (document.getElementById("newname")||code).focus(); return; }
-      P=r; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); if(!P.profile.gender) renderProfile(true); else setTab("gaur"); }
+      P=r; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); if(!P.profile.gender) renderProfile(true); else setTab("ikasgaiak"); }
     catch(ex){ err.textContent=ex.message; if(ex.expired) document.getElementById("resend").focus(); } };
 }
 
@@ -481,7 +482,6 @@ function renderProfile(first=false){
       <p class="hint" id="delmsg"></p>
       <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Pribatutasuna · ${T("Política de privacidad")}</a></p>
     </details>`}
-    <p class="hint" style="text-align:center;opacity:.6">v55 · ${window.innerWidth}×${window.innerHeight} · ${screen.width}×${screen.height} · sab ${(()=>{ const d=document.createElement("div"); d.style.cssText="position:absolute;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px)"; document.body.appendChild(d); const v=getComputedStyle(d).paddingBottom; d.remove(); return v; })()} · ${matchMedia("(display-mode: standalone)").matches?"standalone":"browser"}</p>
    </div>
    <div class="bottom pad"><button class="btn red bi" id="save">Gorde<small>${T("Guardar")}</small></button></div>`;
   const lo=document.getElementById("logout"); if(lo) lo.onclick=async()=>{ await api("logout",{}); P=null; renderLogin(); };
@@ -491,10 +491,10 @@ function renderProfile(first=false){
   app.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ setLang(b.dataset.lang); applyStatic(); renderProfile(first); });
   let g=pr.gender||null;
   app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ g=b.dataset.g; app.querySelectorAll("[data-g]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.g===g)); });
-  document.getElementById("back").onclick=()=>first?null:setTab("gaur");
+  document.getElementById("back").onclick=()=>first?null:setTab("ikasgaiak");
   document.getElementById("save").onclick=async()=>{
     const body={name:document.getElementById("pname").value.trim(),lang:LANG,gender:g,age:+document.getElementById("age").value||null,nebak:+document.getElementById("nebak").value||0,ahizpak:+document.getElementById("ahizpak").value||0,town:document.getElementById("town").value.trim(),origin:document.getElementById("origin").value.trim()};
-    try{ const pr=await api("profile",body); P.name=pr.name; P.lang=pr.lang; delete pr.name; delete pr.lang; P.profile=pr; await api("items/introduce",{items:personalItems()}); await loadItems(); P=await api("me"); if(first&&!seenWelcome()) renderWelcome(); else setTab("gaur"); }catch(e){ toast(e.message); }
+    try{ const pr=await api("profile",body); P.name=pr.name; P.lang=pr.lang; delete pr.name; delete pr.lang; P.profile=pr; await api("items/introduce",{items:personalItems()}); await loadItems(); P=await api("me"); if(first&&!seenWelcome()) renderWelcome(); else setTab("ikasgaiak"); }catch(e){ toast(e.message); }
   };
 }
 
@@ -537,7 +537,7 @@ async function renderPushBox(){
   document.getElementById("poff").onclick=async()=>{ try{ await api("push/unsubscribe",{endpoint:sub.endpoint}); await sub.unsubscribe(); toast(T("Avisos desactivados")); renderPushBox(); }catch(e){ toast(e.message); } };
 }
 // abrir pestaña desde la notificación (#taldea)
-window.addEventListener("hashchange",()=>{ const h=location.hash.replace("#",""); if(P&&["gaur","ikasgaiak","taldea","datuak"].includes(h)) setTab(h); });
+window.addEventListener("hashchange",()=>{ const h=location.hash.replace("#",""); if(P&&["ikasgaiak","taldea","datuak"].includes(h)) setTab(h); });
 
 // ---------- bienvenida ----------
 function renderWelcome(){
@@ -560,43 +560,55 @@ function nextNew(n){
   const ul=unlockedIds(); for(const l of LESSONS){ if(!ul.has(l.id)) break; for(const it of lessonItems(l)) if(!known.has(it.key)){ out.push(it); if(out.length>=n) return out; } if(out.length) return out; }
   return out;
 }
-async function renderToday(){
+function todayPlan(){
   const firstTime=!ITEMS.some(i=>i.lesson_id&&i.lesson_id!=="me");
-  let due=firstTime?[]:dueToday(); const cat=catalog(); const catMap=Object.fromEntries(cat.map(i=>[i.key,i]));
+  const due=firstTime?[]:dueToday(); const cat=catalog(); const catMap=Object.fromEntries(cat.map(i=>[i.key,i]));
   const hard=ITEMS.filter(i=>i.lapses>=2).slice(0,6);
-  const newAvail=nextNew(5); const nextL=newAvail[0]?lessonOf(newAvail[0].lesson_id):null;
-  const nNew=ITEMS.some(i=>i.lesson_id&&i.lesson_id!=="me")&&newAvail.length&&due.length<8?Math.min(newAvail.length,due.length<4?5:3):0;
-  const total=due.length+nNew; const pend=loadSes(); const t=todayStr();
-  const doneToday=ITEMS.filter(i=>i.last===t); const upcoming=ITEMS.filter(i=>i.due>t).sort((a,b)=>a.due<b.due?-1:1);
-  const nextLesson=(()=>{ const ul=unlockedIds(); return LESSONS.find(l=>ul.has(l.id)&&lessonItems(l).some(x=>!imap()[x.key])); })();
-  const sub = null;
-  const mins=Math.max(2,Math.round(total*0.5));
-  const todayCard=pend?`<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">Txanda bat erdizka</p><p class="ts">${pend.i}/${pend.ex.length}</p></div></div><button class="btn red" id="resume">${ic("play")} Jarraitu</button></div>`
-    : firstTime?`<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">${T("Kaixo! Así funciona:")}</p></div></div><p>${T("1 · Abres una lección: lees, escuchas y miras la estructura.")}</p><p>${T("2 · Pulsas <b>Ikasi</b>: te presento unas pocas frases, eliges su significado y las copias. Sin examen el primer día.")}</p><p>${T("3 · Al día siguiente, aquí en <b>Gaur</b>, te las pido de memoria. Lo que aciertas se aleja en el calendario; lo que fallas vuelve mañana.")}</p><button class="btn red" id="golesson">${esc(T(LESSONS[0].title))}<small>${T("Empezar por la lección 1")}</small></button></div>`
-    : total?`<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">Gaurko txanda</p><p class="ts">${due.length} esaldi berrikusteko${nNew?` · ${nNew} berri`:""}</p><p class="ts">≈ ${mins} min</p></div></div><button class="btn red" id="start">${ic("play")} Hasi</button></div>`
-    : `<div class="card today"><div class="who"><div class="olen">${OLEN("happy",52)}</div><div><p class="tt">Gaurkoa eginda</p><p class="ts">${T("lo de hoy está hecho")}${upcoming.length?` · ${dueLabel(upcoming[0])}`:""}</p></div></div><button class="btn" id="free" ${ITEMS.length<4?"disabled":""}>${ic("shuffle")} Txanda librea</button></div>`;
-  app.innerHTML=header(firstTime?sub:"")+`
-   <div class="stack pad cols" style="padding-top:20px"><div class="col">
-    ${todayCard}
-    ${firstTime?"":`<div class="quick">${(total||pend)?`<button class="qbtn" id="free" ${ITEMS.length<4?"disabled":""}><span class="ic" style="color:var(--blue)">${ic("shuffle")}</span>Txanda librea</button>`:""}<button class="qbtn" id="hardb" ${hard.length<3?"disabled":""}><span class="ic" style="color:var(--ochre-ink)">${ic("bulb")}</span>Zailenak · ${hard.length}</button></div>`}
-    </div><div class="col">
-    <p class="eyebrow" data-es="${T("tu huerto")}">Zure baratzea</p>
-    <div class="card garden"><div class="gbar"><i class="t" style="width:${P.items.consolidated/Math.max(1,cat.length)*100}%"></i><i class="s" style="width:${(ITEMS.length-P.items.consolidated)/Math.max(1,cat.length)*100}%"></i></div><div class="glegend"><span class="t"><i></i>${P.items.consolidated} sendo</span><span class="s"><i></i>${ITEMS.length-P.items.consolidated} ikasten</span><span class="n"><i></i>${cat.length-ITEMS.length} hazi</span></div></div>
-    ${!firstTime&&!pend&&nextLesson?`<p class="eyebrow" data-es="${T("Siguiente lección")}">Hurrengo ikasgaia</p><button class="nextrow" id="nextlesson"><span class="n">${LESSONS.indexOf(nextLesson)+1}</span><span class="t"><b>${esc(nextLesson.eu||T(nextLesson.title))}</b><small>${esc(T(nextLesson.title))} · ${lessonItems(nextLesson).length} esaldi</small></span><span class="ic" style="color:var(--muted);font-size:20px">${ic("chev")}</span></button>`:""}
-    <button class="link" id="how" style="align-self:center;font-size:13px">${T("¿Cómo funciona?")}</button>
-   </div></div>`;
-  const rs=document.getElementById("resume"); if(rs) rs.onclick=()=>{ const d=loadSes(); d?resumeSession(d):renderToday(); };
-  const gl=document.getElementById("golesson"); if(gl) gl.onclick=()=>renderLesson(LESSONS[0]);
-  const nl=document.getElementById("nextlesson"); if(nl) nl.onclick=()=>renderLesson(nextLesson);
-  const st=document.getElementById("start"); if(st) st.onclick=async()=>{
-    let items=shuffle(due).slice(0,12).map(i=>({...i,...(catMap[i.key]||{})}));
-    if(nNew){ const n=newAvail.slice(0,nNew); try{ await api("items/introduce",{items:n}); await loadItems(); }catch(e){} items=[...n.map(i=>({...i,isNew:true})),...items]; }
-    startSession({items,label:"Gaurko txanda"});
-  };
-  const fb=document.getElementById("free"); if(fb) fb.onclick=()=>{ const learned=ITEMS.map(i=>({...i,...(catMap[i.key]||{})})); startSession({items:shuffle(learned).slice(0,10),label:"Txanda librea",free:true}); };
-  const hb=document.getElementById("hardb"); if(hb) hb.onclick=()=>startSession({items:shuffle(hard.map(i=>({...i,...(catMap[i.key]||{})}))),label:"Zailenak",free:true});
-  document.getElementById("how").onclick=()=>{ const sh=document.getElementById("sheet"), inn=document.getElementById("sh-in"); sh.className="sheet show info"; inn.innerHTML=`<div class="row"><span class="mark">${ic("bulb")}</span><h3>Nola funtzionatzen du</h3></div><p class="hint" style="margin-top:-8px">${T("Cómo funciona")}</p><div class="stack" style="gap:8px;font-size:15px"><p>${T("<b>Ronda de hoy.</b> La app decide qué frases toca repasar (las que estás a punto de olvidar) y añade unas pocas nuevas. Una al día basta.")}</p><p>${T("<b>Escribes antes de elegir.</b> Pista y opciones están ahí, pero cuentan menos.")}</p><p>${T("<b>🌱 → 🌿 → 🌳.</b> Una frase nueva es semilla; al estudiarla, brote; cuando la has recordado varias veces con días entre medias, árbol (firme). Si la fallas, baja a brote y la repasas mañana.")}</p><p>${T("<b>Ronda libre.</b> 10 frases al azar de las que ya conoces, sin tocar el calendario. Para cuando quieres más.")}</p><p>${T("<b>Zailenak.</b> Solo las que has fallado dos veces o más.")}</p></div><button class="btn bi" id="sh-close">Ulertu dut<small>${T("Entendido")}</small></button>`; document.getElementById("sh-close").onclick=()=>sh.className="sheet"; };
+  const newAvail=nextNew(5);
+  const nNew=!firstTime&&newAvail.length&&due.length<8?Math.min(newAvail.length,due.length<4?5:3):0;
+  const t=todayStr(); const upcoming=ITEMS.filter(i=>i.due>t).sort((a,b)=>a.due<b.due?-1:1);
+  return {firstTime,due,cat,catMap,hard,newAvail,nNew,total:due.length+nNew,pend:loadSes(),upcoming};
 }
+async function startToday(pl){
+  let items=shuffle(pl.due).slice(0,12).map(i=>({...i,...(pl.catMap[i.key]||{})}));
+  if(pl.nNew){ const n=pl.newAvail.slice(0,pl.nNew); try{ await api("items/introduce",{items:n}); await loadItems(); }catch(e){} items=[...n.map(i=>({...i,isNew:true})),...items]; }
+  startSession({items,label:"Gaurko txanda"});
+}
+function startFree(pl){ const learned=ITEMS.map(i=>({...i,...(pl.catMap[i.key]||{})})); startSession({items:shuffle(learned).slice(0,10),label:"Txanda librea",free:true}); }
+function startHard(pl){ startSession({items:shuffle(pl.hard.map(i=>({...i,...(pl.catMap[i.key]||{})}))),label:"Zailenak",free:true}); }
+function todayCard(pl){
+  if(pl.firstTime) return "";
+  if(pl.pend) return `<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">Txanda bat erdizka</p><p class="ts">${pl.pend.i}/${pl.pend.ex.length}</p></div></div><button class="btn red" id="resume">${ic("play")} Jarraitu</button></div>`;
+  if(pl.total){ const mins=Math.max(2,Math.round(pl.total*0.5)); return `<div class="card today"><div class="who"><div class="olen">${OLEN("wave",52)}</div><div><p class="tt">Gaurko txanda</p><p class="ts">${pl.due.length} esaldi berrikusteko${pl.nNew?` · ${pl.nNew} berri`:""} · ≈ ${mins} min</p></div></div><button class="btn red" id="start">${ic("play")} Hasi</button></div>`; }
+  return `<div class="row" style="justify-content:center;gap:8px;color:var(--green);font-weight:600;font-size:14px"><span style="display:inline-flex;width:18px;height:18px">${ic("check",2.6)}</span>Gaurkoa eginda${pl.upcoming.length?`<span style="color:var(--muted);font-weight:500"> · ${dueLabel(pl.upcoming[0])}</span>`:""}</div>`;
+}
+function wireToday(pl){
+  const rs=document.getElementById("resume"); if(rs) rs.onclick=()=>{ const d=loadSes(); d?resumeSession(d):setTab(TAB); };
+  const st=document.getElementById("start"); if(st) st.onclick=()=>startToday(pl);
+  const fb=document.getElementById("free"); if(fb) fb.onclick=()=>startFree(pl);
+  const hb=document.getElementById("hardb"); if(hb) hb.onclick=()=>startHard(pl);
+}
+function showInfo(titleEu,titleEs,html){
+  const sh=document.getElementById("sheet"), inn=document.getElementById("sh-in"); sh.className="sheet show info";
+  inn.innerHTML=`<div class="row"><span class="mark">${ic("bulb")}</span><div><h3>${titleEu}</h3>${titleEs?`<p class="hint">${titleEs}</p>`:""}</div></div><div class="stack" style="gap:8px;font-size:15px">${html}</div><button class="btn bi" id="sh-close">Ulertu dut<small>${T("Entendido")}</small></button>`;
+  document.getElementById("sh-close").onclick=()=>{ sh.className="sheet"; };
+}
+const HELP=()=>({
+  circle:["Zure jendea",T("tu círculo"),T("<p>Busca a alguien por su nombre y añádelo. Con tu círculo puedes lanzar retos, proponer tareas en persona y ver su racha y progreso en el ranking.</p><p>No hace falta que te acepten: es una lista tuya, como los contactos.</p>")],
+  duel:["Erronka",T("reto de 6 frases"),T("<p>Eliges a alguien y respondes 6 frases de las que ya conoces. La otra persona recibe las mismas 6 y gana quien acierte más.</p><p>El resultado aparece en Historia cuando los dos habéis terminado.</p>")],
+  task:["Elkarrekin",T("tareas en persona"),T("<p>Proponle a alguien de tu círculo algo para hacer en euskera fuera de la app: pedir un café, presentaros, contar qué hicisteis ayer.</p><p>Cuando lo hagáis, cada uno marca que está hecho.</p>")],
+  open:["Edonorekin",L2("retar a alguien al azar","challenge someone at random"),T("<p>Si marcas <b>disponible</b>, gente que no conoces puede retarte, y tú puedes pedir un reto al azar entre quienes también están disponibles.</p><p>Si os caéis bien, podéis añadiros al círculo desde Historia.</p>")],
+  rank:["Asteko sailkapena",T("ranking de la semana"),T("<p>XP de los últimos 7 días. Cada frase acertada en una ronda da 10 XP.</p><p>Cuenta todo el mundo que haya hecho al menos una ronda; si no apareces, es que aún no has practicado esta semana.</p>")],
+  history:["Historia",T("retos y tareas"),T("<p>Retos y tareas pendientes y terminados, con quién y cómo quedaron.</p>")],
+  garden:["Zure baratzea",T("tu huerto"),T("<p><b>Hazi</b> (semilla): frases que aún no has estudiado.</p><p><b>Ikasten</b> (brote): en estudio, vuelven a salir en tus rondas.</p><p><b>Sendo</b> (firme): las has recordado varias veces con días de por medio. Si fallas una, baja a brote y vuelve mañana.</p>")],
+  week:["Azken 7 egunak",T("XP por día"),T("<p>XP que ganaste cada día de los últimos siete. La racha cuenta los días seguidos con al menos una ronda.</p>")],
+  compare:["Besteekin alderatuta",L2("frente al resto","vs. everyone else"),T("<p>Tu posición esta semana entre quienes han practicado, tus días de práctica frente a la media, y el porcentaje de tus frases que ya está firme.</p>")],
+  lessons:["Ikasgaiak",L2("firmes por lección","solid per lesson"),T("<p>Por cada lección empezada, qué parte de sus frases tienes ya firmes.</p>")],
+  hardest:["Zailenak",L2("las que más fallas","the ones you miss most"),T("<p>Las frases que más veces has fallado. Con tres o más, el botón <b>Zailenak</b> te las pone solas en una ronda, sin tocar el calendario.</p>")],
+  rounds:["Txandak",T("rondas"),T("<p><b>Gaurko txanda</b>: lo que toca repasar hoy más unas pocas frases nuevas. Una al día basta.</p><p><b>Txanda librea</b>: 10 frases al azar de las que ya conoces, sin tocar el calendario.</p><p><b>Zailenak</b>: solo las que has fallado dos veces o más.</p>")]
+});
+function qmark(k){ return `<button class="qmark" data-help="${k}" aria-label="${T("Cómo funciona")}">?</button>`; }
+function wireHelp(){ app.querySelectorAll("[data-help]").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); const h=HELP()[b.dataset.help]; if(h) showInfo(h[0],h[1],h[2]); }); }
 
 // ---------- SESIÓN ----------
 let SES=null;
@@ -755,10 +767,12 @@ function renderLessons(){
     else if(firm>=1) g=`<circle cx="${s.x}" cy="${s.y}" r="20" fill="var(--green)"/><g transform="translate(${s.x-11} ${s.y-11}) scale(.92)" style="color:#fff">${ic("check",3).replace("<svg ",'<svg width="24" height="24" ')}</g>`;
     else { const r=17,c=2*Math.PI*r; g=`<circle cx="${s.x}" cy="${s.y}" r="20" fill="var(--bg)" stroke="var(--line2)" stroke-width="1.5"/>${seen?`<circle cx="${s.x}" cy="${s.y}" r="${r}" fill="none" stroke="var(--soft)" stroke-width="4"/><circle cx="${s.x}" cy="${s.y}" r="${r}" fill="none" stroke="${firm>0?"var(--green)":"var(--ochre)"}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c*(1-Math.max(firm,.06))).toFixed(1)}" transform="rotate(-90 ${s.x} ${s.y})"/>`:""}<text x="${s.x}" y="${s.y+5}" text-anchor="middle" font-family="var(--display)" font-weight="700" font-size="14" fill="var(--ink)">${LESSONS.indexOf(l)+1}</text>`; }
     return `<g class="pn ${open?"":"locked"} ${isActive?"active":""}" data-l="${l.id}" role="button" tabindex="0" aria-label="${esc(T(l.title))} · ${status}">${g}</g>${lab(open?"":"locked",l.eu||T(l.title),`${its.length} ${L2("frases","phrases")} · ${status}`)}`; };
-  app.innerHTML=header()+`<div class="stack pad" style="padding-top:16px;gap:10px"><p class="eyebrow" data-es="A1 · Hondarribia → Portugalete">Bidea</p>
+  const pl=todayPlan();
+  app.innerHTML=header()+`<div class="stack pad" style="padding-top:16px;gap:10px">${todayCard(pl)}<p class="eyebrow" data-es="A1 · Hondarribia → Portugalete" style="margin-top:6px">Bidea</p>
    <svg class="path" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-label="${L2("Camino de lecciones","Lesson path")}">${hills}<path d="${dOf(stops)}" fill="none" stroke="var(--line2)" stroke-width="3" stroke-dasharray="1 9" stroke-linecap="round"/><path d="${dOf(donePts)}" fill="none" stroke="var(--green)" stroke-width="3.5" stroke-linecap="round"/>${stops.map(node).join("")}</svg></div>`;
   app.querySelectorAll("[data-g]").forEach(b=>{ const g=GRAMMAR.find(x=>x.id===b.dataset.g); const go=()=>{ if(b.classList.contains("locked")){ toast(L2("Empieza su lección para abrir esta ficha","Start its lesson to unlock this card")); return; } renderGrammar(g); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
   app.querySelectorAll("[data-l]").forEach(b=>{ const go=()=>{ const l=lessonOf(b.dataset.l); if(!ul.has(l.id)){ toast(L2("Termina la lección anterior para abrir esta","Finish the previous lesson to unlock this one")); return; } renderLesson(l); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
+  wireToday(pl);
   if(ai>=0){ const svg=app.querySelector(".path"); setTimeout(()=>{ const sc=svg.clientWidth/W; const top=svg.offsetTop+stops[ai].y*sc-app.clientHeight*0.45; app.scrollTo({top:Math.max(0,top),behavior:"smooth"}); },200); }
 }
 function renderGrammarList(){
@@ -849,36 +863,36 @@ const TASKS=[
   {need:"l1",t:"Despídete de {X} en euskera de dos formas distintas y escríbelas",check:""}
 ];
 async function renderTeam(){
-  app.innerHTML=header("Taldea · "+T("retos y tareas con tu gente"))+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
+  app.innerHTML=header()+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
   let friends=[], chs=[], sd={users:[],rank:{}}, oc={n:0}; try{ [friends,chs,sd,oc]=await Promise.all([api("friends"),api("challenges"),api("stats"),api("challenges/open-count")]); }catch(e){}
   const fid=new Set(friends.map(f=>f.id));
   const top=sd.users.filter(u=>u.weekXp>0).sort((a,b)=>b.weekXp-a.weekXp).slice(0,20); const meU=sd.users.find(u=>u.me)||{weekXp:0,me:true,name:P.name}; const maxW=Math.max(1,...top.map(u=>u.weekXp),meU.weekXp); const rk=sd.rank||{};
-  const rankHtml=`<p class="eyebrow" data-es="${T("Ranking de la semana · entre todo el mundo")}">Asteko sailkapena</p><div class="card lb-list">${(top.some(u=>u.me)||!meU.weekXp?top:[...top,meU]).map((u,i)=>`<div class="lbrow ${u.me?"me":""}"><span class="rank">${u.weekXp>0?(["🥇","🥈","🥉"][i]||(u.me&&!top.some(x=>x.me)?rk.position:i+1)):"–"}</span><span class="av">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}${u.me?" "+T("(tú)"):u.friend?" ★":""}</b><i class="wbar"><i style="width:${Math.round(u.weekXp/maxW*100)}%;background:${u.me?"var(--red)":u.friend?"var(--ochre)":"var(--green)"}"></i></i></span><b class="num">${u.weekXp}<span class="muted" style="font-size:12px;font-family:var(--body)"> XP</span></b></div>`).join("")||`<p class="hint" style="padding:12px 14px">${T("Practica una ronda y entras en el ranking de la semana")}.</p>`}</div>`;
+  const rankHtml=`<p class="eyebrow" data-es="${T("ranking de la semana")}">Asteko sailkapena ${qmark("rank")}</p><div class="card lb-list">${(top.some(u=>u.me)||!meU.weekXp?top:[...top,meU]).map((u,i)=>`<div class="lbrow ${u.me?"me":""}"><span class="rank">${u.weekXp>0?(["🥇","🥈","🥉"][i]||(u.me&&!top.some(x=>x.me)?rk.position:i+1)):"–"}</span><span class="av">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}${u.me?" "+T("(tú)"):u.friend?" ★":""}</b><i class="wbar"><i style="width:${Math.round(u.weekXp/maxW*100)}%;background:${u.me?"var(--red)":u.friend?"var(--ochre)":"var(--green)"}"></i></i></span><b class="num">${u.weekXp}<span class="muted" style="font-size:12px;font-family:var(--body)"> XP</span></b></div>`).join("")||`<p class="hint" style="padding:12px 14px">${T("Practica una ronda y entras en el ranking de la semana")}.</p>`}</div>`;
   const m=imap(); const learnedLessons=new Set(ITEMS.map(i=>i.lesson_id));
   const tasks=TASKS.filter(t=>learnedLessons.has(t.need));
   const opt=u=>`<option value="${u.id}">${esc(u.name)}${u.town?" · "+esc(u.town):""}</option>`;
   const person=u=>`<div class="lbrow"><span class="av">${esc(u.name[0].toUpperCase())}</span><span class="who"><b>${esc(u.name)}</b><span class="muted" style="font-size:13px">${u.town?esc(u.town)+" · ":""}${u.consolidated} ${T("firmes")}${u.streak?" · 🔥 "+u.streak:""}${u.addedMe&&!u.added?" · "+T("te ha añadido"):""}</span></span>${u.added?`<button class="link" data-unfriend="${u.id}" style="font-size:12px">${T("quitar")}</button>`:`<button class="btn sm bi" data-friend="${u.id}">Gehitu<small>${T("añadir")}</small></button>`}</div>`;
   app.querySelector(".stack").classList.add("cols");
   app.querySelector(".stack").innerHTML=`<div class="col">
-    <p class="eyebrow" data-es="${T("tu círculo")}">Zure jendea</p>
+    <p class="eyebrow" data-es="${T("tu círculo")}">Zure jendea ${qmark("circle")}</p>
     <div class="card stack" style="gap:8px"><p class="hint">${T("Añade a tus compañeros de clase o amigos por su nombre. Solo tu círculo puede retarte y compararse contigo.")}</p><input class="ans" id="psearch" placeholder="${T("Buscar por nombre…")}" autocomplete="off"><div id="presults"></div>
     ${friends.length?`<div class="lb-list" style="margin-top:6px">${friends.map(person).join("")}</div>`:`<p class="hint">${T("Todavía no has añadido a nadie.")}</p>`}</div>
     ${friends.length?`
-    <p class="eyebrow" data-es="${T("reto de 6 frases")}">Erronka</p>
+    <p class="eyebrow" data-es="${T("reto de 6 frases")}">Erronka ${qmark("duel")}</p>
     <div class="card stack" style="gap:10px"><p class="hint">${T("Los dos respondéis las mismas 6 frases escribiendo. Gana quien acierte más a la primera.")}</p><div class="row"><select class="ans" id="duelTo" style="flex:1">${friends.map(opt).join("")}</select></div><div class="row"><button class="btn red sm bi" id="duel" style="flex:1">Erronka!<small>${T("Retar · escribir 6 frases")}</small></button><button class="btn sm bi" id="duelT" style="flex:1">Eraldatu!<small>${T("Retar · transformar 6")}</small></button></div></div>
-    <p class="eyebrow" data-es="${T("tareas en persona")}">Elkarrekin</p>
+    <p class="eyebrow" data-es="${T("tareas en persona")}">Elkarrekin ${qmark("task")}</p>
     ${tasks.length?`<div class="card stack" style="gap:10px"><p class="hint">${T("Haz la tarea con la otra persona (en el café, por mensaje…), escribe aquí lo que te dijo en euskera y ella confirma si está bien.")}</p><select class="ans" id="taskTo">${friends.map(opt).join("")}</select><select class="ans" id="taskSel">${tasks.map((t,i)=>`<option value="${i}">${esc(T(t.t).replace("{X}","…"))}</option>`).join("")}</select><input class="ans" id="taskAns" placeholder="${T("Lo que respondió, en euskera")}"><button class="btn sm" id="sendTask">Bidali<small>${T("Enviar")}</small></button></div>`:`<p class="hint">${T("Las tareas en persona se desbloquean al introducir las lecciones de presentarse, qué tal, edad…")}</p>`}`:""}
-    <p class="eyebrow" data-es="${L2("retar a alguien al azar","challenge someone at random")}">Edonorekin</p>
+    <p class="eyebrow" data-es="${L2("retar a alguien al azar","challenge someone at random")}">Edonorekin ${qmark("open")}</p>
     <div class="card stack" style="gap:12px"><label class="row" style="font-size:14px;font-weight:500;gap:10px"><input type="checkbox" id="openduel" ${P.openDuel?"checked":""} style="width:22px;height:22px;flex:none"> ${L2("Estoy disponible: cualquiera puede retarme","I'm available: anyone can challenge me")}</label><p class="hint">${oc.n} ${L2("personas disponibles ahora","people available now")}.</p><div class="row"><button class="btn sm" id="rnd" ${oc.n?"":"disabled"}>${ic("shuffle")} Ausazko erronka</button><button class="btn sm ghost" id="rndT" ${oc.n?"":"disabled"}>${ic("refresh")} Eraldatu</button></div></div>
     </div><div class="col">
     ${rankHtml}
-    ${chs.length?`<p class="eyebrow" data-es="${T("retos y tareas")}">Historia</p>${chs.map(c=>renderChallenge(c,fid)).join("")}`:""}</div>`;
+    ${chs.length?`<p class="eyebrow" data-es="${T("retos y tareas")}">Historia ${qmark("history")}</p>${chs.map(c=>renderChallenge(c,fid)).join("")}`:""}</div>`;
   const sel=id=>friends.find(f=>f.id===+id)||{id:+id,name:"?"};
   const ps=document.getElementById("psearch"), pr=document.getElementById("presults"); let tm=null;
   const wire=()=>{ app.querySelectorAll("[data-friend]").forEach(b=>b.onclick=async()=>{ try{ await api("friends",{id:+b.dataset.friend}); toast("Gehituta · "+T("añadido")); renderTeam(); }catch(e){ toast(e.message); } });
     app.querySelectorAll("[data-unfriend]").forEach(b=>b.onclick=async()=>{ try{ await api("friends/remove",{id:+b.dataset.unfriend}); renderTeam(); }catch(e){ toast(e.message); } }); };
   ps.oninput=()=>{ clearTimeout(tm); const q=ps.value.trim(); if(q.length<2){ pr.innerHTML=""; return; } tm=setTimeout(async()=>{ try{ const r=await api("people?q="+encodeURIComponent(q)); pr.innerHTML=r.length?`<div class="lb-list">${r.map(person).join("")}</div>`:`<p class="hint">${T("Nadie con ese nombre. Pídele que se registre y te diga cómo se ha puesto.")}</p>`; wire(); }catch(e){} },250); };
-  wire();
+  wire(); wireHelp();
   const od=document.getElementById("openduel"); if(od) od.onchange=async()=>{ try{ const pr=await api("profile",{...P.profile,openDuel:od.checked}); P.openDuel=pr.openDuel; toast(od.checked?L2("Disponible para retos","Available for challenges"):L2("Ya no estás disponible","No longer available")); }catch(e){ toast(e.message); } };
   const rn=document.getElementById("rnd"); if(rn) rn.onclick=()=>{ const pool=catalog().filter(i=>m[i.key]); const items=shuffle(pool.length>=6?pool:catalog()).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||""})); startSession({items,label:"Ausazko erronka",challenge:{random:true,items}}); };
   const rnT=document.getElementById("rndT"); if(rnT) rnT.onclick=()=>{ const pool=catalog().filter(i=>transformsFor(i.eu).length); const items=shuffle(pool).slice(0,6).map(i=>({key:i.key,eu:i.eu,es:i.es,emoji:i.emoji||"",tr:pick(transformsFor(i.eu))})); startSession({items,label:"Ausazko eraldatu",challenge:{random:true,items,transform:true},forceTransform:true}); };
@@ -916,7 +930,7 @@ async function finishChallenge(score,total){
 
 // ---------- DATUAK ----------
 async function renderStats(){
-  app.innerHTML=header("Datuak · "+T("lo que de verdad se queda"))+`<div class="stack pad" style="padding-top:20px"><p class="muted">Kargatzen…</p></div>`;
+  app.innerHTML=header()+`<div class="stack pad" style="padding-top:20px"><p class="muted">Kargatzen…</p></div>`;
   let data; try{ data=await api("stats"); }catch(e){ app.querySelector(".stack").innerHTML=`<p class="err">${T("No se pudieron cargar los datos.")}</p>`; return; }
   const me=data.users.find(u=>u.me); const rk=data.rank||{};
   const dayLabel=d=>["Ig","Al","Ar","Az","Og","Ol","Lr"][new Date(d+"T12:00:00").getDay()];
@@ -926,11 +940,16 @@ async function renderStats(){
   const lessons=LESSONS.map(l=>{ const its=lessonItems(l); const firm=its.filter(x=>m[x.key]&&m[x.key].interval>=7).length; const seen=its.filter(x=>m[x.key]).length; return {l,its,firm,seen}; }).filter(x=>x.seen>0);
   const pos=rk.position?L2(`${rk.position}ª de ${rk.active}`,`#${rk.position} of ${rk.active}`):L2("sin ronda esta semana","no round this week");
   app.querySelector(".stack").classList.add("cols");
+  const pl=todayPlan();
   app.querySelector(".stack").innerHTML=`<div class="col">
+    <p class="eyebrow" data-es="${T("tu huerto")}">Zure baratzea ${qmark("garden")}</p>
+    <div class="card garden"><div class="gbar"><i class="t" style="width:${P.items.consolidated/Math.max(1,cat.length)*100}%"></i><i class="s" style="width:${(ITEMS.length-P.items.consolidated)/Math.max(1,cat.length)*100}%"></i></div><div class="glegend"><span class="t"><i></i>${P.items.consolidated} sendo</span><span class="s"><i></i>${ITEMS.length-P.items.consolidated} ikasten</span><span class="n"><i></i>${cat.length-ITEMS.length} hazi</span></div></div>
+    <p class="eyebrow" data-es="${T("rondas")}">Txandak ${qmark("rounds")}</p>
+    <div class="quick"><button class="qbtn" id="free" ${ITEMS.length<4?"disabled":""}><span class="ic" style="color:var(--blue)">${ic("shuffle")}</span>Txanda librea</button><button class="qbtn" id="hardb" ${pl.hard.length<3?"disabled":""}><span class="ic" style="color:var(--ochre-ink)">${ic("bulb")}</span>Zailenak · ${pl.hard.length}</button></div>
     <div class="stats"><div class="stat g"><b style="display:flex;justify-content:center;align-items:center;gap:6px"><span style="display:inline-flex;width:22px;height:22px">${LAUBURU}</span>${me.consolidated}</b><span>${T("Sendoak · firmes")}</span></div><div class="stat"><b>${me.learned}</b><span>${T("Ikasten · en estudio")}</span></div><div class="stat"><b>🔥 ${me.streak}</b><span>${T("Egunak · seguidos")}</span></div><div class="stat"><b>${me.accuracy}%</b><span>${T("Lehenengoan · a la primera")}</span></div></div>
-    <p class="eyebrow" data-es="${T("XP por día")}">Azken 7 egunak</p>
+    <p class="eyebrow" data-es="${T("XP por día")}">Azken 7 egunak ${qmark("week")}</p>
     <div class="card"><div class="chart">${data.days.map((d,i)=>`<div class="d"><div class="bars"><i style="height:${Math.round(me.perDay[i]/mx*100)}%;background:${me.perDay[i]?"var(--green)":"var(--soft)"}" title="${me.perDay[i]} XP"></i></div><small>${dayLabel(d)}</small></div>`).join("")}</div><p class="hint" style="margin-top:10px">${me.weekXp} XP · ${rk.myDays||0} ${L2("días esta semana","days this week")}</p></div>
-    <p class="eyebrow" data-es="${L2("frente al resto, esta semana","vs. everyone else, this week")}">Besteekin alderatuta</p>
+    <p class="eyebrow" data-es="${L2("frente al resto","vs. everyone else")}">Besteekin alderatuta ${qmark("compare")}</p>
     <div class="card" style="display:flex;flex-direction:column;gap:10px">
       <div class="row" style="justify-content:space-between"><span class="hint">${L2("Posición","Position")}</span><b>${pos}</b></div>
       <div class="row" style="justify-content:space-between"><span class="hint">XP · ${L2("tú / mediana","you / median")}</span><b>${rk.myWeek||0} / ${rk.median||0}</b></div>
@@ -938,10 +957,10 @@ async function renderStats(){
       <div class="row" style="justify-content:space-between"><span class="hint">${L2("Frases firmes","Solid phrases")}</span><b>${L2(`más que el ${rk.firmPct}%`,`more than ${rk.firmPct}%`)}</b></div>
     </div>
     </div><div class="col">
-    ${lessons.length?`<p class="eyebrow" data-es="${L2("firmes por lección","solid per lesson")}">Ikasgaiak</p><div class="card list">${lessons.map(x=>`<div class="it"><span class="em">${ring(x.firm/x.its.length,28)}</span><span class="tx"><b>${esc(T(x.l.title))}</b><small>${x.firm}/${x.its.length} sendo</small></span></div>`).join("")}</div>`:""}
-    ${hardest.length?`<p class="eyebrow" data-es="${L2("las que más fallas","the ones you miss most")}">Zailenak</p><div class="card list">${hardest.map(i=>`<div class="it"><span class="em" style="color:var(--red);font-family:var(--display);font-weight:700;font-size:15px">${i.lapses}×</span><span class="tx"><b>${esc(i.eu)}</b><small>${esc(T(i.es))}</small></span>${spkBtn(i.eu)}</div>`).join("")}</div>`:""}
+    ${lessons.length?`<p class="eyebrow" data-es="${L2("firmes por lección","solid per lesson")}">Ikasgaiak ${qmark("lessons")}</p><div class="card list">${lessons.map(x=>`<div class="it"><span class="em">${ring(x.firm/x.its.length,28)}</span><span class="tx"><b>${esc(T(x.l.title))}</b><small>${x.firm}/${x.its.length} sendo</small></span></div>`).join("")}</div>`:""}
+    ${hardest.length?`<p class="eyebrow" data-es="${L2("las que más fallas","the ones you miss most")}">Zailenak ${qmark("hardest")}</p><div class="card list">${hardest.map(i=>`<div class="it"><span class="em" style="color:var(--red);font-family:var(--display);font-weight:700;font-size:15px">${i.lapses}×</span><span class="tx"><b>${esc(i.eu)}</b><small>${esc(T(i.es))}</small></span>${spkBtn(i.eu)}</div>`).join("")}</div>`:""}
     </div>`;
-  wireSpeak();
+  wireSpeak(); wireHelp(); wireToday(pl);
 }
 
 // arranque
@@ -955,7 +974,7 @@ function renderLangPick(){
 }
 const _renderLogin=renderLogin; renderLogin=function(){ if(!LANG) return renderLangPick(); _renderLogin(); const cl=document.getElementById("chlang"); if(cl) cl.onclick=()=>{ setLang(LANG==="en"?"es":"en"); applyStatic(); renderLogin(); }; };
 applyStatic();
-api("me").then(async p=>{ P=p; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["gaur","ikasgaiak","taldea","datuak"].includes(h)?h:"ikasgaiak"); }).catch(()=>renderLogin());
+api("me").then(async p=>{ P=p; if(P.lang&&P.lang!==LANG){ setLang(P.lang); applyStatic(); } await Promise.all([loadItems(),checkVoice()]); const h=location.hash.replace("#",""); if(!P.profile.gender) renderProfile(true); else setTab(["ikasgaiak","taldea","datuak"].includes(h)?h:"ikasgaiak"); }).catch(()=>renderLogin());
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
