@@ -25,7 +25,9 @@ Email + código de 6 cifras (10 minutos, 5 intentos, máximo 5 códigos por hora
 
 ## Contenido
 
-Todo en `public/lessons.js`: `LESSONS` (pares, frases, patrón, diálogo, escena…), `GRAMMAR` (fichas con drills), `NOTES` (explicaciones de errores) y `TRANSFORMS` (transformaciones por frase). Al añadir contenido, subir el número de caché en `public/sw.js`.
+Todo en `public/lessons.js`: `MODULES` (8 módulos del A1, cada uno con un pueblo del camino Baiona → Portugalete), `LESSONS` (43 lecciones: pares, frases, patrón, consejos, diálogo, escena), `GRAMMAR` (34 fichas con tabla, ejemplos y drills), `NOTES` (explicaciones que saltan al fallar) y `TRANSFORMS` (transformaciones por frase). El castellano es la clave; las traducciones al inglés van en `public/i18n-content.js` y al francés en `public/i18n-fr.js`. Al añadir contenido, subir el número de caché en `public/sw.js`.
+
+Para añadir una lección: entrada en `LESSONS` con `module`, `eu` (título en euskera) y `title` (castellano); después, las cadenas nuevas en castellano se traducen a inglés y francés (un script que compare claves contra `EN`/`FR` las lista). Las fichas de gramática se colocan en el camino detrás de la primera lección de su lista `lessons`.
 
 ## Desarrollo
 
