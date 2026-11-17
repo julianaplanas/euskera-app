@@ -162,3 +162,26 @@ window.ENX = [
   [/^(\d+) para repasar hoy$/, m => `${m[1]} due today`],
   [/^Tengo (\d+) años$/, m => `I am ${m[1]} years old`],
 ];
+
+// Premium / suscripción
+Object.assign(window.EN, {
+  "Sin suscripción": "No subscription",
+  "Premium hasta el": "Premium until",
+  "no se renueva": "won't renew",
+  "Premium · se renueva el": "Premium · renews on",
+  "cada mes": "every month",
+  "cada N meses": "every N months",
+  "mes": "month",
+  "Mejor precio": "Best value",
+  "todo el camino": "the whole road",
+  "El módulo 1 es gratis. Con Premium abres los 16 módulos (A1 y A2): 84 lecciones, 66 fichas de gramática, audio nativo y repaso espaciado sin límite.": "Module 1 is free. Premium opens all 16 modules (A1 and A2): 84 lessons, 66 grammar cards, native audio and unlimited spaced review.",
+  "La suscripción se gestiona desde tu cuenta en la web.": "Your subscription is managed from your account on the website.",
+  "Renovación automática; cancela cuando quieras desde tu perfil. IVA incluido. Pago seguro con Stripe.": "Renews automatically; cancel any time from your profile. VAT included. Secure payment with Stripe.",
+  "Los pagos se activarán muy pronto. Si tienes un código, úsalo aquí abajo.": "Payments will be enabled very soon. If you have a code, use it below.",
+  "¿Tienes un código?": "Got a code?",
+  "Canjear": "Redeem",
+  "Gestionar suscripción": "Manage subscription",
+  "Pago recibido; se activará en unos segundos.": "Payment received; it will activate in a few seconds.",
+  "Ver planes y códigos": "Plans and codes",
+  "Hazte Premium": "Go Premium"
+});

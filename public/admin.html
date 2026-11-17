@@ -80,6 +80,11 @@ code{background:var(--card);padding:1px 5px;border:1px solid var(--line)}
 <div class="row"><input id="q" placeholder="Buscar…"><button class="ghost" id="search">Buscar</button></div>
 <div class="wrap"><table id="t"></table></div>
 <p class="msg" id="m2"></p>
+<h2>Premium <small>códigos de regalo (profes, testers, euskal etxeak) y acceso directo por correo</small></h2>
+<div class="row"><input id="gdays" type="number" value="90" style="width:80px" title="días"><span class="sub">días ·</span><input id="guses" type="number" value="1" style="width:70px" title="usos"><span class="sub">usos ·</span><input id="gnote" placeholder="nota (p. ej. AEK Gasteiz)" style="flex:1"><button class="ghost" id="gmake">Crear código</button></div>
+<div class="row"><input id="gemail" type="email" placeholder="correo del usuario" style="flex:1"><input id="gedays" type="number" value="90" style="width:80px" title="días"><button class="ghost" id="ggrant">Dar Premium</button></div>
+<p class="msg" id="m3"></p>
+<div class="wrap"><table id="gifts"></table></div>
 </div>
 
 <script>
@@ -102,15 +107,18 @@ async function load(){
     $("towns").textContent=m.towns.length?m.towns.map(t=>`${t.town} (${t.n})`).join(" · "):"Sin datos todavía.";
     $("lessons").innerHTML=`<tr><th>Lección</th><th>Rondas</th><th>Personas</th><th>Acierto</th></tr>`+m.lessons.map(l=>`<tr><td>${esc(l.lesson_id)}</td><td class="n">${l.rounds}</td><td>${l.users}</td><td>${l.acc}%</td></tr>`).join("");
     $("hardest").innerHTML=`<tr><th>Frase</th><th>Fallos</th><th>Personas</th><th>Intervalo medio</th></tr>`+m.hardest.map(h=>`<tr><td title="${esc(h.es)}">${esc(h.eu)}</td><td class="n">${h.lapses}</td><td>${h.users}</td><td>${h.avgInterval} d</td></tr>`).join("");
-    await users();
+    await users(); gifts();
   }catch(e){ $("m1").textContent=e.message; $("m1").className="msg err"; }
 }
 async function users(){
   const list=await api("users"+($("q").value.trim()?"?q="+encodeURIComponent($("q").value.trim()):""));
-  $("t").innerHTML=`<tr><th>Nombre</th><th>Correo</th><th>Alta</th><th>Visto</th><th>Firmes</th><th>Estudio</th><th>XP</th><th>🔥</th><th></th></tr>`+list.map(u=>`<tr><td>${esc(u.name)}${u.profile.town?` <span class="sub">· ${esc(u.profile.town)}</span>`:""}</td><td>${esc(u.email)}</td><td>${u.created_at.slice(0,10)}</td><td>${u.last_seen||"–"}</td><td class="n">${u.items.consolidated}</td><td>${u.items.learned}</td><td>${u.xp}</td><td>${u.streak}</td><td><button class="danger sm" data-del="${u.id}" data-name="${esc(u.name)}">Borrar</button></td></tr>`).join("");
+  $("t").innerHTML=`<tr><th>Nombre</th><th>Correo</th><th>Alta</th><th>Visto</th><th>Premium</th><th>Firmes</th><th>Estudio</th><th>XP</th><th>🔥</th><th></th></tr>`+list.map(u=>`<tr><td>${esc(u.name)}${u.profile.town?` <span class="sub">· ${esc(u.profile.town)}</span>`:""}</td><td>${esc(u.email)}</td><td>${u.created_at.slice(0,10)}</td><td>${u.last_seen||"–"}</td><td>${u.premium&&u.premium.active?`<b style="color:#1b7a3d">${u.premium.until}</b> <span class="sub">${u.premium.src||""}${u.premium.cancels?" · cancela":""}</span>`:"–"}</td><td class="n">${u.items.consolidated}</td><td>${u.items.learned}</td><td>${u.xp}</td><td>${u.streak}</td><td><button class="danger sm" data-del="${u.id}" data-name="${esc(u.name)}">Borrar</button></td></tr>`).join("");
   document.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ if(!confirm(`¿Borrar a ${b.dataset.name} y todos sus datos?`)) return; try{ await api("delete-user",{id:+b.dataset.del}); $("m2").textContent="Borrado."; $("m2").className="msg ok"; users(); }catch(e){ $("m2").textContent=e.message; $("m2").className="msg err"; } });
 }
 $("load").onclick=load; $("key").onkeydown=e=>{ if(e.key==="Enter") load(); };
+async function gifts(){ try{ const g=await api("gifts"); $("gifts").innerHTML=g.length?`<tr><th>Código</th><th>Días</th><th>Usos</th><th>Nota</th><th>Creado</th></tr>`+g.map(x=>`<tr><td><b>${esc(x.code)}</b></td><td class="n">${x.days}</td><td class="n">${x.uses}/${x.max_uses}</td><td>${esc(x.note||"")}</td><td>${x.created_at.slice(0,10)}</td></tr>`).join(""):""; }catch(e){} }
+$("gmake").onclick=async()=>{ try{ const r=await api("gift",{days:+$("gdays").value,uses:+$("guses").value,note:$("gnote").value}); $("m3").textContent=`Código ${r.code} · ${r.days} días · ${r.uses} usos`; $("m3").className="msg ok"; gifts(); }catch(e){ $("m3").textContent=e.message; $("m3").className="msg err"; } };
+$("ggrant").onclick=async()=>{ try{ const r=await api("grant",{email:$("gemail").value,days:+$("gedays").value}); $("m3").textContent=`Premium hasta ${r.until}`; $("m3").className="msg ok"; users(); }catch(e){ $("m3").textContent=e.message; $("m3").className="msg err"; } };
 $("search").onclick=users; $("q").onkeydown=e=>{ if(e.key==="Enter") users(); };
 $("backup").onclick=()=>{ const a=document.createElement("a"); a.href="/api/admin/backup?key="+encodeURIComponent(key()); a.click(); };
 </script>

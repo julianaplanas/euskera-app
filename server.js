@@ -64,7 +64,11 @@ db.exec(`
       created_at TEXT NOT NULL DEFAULT (datetime('now')))`);
     console.log("Migración: tabla users antigua (PIN) apartada como users_old_pin.");
   }
-  const want = { weak: "TEXT NOT NULL DEFAULT '[]'", profile: "TEXT NOT NULL DEFAULT '{}'", last_seen: "TEXT", lang: "TEXT NOT NULL DEFAULT 'es'", open_duel: "INTEGER NOT NULL DEFAULT 0" };
+  const want = { weak: "TEXT NOT NULL DEFAULT '[]'", profile: "TEXT NOT NULL DEFAULT '{}'", last_seen: "TEXT", lang: "TEXT NOT NULL DEFAULT 'es'", open_duel: "INTEGER NOT NULL DEFAULT 0",
+    premium_until: "TEXT", premium_src: "TEXT", stripe_customer: "TEXT", stripe_sub: "TEXT", stripe_status: "TEXT", stripe_cancel: "INTEGER NOT NULL DEFAULT 0", stripe_plan: "TEXT" };
+  db.exec(`CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS gift_codes (code TEXT PRIMARY KEY, days INTEGER NOT NULL, max_uses INTEGER NOT NULL DEFAULT 1, uses INTEGER NOT NULL DEFAULT 0, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+    CREATE TABLE IF NOT EXISTS gift_redemptions (code TEXT NOT NULL, user_id INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (code, user_id));`);
   if (!db.prepare("PRAGMA table_info(login_codes)").all().some(c => c.name === "ip")) { db.exec("ALTER TABLE login_codes ADD COLUMN ip TEXT"); db.exec("CREATE INDEX IF NOT EXISTS login_codes_ip ON login_codes (ip, created_at)"); console.log("Migración: columna login_codes.ip"); }
   for (const [c, def] of Object.entries(want)) if (!cols().includes(c)) { db.exec(`ALTER TABLE users ADD COLUMN ${c} ${def}`); console.log("Migración: columna users." + c); }
 })();
@@ -86,6 +90,7 @@ const app = express();
 app.set("trust proxy", 1); // Railway pone la IP real en X-Forwarded-For
 const compression = require("compression");
 app.use(compression({ threshold: 1024 })); // gzip/brotli (brotli calidad 4 por defecto: rápido y ~70 % menos bytes)
+app.post("/api/billing/webhook", express.raw({ type: "application/json" }), (req, res) => stripeWebhook(req, res));
 app.use(express.json({ limit: "200kb" }));
 app.use(cookieParser());
 // Digital Asset Links: verifica que la app Android (TWA) pertenece a este sitio.
@@ -130,7 +135,7 @@ function profile(user) {
   const gram = {};
   for (const g of db.prepare("SELECT card_id, done FROM grammar WHERE user_id = ?").all(user.id)) gram[g.card_id] = g.done;
   const pending = db.prepare("SELECT COUNT(*) n FROM challenges WHERE to_id = ? AND status = 'open' AND to_result IS NULL").get(user.id).n;
-  return { id: user.id, name: user.name, email: user.email, lang: user.lang || "es", openDuel: !!user.open_duel, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, gram, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
+  return { id: user.id, name: user.name, email: user.email, lang: user.lang || "es", premium: premiumOf(user), freeModules: FREE_MODULES, billing: STRIPE_ON, openDuel: !!user.open_duel, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, gram, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
 }
 
 // ---------- notificaciones push (web-push, sin servicio externo) ----------
@@ -192,6 +197,141 @@ async function sendMail(to, subject, text, html) {
   return true;
 }
 
+
+// ---------- premium (suscripción vía Stripe, o código de regalo) ----------
+// Módulos gratuitos: los primeros FREE_MODULES (por defecto 1). El resto requiere premium activo.
+const FREE_MODULES = +process.env.FREE_MODULES || 1;
+const PLANS = { month: { months: 1, amount: 399 }, quarter: { months: 3, amount: 999 }, half: { months: 6, amount: 1699 } };
+const LESSON_MODULE = (() => { try { const w = {}; new Function("window", fs.readFileSync(path.join(__dirname, "public", "lessons.js"), "utf8"))(w); return Object.fromEntries(w.LESSONS.map(l => [l.id, l.module])); } catch (e) { console.error("No se pudo leer lessons.js:", e.message); return {}; } })();
+const setting = (k, v) => v === undefined ? (db.prepare("SELECT v FROM settings WHERE k = ?").get(k) || {}).v : db.prepare("INSERT INTO settings (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").run(k, v);
+function premiumOf(user) {
+  const today = madridDay();
+  const active = !!user.premium_until && user.premium_until >= today;
+  return { active, until: user.premium_until || null, src: user.premium_src || null, status: user.stripe_status || null, cancels: !!user.stripe_cancel, plan: user.stripe_plan || null, customer: !!user.stripe_customer };
+}
+const lessonAllowed = (user, lessonId) => { const m = LESSON_MODULE[lessonId]; return !m || m <= FREE_MODULES || premiumOf(user).active; };
+function addPremiumDays(userId, days, src) {
+  const u = db.prepare("SELECT premium_until FROM users WHERE id = ?").get(userId); const today = madridDay();
+  const base = u && u.premium_until && u.premium_until > today ? new Date(u.premium_until + "T12:00:00Z") : new Date(today + "T12:00:00Z");
+  const until = new Date(base.getTime() + days * 86400000).toISOString().slice(0, 10);
+  db.prepare("UPDATE users SET premium_until = ?, premium_src = ? WHERE id = ?").run(until, src, userId);
+  return until;
+}
+// Al estrenar el candado, las cuentas que ya existían reciben premium de cortesía (una sola vez; GRANDFATHER_DAYS=0 lo desactiva).
+(function grandfather() {
+  if (setting("grandfather_done")) return; const days = process.env.GRANDFATHER_DAYS === undefined ? 180 : +process.env.GRANDFATHER_DAYS;
+  const users = db.prepare("SELECT id FROM users WHERE premium_until IS NULL").all();
+  if (days > 0) for (const u of users) addPremiumDays(u.id, days, "gift");
+  setting("grandfather_done", new Date().toISOString()); console.log(`Premium de cortesía (${days} días) a ${days > 0 ? users.length : 0} cuentas existentes`);
+})();
+const STRIPE_ON = !!process.env.STRIPE_SECRET_KEY;
+const stripe = STRIPE_ON ? require("stripe")(process.env.STRIPE_SECRET_KEY) : null;
+const appUrl = (req) => (process.env.APP_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+// Producto y precios: se crean una vez (lookup_key) y se recuerdan en settings.
+async function stripePrices() {
+  if (!STRIPE_ON) return null;
+  const cached = setting("stripe_prices"); if (cached) return JSON.parse(cached);
+  const out = {};
+  const existing = await stripe.prices.list({ lookup_keys: Object.keys(PLANS).map(k => "ep_" + k), active: true, limit: 10 });
+  for (const p of existing.data) out[p.lookup_key.slice(3)] = p.id;
+  if (Object.keys(out).length < Object.keys(PLANS).length) {
+    const prods = await stripe.products.search({ query: "name:'Euskara Praktika Premium'" });
+    const product = prods.data[0] || await stripe.products.create({ name: "Euskara Praktika Premium", description: "Acceso completo a todas las lecciones (A1 y A2), audio y repaso espaciado." });
+    for (const [k, pl] of Object.entries(PLANS)) if (!out[k]) {
+      const pr = await stripe.prices.create({ product: product.id, currency: "eur", unit_amount: pl.amount, tax_behavior: "inclusive", recurring: { interval: "month", interval_count: pl.months }, lookup_key: "ep_" + k, transfer_lookup_key: true });
+      out[k] = pr.id;
+    }
+  }
+  setting("stripe_prices", JSON.stringify(out)); return out;
+}
+// Webhook: se registra por API la primera vez (el secreto se guarda en settings), salvo que venga STRIPE_WEBHOOK_SECRET.
+async function stripeWebhookSecret(req) {
+  if (process.env.STRIPE_WEBHOOK_SECRET) return process.env.STRIPE_WEBHOOK_SECRET;
+  const saved = setting("stripe_webhook"); if (saved) return JSON.parse(saved).secret;
+  const url = appUrl(req) + "/api/billing/webhook";
+  const ep = await stripe.webhookEndpoints.create({ url, enabled_events: ["checkout.session.completed", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid"] });
+  setting("stripe_webhook", JSON.stringify({ id: ep.id, url, secret: ep.secret })); console.log("Stripe: webhook registrado en " + url);
+  return ep.secret;
+}
+function applySubscription(userId, sub) {
+  const until = new Date(sub.current_period_end * 1000).toISOString().slice(0, 10);
+  const planKey = (() => { const it = sub.items && sub.items.data[0]; const lk = it && it.price && it.price.lookup_key; return lk ? lk.replace(/^ep_/, "") : null; })();
+  const live = ["active", "trialing", "past_due"].includes(sub.status);
+  db.prepare("UPDATE users SET premium_until = CASE WHEN ? THEN ? ELSE MIN(COALESCE(premium_until, ?), ?) END, premium_src = 'stripe', stripe_customer = ?, stripe_sub = ?, stripe_status = ?, stripe_cancel = ?, stripe_plan = ? WHERE id = ?")
+    .run(live ? 1 : 0, until, until, until, String(sub.customer), sub.id, sub.status, sub.cancel_at_period_end ? 1 : 0, planKey, userId);
+}
+async function syncStripeUser(user) {
+  if (!STRIPE_ON || !user.stripe_customer) return;
+  const subs = await stripe.subscriptions.list({ customer: user.stripe_customer, status: "all", limit: 5 });
+  const best = subs.data.sort((a, b) => b.current_period_end - a.current_period_end)[0];
+  if (best) applySubscription(user.id, best);
+}
+app.get("/api/billing", auth, async (req, res) => {
+  res.json({ enabled: STRIPE_ON, freeModules: FREE_MODULES, plans: Object.fromEntries(Object.entries(PLANS).map(([k, p]) => [k, { months: p.months, amount: p.amount }])), premium: premiumOf(req.user) });
+});
+app.post("/api/billing/checkout", auth, async (req, res) => {
+  if (!STRIPE_ON) return res.status(503).json({ error: "Los pagos aún no están activados." });
+  const plan = PLANS[req.body.plan] ? req.body.plan : null; if (!plan) return res.status(400).json({ error: "Plan desconocido." });
+  try {
+    await stripeWebhookSecret(req);
+    const prices = await stripePrices(); const base = appUrl(req);
+    const params = { mode: "subscription", line_items: [{ price: prices[plan], quantity: 1 }], client_reference_id: String(req.user.id), metadata: { user_id: String(req.user.id), plan },
+      success_url: base + "/?billing=ok", cancel_url: base + "/?billing=cancel", locale: req.user.lang === "en" ? "en" : req.user.lang === "fr" ? "fr" : "es", allow_promotion_codes: true,
+      subscription_data: { metadata: { user_id: String(req.user.id) } } };
+    if (req.user.stripe_customer) { params.customer = req.user.stripe_customer; params.customer_update = { address: "auto" }; } else params.customer_email = req.user.email;
+    if (process.env.STRIPE_TAX !== "0") params.automatic_tax = { enabled: true };
+    let session; try { session = await stripe.checkout.sessions.create(params); }
+    catch (e) { if (params.automatic_tax && /tax/i.test(e.message)) { console.error("Stripe Tax no disponible, se continúa sin él:", e.message); delete params.automatic_tax; delete params.customer_update; session = await stripe.checkout.sessions.create(params); } else throw e; }
+    logEvent(req.user.id, "checkout_start", { plan });
+    res.json({ url: session.url });
+  } catch (e) { console.error("Stripe checkout:", e.message); res.status(502).json({ error: "No se pudo iniciar el pago. Inténtalo de nuevo." }); }
+});
+app.post("/api/billing/portal", auth, async (req, res) => {
+  if (!STRIPE_ON || !req.user.stripe_customer) return res.status(400).json({ error: "No hay suscripción que gestionar." });
+  try { const ps = await stripe.billingPortal.sessions.create({ customer: req.user.stripe_customer, return_url: appUrl(req) + "/?billing=back" }); res.json({ url: ps.url }); }
+  catch (e) { console.error("Stripe portal:", e.message); res.status(502).json({ error: "No se pudo abrir el portal. Inténtalo de nuevo." }); }
+});
+app.post("/api/billing/sync", auth, async (req, res) => {
+  try {
+    if (STRIPE_ON && !req.user.stripe_customer) { // vuelta del checkout antes de que llegue el webhook
+      const ss = await stripe.checkout.sessions.list({ limit: 20 }); const mine = ss.data.find(x => x.client_reference_id === String(req.user.id) && x.status === "complete" && x.subscription);
+      if (mine) { const sub = await stripe.subscriptions.retrieve(mine.subscription); applySubscription(req.user.id, sub); }
+    } else await syncStripeUser(req.user);
+  } catch (e) { console.error("Stripe sync:", e.message); }
+  res.json(premiumOf(db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id)));
+});
+app.post("/api/billing/redeem", auth, (req, res) => {
+  const code = String(req.body.code || "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
+  const g = code && db.prepare("SELECT * FROM gift_codes WHERE code = ?").get(code);
+  if (!g) return res.status(404).json({ error: "Ese código no existe." });
+  if (g.uses >= g.max_uses) return res.status(410).json({ error: "Ese código ya se ha usado." });
+  if (db.prepare("SELECT 1 FROM gift_redemptions WHERE code = ? AND user_id = ?").get(code, req.user.id)) return res.status(409).json({ error: "Ya has usado este código." });
+  const until = db.transaction(() => { db.prepare("UPDATE gift_codes SET uses = uses + 1 WHERE code = ?").run(code); db.prepare("INSERT INTO gift_redemptions (code, user_id) VALUES (?, ?)").run(code, req.user.id); return addPremiumDays(req.user.id, g.days, "gift"); })();
+  logEvent(req.user.id, "gift_redeemed", { code, days: g.days });
+  res.json({ ok: true, until, premium: premiumOf(db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id)) });
+});
+// El webhook necesita el cuerpo sin parsear para verificar la firma: se monta antes de express.json (ver más abajo).
+async function stripeWebhook(req, res) {
+  if (!STRIPE_ON) return res.status(503).end();
+  let ev;
+  try { ev = stripe.webhooks.constructEvent(req.body, req.headers["stripe-signature"], await stripeWebhookSecret(req)); }
+  catch (e) { console.error("Stripe webhook firma:", e.message); return res.status(400).send("bad signature"); }
+  try {
+    const o = ev.data.object;
+    if (ev.type === "checkout.session.completed" && o.subscription) {
+      const uid = +(o.client_reference_id || (o.metadata && o.metadata.user_id)); const sub = await stripe.subscriptions.retrieve(o.subscription);
+      if (uid) { applySubscription(uid, sub); logEvent(uid, "checkout_done", { plan: o.metadata && o.metadata.plan }); }
+    } else if (ev.type.startsWith("customer.subscription.")) {
+      const uid = +(o.metadata && o.metadata.user_id) || (db.prepare("SELECT id FROM users WHERE stripe_customer = ?").get(String(o.customer)) || {}).id;
+      if (uid) applySubscription(uid, o);
+    } else if (ev.type === "invoice.paid" && o.subscription) {
+      const sub = await stripe.subscriptions.retrieve(o.subscription);
+      const uid = +(sub.metadata && sub.metadata.user_id) || (db.prepare("SELECT id FROM users WHERE stripe_customer = ?").get(String(sub.customer)) || {}).id;
+      if (uid) applySubscription(uid, sub);
+    }
+  } catch (e) { console.error("Stripe webhook:", e.message); }
+  res.json({ received: true });
+}
 // ---------- cuentas: email + código de 6 cifras ----------
 const CODE_TTL_MS = 10 * 60 * 1000;
 const CODE_MAX_EMAIL_DAY = +process.env.CODE_MAX_EMAIL_DAY || 5, CODE_MAX_IP_DAY = +process.env.CODE_MAX_IP_DAY || 20, CODE_MAX_GLOBAL_DAY = +process.env.CODE_MAX_GLOBAL_DAY || 95;
@@ -301,7 +441,7 @@ app.post("/api/items/introduce", auth, (req, res) => {
   const today = madridDay();
   const ins = db.prepare("INSERT OR IGNORE INTO items (user_id, key, eu, es, lesson_id, due) VALUES (?, ?, ?, ?, ?, ?)");
   const list = Array.isArray(req.body.items) ? req.body.items.slice(0, 200) : [];
-  const tx = db.transaction(() => { for (const it of list) if (it && it.key && it.eu && it.es) ins.run(req.user.id, String(it.key).slice(0, 120), String(it.eu).slice(0, 200), String(it.es).slice(0, 200), it.lesson_id ? String(it.lesson_id) : null, today); });
+  const tx = db.transaction(() => { for (const it of list) if (it && it.key && it.eu && it.es && lessonAllowed(req.user, it.lesson_id)) ins.run(req.user.id, String(it.key).slice(0, 120), String(it.eu).slice(0, 200), String(it.es).slice(0, 200), it.lesson_id ? String(it.lesson_id) : null, today); });
   tx();
   res.json(itemStats(req.user.id));
 });
@@ -427,10 +567,13 @@ app.get("/api/admin/users", admin, (req, res) => {
   const q = String(req.query.q || "").trim().toLowerCase();
   const rows = q ? db.prepare("SELECT * FROM users WHERE lower(name) LIKE ? OR email LIKE ? ORDER BY created_at DESC LIMIT 200").all("%" + q + "%", "%" + q + "%")
                  : db.prepare("SELECT * FROM users ORDER BY created_at DESC LIMIT 200").all();
-  res.json(rows.map(u => ({ id: u.id, name: u.name, email: u.email, xp: u.xp, streak: u.streak, last_day: u.last_day, last_seen: u.last_seen, created_at: u.created_at, profile: J(u.profile, {}), items: itemStats(u.id) })));
+  res.json(rows.map(u => ({ id: u.id, name: u.name, email: u.email, xp: u.xp, streak: u.streak, last_day: u.last_day, last_seen: u.last_seen, created_at: u.created_at, profile: J(u.profile, {}), items: itemStats(u.id), premium: premiumOf(u) })));
 });
 function deleteUser(id) {
+  const u = db.prepare("SELECT stripe_sub, stripe_status FROM users WHERE id = ?").get(id);
+  if (STRIPE_ON && u && u.stripe_sub && !["canceled", "incomplete_expired"].includes(u.stripe_status)) stripe.subscriptions.cancel(u.stripe_sub).catch(e => console.error("Stripe: no se pudo cancelar la suscripción al borrar la cuenta:", e.message));
   db.transaction(() => {
+    for (const t of ["gift_redemptions"]) db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(id);
     for (const t of ["sessions", "progress", "grammar", "rounds", "items", "push_subs", "events"]) db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(id);
     db.prepare("DELETE FROM friends WHERE user_id = ? OR friend_id = ?").run(id, id);
     db.prepare("DELETE FROM challenges WHERE from_id = ? OR to_id = ?").run(id, id);
@@ -452,6 +595,17 @@ app.post("/api/account/delete", auth, (req, res) => {
   res.json({ ok: true });
 });
 // Copia de seguridad de la base de datos (descarga un fichero SQLite consistente).
+app.post("/api/admin/gift", admin, (req, res) => {
+  const days = Math.max(1, Math.min(3650, +req.body.days || 30)), uses = Math.max(1, Math.min(10000, +req.body.uses || 1)), note = String(req.body.note || "").slice(0, 120);
+  const code = (req.body.code ? String(req.body.code).toUpperCase().replace(/[^A-Z0-9-]/g, "") : "EP-" + crypto.randomBytes(3).toString("hex").toUpperCase()).slice(0, 24);
+  try { db.prepare("INSERT INTO gift_codes (code, days, max_uses, note) VALUES (?, ?, ?, ?)").run(code, days, uses, note); } catch (e) { return res.status(409).json({ error: "Ese código ya existe." }); }
+  res.json({ code, days, uses, note });
+});
+app.get("/api/admin/gifts", admin, (req, res) => res.json(db.prepare("SELECT * FROM gift_codes ORDER BY created_at DESC LIMIT 200").all()));
+app.post("/api/admin/grant", admin, (req, res) => {
+  const u = db.prepare("SELECT id FROM users WHERE email = ?").get(normEmail(req.body.email)); if (!u) return res.status(404).json({ error: "No existe ese usuario." });
+  const until = addPremiumDays(u.id, Math.max(1, Math.min(3650, +req.body.days || 30)), "gift"); logEvent(u.id, "premium_granted", { days: req.body.days }); res.json({ ok: true, until });
+});
 app.get("/api/admin/backup", admin, async (req, res) => {
   const tmp = path.join(path.dirname(DB_PATH), `backup-${madridDay()}.db`);
   try { fs.rmSync(tmp, { force: true }); await db.backup(tmp); res.download(tmp, `euskara-${madridDay()}.db`, () => fs.rmSync(tmp, { force: true })); }

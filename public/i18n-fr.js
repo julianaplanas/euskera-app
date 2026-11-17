@@ -6120,3 +6120,26 @@ Object.assign(window.FR, {
   "Me gustaría hablar euskera contigo.": "J'aimerais parler basque avec toi.",
   "El profesor nos ha dicho que lo hemos hecho bien.": "Le professeur nous a dit que nous avons bien fait."
 });
+
+// Premium / abonnement
+Object.assign(window.FR, {
+  "Sin suscripción": "Sans abonnement",
+  "Premium hasta el": "Premium jusqu'au",
+  "no se renueva": "ne se renouvelle pas",
+  "Premium · se renueva el": "Premium · se renouvelle le",
+  "cada mes": "chaque mois",
+  "cada N meses": "tous les N mois",
+  "mes": "mois",
+  "Mejor precio": "Meilleur prix",
+  "todo el camino": "tout le chemin",
+  "El módulo 1 es gratis. Con Premium abres los 16 módulos (A1 y A2): 84 lecciones, 66 fichas de gramática, audio nativo y repaso espaciado sin límite.": "Le module 1 est gratuit. Avec Premium, tu ouvres les 16 modules (A1 et A2) : 84 leçons, 66 fiches de grammaire, audio natif et révision espacée sans limite.",
+  "La suscripción se gestiona desde tu cuenta en la web.": "L'abonnement se gère depuis ton compte sur le site web.",
+  "Renovación automática; cancela cuando quieras desde tu perfil. IVA incluido. Pago seguro con Stripe.": "Renouvellement automatique ; annule quand tu veux depuis ton profil. TVA incluse. Paiement sécurisé avec Stripe.",
+  "Los pagos se activarán muy pronto. Si tienes un código, úsalo aquí abajo.": "Les paiements seront activés très bientôt. Si tu as un code, utilise-le ci-dessous.",
+  "¿Tienes un código?": "Tu as un code ?",
+  "Canjear": "Utiliser",
+  "Gestionar suscripción": "Gérer l'abonnement",
+  "Pago recibido; se activará en unos segundos.": "Paiement reçu ; activation dans quelques secondes.",
+  "Ver planes y códigos": "Offres et codes",
+  "Hazte Premium": "Passer Premium"
+});
