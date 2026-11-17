@@ -217,12 +217,12 @@ function addPremiumDays(userId, days, src) {
   db.prepare("UPDATE users SET premium_until = ?, premium_src = ? WHERE id = ?").run(until, src, userId);
   return until;
 }
-// Al estrenar el candado, las cuentas que ya existían reciben premium de cortesía (una sola vez; GRANDFATHER_DAYS=0 lo desactiva).
-(function grandfather() {
-  if (setting("grandfather_done")) return; const days = process.env.GRANDFATHER_DAYS === undefined ? 180 : +process.env.GRANDFATHER_DAYS;
-  const users = db.prepare("SELECT id FROM users WHERE premium_until IS NULL").all();
-  if (days > 0) for (const u of users) addPremiumDays(u.id, days, "gift");
-  setting("grandfather_done", new Date().toISOString()); console.log(`Premium de cortesía (${days} días) a ${days > 0 ? users.length : 0} cuentas existentes`);
+// Corrección puntual: el primer despliegue del candado dio 180 días de cortesía a las cuentas existentes; se retira (una sola vez)
+// para que todo el mundo vea el candado tal cual. Los códigos canjeados a mano no se tocan.
+(function undoGrandfather() {
+  if (!setting("grandfather_done") || setting("grandfather_undone")) return;
+  const n = db.prepare("UPDATE users SET premium_until = NULL, premium_src = NULL WHERE premium_src = 'gift' AND id NOT IN (SELECT user_id FROM gift_redemptions)").run().changes;
+  setting("grandfather_undone", new Date().toISOString()); console.log(`Premium de cortesía retirado a ${n} cuentas`);
 })();
 const STRIPE_ON = !!process.env.STRIPE_SECRET_KEY;
 const stripe = STRIPE_ON ? require("stripe")(process.env.STRIPE_SECRET_KEY) : null;

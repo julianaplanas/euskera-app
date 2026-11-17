@@ -478,7 +478,7 @@ function renderPlans(){
   app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1"><p class="eyebrow">Premium</p><h2>Bide osoa · ${T("todo el camino")}</h2></div></div>
    <div class="stack pad" style="flex:1;gap:12px">
     <div class="card" style="display:flex;gap:14px;align-items:center"><div style="flex:none">${OLEN("wave",56)}</div><p style="margin:0">${T("El módulo 1 es gratis. Con Premium abres los 16 módulos (A1 y A2): 84 lecciones, 66 fichas de gramática, audio nativo y repaso espaciado sin límite.").replace("1",free)}</p></div>
-    ${pr.active?`<p class="card" style="background:var(--green);color:#fff;font-weight:600">${ic("check",3)} ${premiumLine()}</p>`:""}
+    ${pr.active?`<p class="card" style="background:var(--green);color:#fff;font-weight:600;display:flex;align-items:center;gap:10px;margin:0"><span style="flex:none;width:22px;height:22px;display:inline-flex">${ic("check",3)}</span><span>${premiumLine()}</span></p>`:""}
     ${inTWA?`<p class="muted">${T("La suscripción se gestiona desde tu cuenta en la web.")}</p>`:B?`<div class="plans">${plans}</div><p class="hint">${T("Renovación automática; cancela cuando quieras desde tu perfil. IVA incluido. Pago seguro con Stripe.")}</p>`:`<p class="muted">${T("Los pagos se activarán muy pronto. Si tienes un código, úsalo aquí abajo.")}</p>`}
     <p class="eyebrow" data-es="${T("¿Tienes un código?")}">Kodea baduzu?</p>
     <div class="row"><input class="ans" id="gift" placeholder="EP-XXXXXX" autocomplete="off" autocapitalize="characters" style="flex:1"><button class="btn ghost" id="giftgo" style="width:auto">${T("Canjear")}</button></div>
