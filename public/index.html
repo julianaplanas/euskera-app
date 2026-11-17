@@ -75,7 +75,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .pill.g{background:var(--green);color:var(--cream);border-color:transparent} .pill.b{background:var(--blue);color:var(--cream);border-color:transparent} .pill.y{background:var(--ochre);color:#141414;border-color:transparent}
 /* pestañas con icono */
 .tabs{flex:none;z-index:15;background:var(--bg);border-top:1px solid var(--line2);padding-bottom:var(--sab)}
-.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
 .tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 6px;color:var(--muted);font-size:11px;font-weight:600;transition:color .15s}
 .tab .ic svg{width:22px;height:22px}
 .tab .es{display:none}
@@ -697,7 +697,7 @@ function renderExercise(){
     if(e.mode==="copy"){ SES.answers.push({key:e.key,ok,grade:ok?1:0,retry:true,intro:true}); if(!ok) SES.ex.splice(SES.i+1,0,{...e}); saveSes(); showSheet(ok,ok?1:0,e,given,near); return; }
     SES.answers.push({key:e.key,ok,grade,retry:!!e.retry});
     if(ok) { if(grade===2) SES.good++; } else { SES.wrong.push(e); if(!e.retry && SES.retried<5){ { const r={...e,retry:true,mode:(e.mode==="listen"||e.mode==="transform")?"produce":e.mode}; if(r.mode!==e.mode||e.mode==="transform"){ const pool=catalog().map(p=>p.eu).filter(x=>norm(x)!==norm(r.eu)); r.opts=shuffle([r.eu,...shuffle([...new Set(pool)]).slice(0,3)]); } SES.ex.push(r); SES.retried++; } } }
-    if(!e.retry && !SES.challenge && !SES.noReview){ try{ const r=await api("review",{key:e.key,grade,eu:e.eu,es:e.es,lesson_id:e.lesson_id}); SES.xp+=r.gained; P.items=r.items; P.xp+=r.gained; const m=imap(); if(m[e.key]) Object.assign(m[e.key],{interval:r.interval,due:r.due,reps:r.reps,lapses:r.lapses,last:todayStr()}); SES.results=SES.results||{}; SES.results[e.key]={interval:r.interval,due:r.due}; }catch(err){} }
+    if(!e.retry && !SES.challenge && !SES.noReview){ try{ const r=await api("review",{key:e.key,grade,eu:e.eu,es:e.es,lesson_id:e.lesson_id}); SES.xp+=r.gained; P.items=r.items; P.xp+=r.gained; const m=imap(); if(m[e.key]) Object.assign(m[e.key],{interval:r.interval,due:r.due,reps:r.reps,lapses:r.lapses,last:todayStr()}); SES.results=SES.results||{}; SES.results[e.key]={interval:r.interval,due:r.due}; }catch(err){ if(!SES.warned){ SES.warned=true; toast(T("Sin conexión: esta respuesta no se ha guardado")); } } }
     saveSes();
     showSheet(ok,grade,e,given,near);
   };
@@ -768,7 +768,7 @@ function renderLessons(){
     else { const r=17,c=2*Math.PI*r; g=`<circle cx="${s.x}" cy="${s.y}" r="20" fill="var(--bg)" stroke="var(--line2)" stroke-width="1.5"/>${seen?`<circle cx="${s.x}" cy="${s.y}" r="${r}" fill="none" stroke="var(--soft)" stroke-width="4"/><circle cx="${s.x}" cy="${s.y}" r="${r}" fill="none" stroke="${firm>0?"var(--green)":"var(--ochre)"}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c*(1-Math.max(firm,.06))).toFixed(1)}" transform="rotate(-90 ${s.x} ${s.y})"/>`:""}<text x="${s.x}" y="${s.y+5}" text-anchor="middle" font-family="var(--display)" font-weight="700" font-size="14" fill="var(--ink)">${LESSONS.indexOf(l)+1}</text>`; }
     return `<g class="pn ${open?"":"locked"} ${isActive?"active":""}" data-l="${l.id}" role="button" tabindex="0" aria-label="${esc(T(l.title))} · ${status}">${g}</g>${lab(open?"":"locked",l.eu||T(l.title),`${its.length} ${L2("frases","phrases")} · ${status}`)}`; };
   const pl=todayPlan();
-  app.innerHTML=header()+`<div class="stack pad" style="padding-top:16px;gap:10px">${todayCard(pl)}<p class="eyebrow" data-es="A1 · Hondarribia → Portugalete" style="margin-top:6px">Bidea</p>
+  app.innerHTML=header()+`<div class="stack pad" style="padding-top:16px;gap:10px">${todayCard(pl)}<p class="eyebrow" data-es="A1 · Baiona → Portugalete" style="margin-top:6px">Bidea</p>
    <svg class="path" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-label="${L2("Camino de lecciones","Lesson path")}">${hills}<path d="${dOf(stops)}" fill="none" stroke="var(--line2)" stroke-width="3" stroke-dasharray="1 9" stroke-linecap="round"/><path d="${dOf(donePts)}" fill="none" stroke="var(--green)" stroke-width="3.5" stroke-linecap="round"/>${stops.map(node).join("")}</svg></div>`;
   app.querySelectorAll("[data-g]").forEach(b=>{ const g=GRAMMAR.find(x=>x.id===b.dataset.g); const go=()=>{ if(b.classList.contains("locked")){ toast(L2("Empieza su lección para abrir esta ficha","Start its lesson to unlock this card")); return; } renderGrammar(g); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
   app.querySelectorAll("[data-l]").forEach(b=>{ const go=()=>{ const l=lessonOf(b.dataset.l); if(!ul.has(l.id)){ toast(L2("Termina la lección anterior para abrir esta","Finish the previous lesson to unlock this one")); return; } renderLesson(l); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
@@ -829,7 +829,7 @@ function renderGrammar(g){
 }
 function renderLesson(l){
   if(!isUnlocked(l)){ setTab("ikasgaiak"); return; }
-  noTabs(); const m=imap(); const its=lessonItems(l); const fresh=its.filter(x=>!m[x.key]);
+  noTabs(); const m=imap(); const its=lessonItems(l); const fresh=its.filter(x=>!m[x.key]); const pend=(()=>{ const d=loadSes(); return d&&d.lessonId===l.id?d:null; })();
   const st=k=>!m[k]?"":m[k].interval>=7?"ok":"new";
   const firmN=its.filter(x=>m[x.key]&&m[x.key].interval>=7).length;
   app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1;min-width:0"><p class="eyebrow">${LESSONS.indexOf(l)+1}. ikasgaia</p><h2>${esc(l.eu||T(l.title))}</h2><p class="sub" style="margin-top:2px">${esc(T(l.title))}</p></div>${ring(firmN/its.length,40)}</div>
@@ -842,13 +842,14 @@ function renderLesson(l){
     ${l.tips&&l.tips.length?`<p class="eyebrow" data-es="${T("Cómo funciona")}">Nola funtzionatzen du</p>${l.tips.map(t=>`<div class="tip"><span class="ic">${ic("bulb")}</span><div><b>${esc(T(t.t))}</b><p>${esc(T(t.b))}</p></div></div>`).join("")}`:""}
     ${l.dialogue&&l.dialogue.length?`<p class="eyebrow" data-es="${T("diálogo")}">Elkarrizketa</p><div class="card dlg">${l.scene?`<div class="scene"><span>${esc(l.scene.emoji)}</span><p>${esc(T(l.scene.title))}</p></div>`:""}${VOICE?`<button class="btn ghost sm" id="playdlg" style="align-self:center;position:relative;z-index:1">🔊 Entzun osorik<small>${T("escuchar entero")}</small></button>`:""}${l.dialogue.map(([w,eu,es])=>`<div class="line ${w==="A"?"a":"b"}"><div><p class="eu">${esc(eu)}</p><p class="es">${esc(T(es))}</p></div>${spkBtn(eu)}</div>`).join("")}</div>`:""}
    </div>
-   <div class="bottom pad" style="display:flex;gap:10px">${fresh.length?`<button class="btn red bi" id="learn" style="flex:1.3">Ikasi · ${fresh.length}<small>${T("Aprender nuevas")}</small></button>`:""}<button class="btn bi ${fresh.length?"ghost":"red"}" id="go" style="flex:1">Praktikatu<small>${T("Practicar esta lección")}</small></button></div>`;
+   <div class="bottom pad" style="display:flex;gap:10px">${pend?`<button class="btn red bi" id="resume" style="flex:1.3">${ic("play")} Jarraitu · ${pend.i}/${pend.ex.length}<small>${T("Continuar donde lo dejaste")}</small></button>`:fresh.length?`<button class="btn red bi" id="learn" style="flex:1.3">Ikasi · ${fresh.length}<small>${T("Aprender nuevas")}</small></button>`:""}<button class="btn bi ${(pend||fresh.length)?"ghost":"red"}" id="go" style="flex:1">Praktikatu<small>${T("Practicar esta lección")}</small></button></div>`;
   wireSpeak();
   document.getElementById("back").onclick=()=>setTab("ikasgaiak");
   const pd=document.getElementById("playdlg"); if(pd) pd.onclick=()=>speakSeq(l.dialogue.map(d=>d[1]));
   preload(its.map(i=>i.eu));
   const ld=document.getElementById("lessondrills"); if(ld) ld.onclick=()=>{ const items=[]; for(const x of its) for(const tr of transformsFor(x.eu)) items.push({key:x.key,eu:x.eu,es:x.es,lesson_id:l.id,emoji:x.emoji||"",tr}); startSession({items:shuffle(items).slice(0,10),label:"Eraldatu · "+T(l.title),free:true,forceTransform:true}); };
-  const lb=document.getElementById("learn"); if(lb) lb.onclick=async()=>{ const n=fresh.slice(0,6); try{ await api("items/introduce",{items:n}); await loadItems(); }catch(e){} startSession({items:n.map(i=>({...i,isNew:true})),label:T(l.title),lessonId:l.id}); };
+  const rsb=document.getElementById("resume"); if(rsb) rsb.onclick=()=>resumeSession(pend);
+  const lb=document.getElementById("learn"); if(lb) lb.onclick=async()=>{ const n=fresh.slice(0,6); try{ await api("items/introduce",{items:n}); await loadItems(); }catch(e){ toast(T("No se pudo guardar el progreso")+": "+(e.message||"")); return; } startSession({items:n.map(i=>({...i,isNew:true})),label:T(l.title),lessonId:l.id}); };
   document.getElementById("go").onclick=()=>{ const mm=imap(); const known=its.filter(x=>mm[x.key]); startSession({items:shuffle(known.length?known:its).slice(0,10),label:T(l.title),lessonId:l.id,free:true}); };
   document.getElementById("app").scrollTo(0,0);
 }

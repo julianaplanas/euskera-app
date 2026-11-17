@@ -57,7 +57,7 @@ window.EN = {
   "Escribe, no elijas": "Type, don't pick", "Casi siempre te pediré escribir la frase. Hay pista y opciones, pero cuentan menos. Escribir es lo que hace que se quede.": "Most of the time I'll ask you to type the phrase. There's a hint and options, but they count less. Typing is what makes it stick.",
   // gaur
   "tienes una ronda a medias": "you have a round in progress",
-  "rondas": "rounds",
+  "rondas": "rounds", "Continuar donde lo dejaste": "Pick up where you left off", "No se pudo guardar el progreso": "Could not save progress", "Sin conexión: esta respuesta no se ha guardado": "Offline: this answer was not saved",
   "ranking de la semana": "weekly ranking",
   "Cómo funciona": "How it works",
   "<p>Busca a alguien por su nombre y añádelo. Con tu círculo puedes lanzar retos, proponer tareas en persona y ver su racha y progreso en el ranking.</p><p>No hace falta que te acepten: es una lista tuya, como los contactos.</p>": "<p>Search someone by name and add them. With your circle you can send duels, propose in-person tasks and see their streak and progress in the ranking.</p><p>No approval needed: it is your own list, like contacts.</p>",
