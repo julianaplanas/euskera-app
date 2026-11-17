@@ -20,6 +20,7 @@ db.exec(`
   );
   CREATE TABLE IF NOT EXISTS login_codes (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, code_hash TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, used INTEGER NOT NULL DEFAULT 0, expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL);
   CREATE INDEX IF NOT EXISTS login_codes_email ON login_codes (email, created_at);
+  CREATE INDEX IF NOT EXISTS login_codes_created ON login_codes (created_at);
   CREATE TABLE IF NOT EXISTS friends (user_id INTEGER NOT NULL, friend_id INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (user_id, friend_id));
   CREATE INDEX IF NOT EXISTS friends_friend ON friends (friend_id);
   CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT NOT NULL, meta TEXT, day TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
@@ -64,6 +65,7 @@ db.exec(`
     console.log("Migración: tabla users antigua (PIN) apartada como users_old_pin.");
   }
   const want = { weak: "TEXT NOT NULL DEFAULT '[]'", profile: "TEXT NOT NULL DEFAULT '{}'", last_seen: "TEXT", lang: "TEXT NOT NULL DEFAULT 'es'", open_duel: "INTEGER NOT NULL DEFAULT 0" };
+  if (!db.prepare("PRAGMA table_info(login_codes)").all().some(c => c.name === "ip")) { db.exec("ALTER TABLE login_codes ADD COLUMN ip TEXT"); db.exec("CREATE INDEX IF NOT EXISTS login_codes_ip ON login_codes (ip, created_at)"); console.log("Migración: columna login_codes.ip"); }
   for (const [c, def] of Object.entries(want)) if (!cols().includes(c)) { db.exec(`ALTER TABLE users ADD COLUMN ${c} ${def}`); console.log("Migración: columna users." + c); }
 })();
 
@@ -81,6 +83,7 @@ const addDays = (day, n) => new Date(new Date(day + "T12:00:00Z").getTime() + n 
 const J = (s, d) => { try { return JSON.parse(s); } catch (e) { return d; } };
 
 const app = express();
+app.set("trust proxy", 1); // Railway pone la IP real en X-Forwarded-For
 const compression = require("compression");
 app.use(compression({ threshold: 1024 })); // gzip/brotli (brotli calidad 4 por defecto: rápido y ~70 % menos bytes)
 app.use(express.json({ limit: "200kb" }));
@@ -191,15 +194,27 @@ async function sendMail(to, subject, text, html) {
 
 // ---------- cuentas: email + código de 6 cifras ----------
 const CODE_TTL_MS = 10 * 60 * 1000;
+const CODE_MAX_EMAIL_DAY = +process.env.CODE_MAX_EMAIL_DAY || 5, CODE_MAX_IP_DAY = +process.env.CODE_MAX_IP_DAY || 20, CODE_MAX_GLOBAL_DAY = +process.env.CODE_MAX_GLOBAL_DAY || 95;
 app.post("/api/auth/request", async (req, res) => {
   const email = normEmail(req.body.email);
   if (!validEmail(email)) return res.status(400).json({ error: "Escribe un correo válido." });
-  const now = Date.now();
-  const recent = db.prepare("SELECT COUNT(*) n FROM login_codes WHERE email = ? AND created_at > ?").get(email, now - 3600 * 1000).n;
-  if (recent >= 5) return res.status(429).json({ error: "Demasiados códigos pedidos. Espera una hora o usa el último que recibiste." });
+  const now = Date.now(), day = now - 86400 * 1000, ip = req.ip || "";
+  db.prepare("DELETE FROM login_codes WHERE created_at < ?").run(now - 7 * 86400 * 1000);
+  // Tres topes diarios para proteger la cuota de correo (Resend: 100/día en el plan gratuito):
+  // por correo (un usuario real pide un código solo al entrar en un dispositivo nuevo), por IP (bots) y global.
+  const cnt = (sql, ...a) => db.prepare(sql).get(...a).n;
+  const L = cleanLang(req.body.lang), msg = (es, en, fr) => L === "en" ? en : L === "fr" ? fr : es;
+  if (cnt("SELECT COUNT(*) n FROM login_codes WHERE email = ? AND created_at > ?", email, day) >= CODE_MAX_EMAIL_DAY)
+    return res.status(429).json({ error: msg("Ya has pedido varios códigos hoy. Usa el último que recibiste (vale 10 minutos) o inténtalo mañana.", "You've already requested several codes today. Use the last one you received (valid 10 minutes) or try again tomorrow.", "Tu as déjà demandé plusieurs codes aujourd'hui. Utilise le dernier reçu (valable 10 minutes) ou réessaie demain.") });
+  if (ip && cnt("SELECT COUNT(*) n FROM login_codes WHERE ip = ? AND created_at > ?", ip, day) >= CODE_MAX_IP_DAY)
+    return res.status(429).json({ error: msg("Demasiadas peticiones desde esta conexión. Inténtalo más tarde.", "Too many requests from this connection. Try again later.", "Trop de demandes depuis cette connexion. Réessaie plus tard.") });
+  if (cnt("SELECT COUNT(*) n FROM login_codes WHERE created_at > ?", day) >= CODE_MAX_GLOBAL_DAY) {
+    logEvent(null, "code_quota", { ip });
+    return res.status(503).json({ error: msg("Hoy no podemos enviar más códigos. Inténtalo mañana; si ya tienes la app abierta en otro dispositivo, sigue usándola ahí.", "We can't send more codes today. Try again tomorrow; if the app is open on another device, keep using it there.", "Nous ne pouvons plus envoyer de codes aujourd'hui. Réessaie demain ; si l'appli est ouverte sur un autre appareil, continue là-bas.") });
+  }
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
   db.prepare("UPDATE login_codes SET used = 1 WHERE email = ? AND used = 0").run(email);
-  db.prepare("INSERT INTO login_codes (email, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?)").run(email, hashCode(email, code), now + CODE_TTL_MS, now);
+  db.prepare("INSERT INTO login_codes (email, code_hash, expires_at, created_at, ip) VALUES (?, ?, ?, ?, ?)").run(email, hashCode(email, code), now + CODE_TTL_MS, now, ip);
   const existing = db.prepare("SELECT lang FROM users WHERE email = ?").get(email);
   const exists = !!existing;
   const lang = existing ? existing.lang : cleanLang(req.body.lang);
