@@ -458,6 +458,17 @@ app.get("/api/admin/backup", admin, async (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 // Métricas de producto: altas, activos, retención, embudo, lecciones y frases difíciles.
+// ¿Está la base de datos en un volumen persistente? Se busca el punto de montaje más largo que contenga DB_PATH
+// (en Railway el volumen es un montaje aparte; el disco del contenedor es "/" u overlay y se pierde en cada deploy).
+function storageInfo() {
+  const dir = path.resolve(path.dirname(DB_PATH)); let mount = "/", dev = "";
+  try { for (const line of fs.readFileSync("/proc/mounts", "utf8").split("\n")) { const [d, mp] = line.split(" "); if (mp && (dir === mp || dir.startsWith(mp.replace(/\/$/, "") + "/")) && mp.length > mount.length) { mount = mp; dev = d; } } } catch (e) {}
+  const onVolume = mount !== "/" && !/^overlay|^tmpfs/.test(dev);
+  const sz = f => { try { return fs.statSync(f).size; } catch (e) { return 0; } };
+  let audioFiles = 0, audioBytes = 0; try { for (const f of fs.readdirSync(AUDIO_DIR)) { audioFiles++; audioBytes += sz(path.join(AUDIO_DIR, f)); } } catch (e) {}
+  let free = null, total = null; try { const st = fs.statfsSync(dir); free = st.bavail * st.bsize; total = st.blocks * st.bsize; } catch (e) {}
+  return { dbPath: DB_PATH, mount, dev, onVolume, dbBytes: sz(DB_PATH) + sz(DB_PATH + "-wal"), audioFiles, audioBytes, free, total };
+}
 app.get("/api/admin/metrics", admin, (req, res) => {
   const today = madridDay();
   const days = Array.from({ length: 30 }, (_, i) => madridDay(i - 29));
@@ -502,7 +513,7 @@ app.get("/api/admin/metrics", admin, (req, res) => {
   const lessons = db.prepare("SELECT lesson_id, COUNT(*) rounds, COUNT(DISTINCT user_id) users, ROUND(100.0*SUM(ok)/SUM(total)) acc FROM rounds WHERE lesson_id IS NOT NULL GROUP BY lesson_id ORDER BY rounds DESC").all();
   const hardest = db.prepare("SELECT eu, es, SUM(lapses) lapses, COUNT(*) users, ROUND(AVG(interval),1) avgInterval FROM items WHERE reps >= 2 GROUP BY key HAVING COUNT(*) >= 2 ORDER BY 1.0*SUM(lapses)/COUNT(*) DESC, lapses DESC LIMIT 20").all();
   const towns = db.prepare("SELECT lower(json_extract(profile,'$.town')) town, COUNT(*) n FROM users WHERE json_extract(profile,'$.town') != '' GROUP BY town ORDER BY n DESC LIMIT 12").all();
-  res.json({ today, days, series: { signups: days.map(d => signups[d] || 0), active: days.map(d => active[d] || 0), rounds: days.map(d => roundsPer[d] || 0), seen: days.map(d => seen[d] || 0) }, totals, funnel, retention, lessons, hardest, towns, mail: MAIL_ON, push: PUSH_ON });
+  res.json({ today, days, series: { signups: days.map(d => signups[d] || 0), active: days.map(d => active[d] || 0), rounds: days.map(d => roundsPer[d] || 0), seen: days.map(d => seen[d] || 0) }, totals, funnel, retention, lessons, hardest, towns, mail: MAIL_ON, push: PUSH_ON, storage: storageInfo() });
 });
 
 // ---------- estadísticas (ranking global top 20 + tu círculo) ----------
