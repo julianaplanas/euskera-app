@@ -183,5 +183,7 @@ Object.assign(window.EN, {
   "Gestionar suscripción": "Manage subscription",
   "Pago recibido; se activará en unos segundos.": "Payment received; it will activate in a few seconds.",
   "Ver planes y códigos": "Plans and codes",
-  "Hazte Premium": "Go Premium"
+  "Hazte Premium": "Go Premium",
+  "Tu círculo, los retos con amigos y el ranking semanal son parte de Premium.": "Your circle, challenges with friends and the weekly ranking are part of Premium.",
+  "o usa un código": "or use a code"
 });

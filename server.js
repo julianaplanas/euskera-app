@@ -417,14 +417,14 @@ app.get("/api/people", auth, (req, res) => {
   const mine = new Set(db.prepare("SELECT friend_id FROM friends WHERE user_id = ?").all(req.user.id).map(r => r.friend_id));
   res.json(rows.map(u => ({ ...personView(u), added: mine.has(u.id) })));
 });
-app.get("/api/friends", auth, (req, res) => {
+app.get("/api/friends", auth, premium, (req, res) => {
   const out = db.prepare("SELECT friend_id id FROM friends WHERE user_id = ?").all(req.user.id).map(r => r.id);
   const inn = db.prepare("SELECT user_id id FROM friends WHERE friend_id = ?").all(req.user.id).map(r => r.id);
   const ids = [...new Set([...out, ...inn])];
   const O = new Set(out), I = new Set(inn);
   res.json(ids.map(id => db.prepare("SELECT * FROM users WHERE id = ?").get(id)).filter(Boolean).map(u => ({ ...personView(u), added: O.has(u.id), addedMe: I.has(u.id) })));
 });
-app.post("/api/friends", auth, (req, res) => {
+app.post("/api/friends", auth, premium, (req, res) => {
   const id = req.body.id | 0; const u = db.prepare("SELECT id FROM users WHERE id = ?").get(id);
   if (!u || id === req.user.id) return res.status(400).json({ error: "Persona no encontrada." });
   db.prepare("INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?)").run(req.user.id, id);
@@ -433,7 +433,7 @@ app.post("/api/friends", auth, (req, res) => {
   sendPush(id, tl ? { title: `${displayName(req.user)} added you`, body: "You can now challenge each other in Taldea.", url: "/#taldea", tag: "friend" } : tl0 === "fr" ? { title: `${displayName(req.user)} t'a ajouté·e`, body: "Vous pouvez maintenant vous défier dans Taldea.", url: "/#taldea", tag: "friend" } : { title: `${displayName(req.user)} te ha añadido`, body: "Ya podéis retaros en Taldea.", url: "/#taldea", tag: "friend" }, "challenges").catch(() => {});
   res.json({ ok: true });
 });
-app.post("/api/friends/remove", auth, (req, res) => { db.prepare("DELETE FROM friends WHERE user_id = ? AND friend_id = ?").run(req.user.id, req.body.id | 0); res.json({ ok: true }); });
+app.post("/api/friends/remove", auth, premium, (req, res) => { db.prepare("DELETE FROM friends WHERE user_id = ? AND friend_id = ?").run(req.user.id, req.body.id | 0); res.json({ ok: true }); });
 
 // ---------- repetición espaciada ----------
 app.get("/api/items", auth, (req, res) => res.json(db.prepare("SELECT key, eu, es, lesson_id, interval, ease, due, reps, lapses, last FROM items WHERE user_id = ?").all(req.user.id)));
@@ -503,11 +503,11 @@ const chView = (c, meId) => {
   const from = db.prepare("SELECT name FROM users WHERE id = ?").get(c.from_id), to = db.prepare("SELECT name FROM users WHERE id = ?").get(c.to_id);
   return { id: c.id, kind: c.kind, fromId: c.from_id, toId: c.to_id, from: from ? from.name : "?", to: to ? to.name : "?", mine: c.from_id === meId, forMe: c.to_id === meId, payload: J(c.payload, {}), fromResult: J(c.from_result, null), toResult: J(c.to_result, null), status: c.status, createdAt: c.created_at };
 };
-app.get("/api/challenges", auth, (req, res) => {
+app.get("/api/challenges", auth, premium, (req, res) => {
   const rows = db.prepare("SELECT * FROM challenges WHERE from_id = ? OR to_id = ? ORDER BY id DESC LIMIT 40").all(req.user.id, req.user.id);
   res.json(rows.map(c => chView(c, req.user.id)));
 });
-app.post("/api/challenges", auth, (req, res) => {
+app.post("/api/challenges", auth, premium, (req, res) => {
   const to = db.prepare("SELECT id FROM users WHERE id = ?").get(req.body.toId | 0);
   if (!to || to.id === req.user.id) return res.status(400).json({ error: "Elige a otra persona." });
   const kind = req.body.kind === "task" ? "task" : "duel";
@@ -523,7 +523,7 @@ app.post("/api/challenges", auth, (req, res) => {
   res.json(chView(db.prepare("SELECT * FROM challenges WHERE id = ?").get(info.lastInsertRowid), req.user.id));
 });
 // Reto a una persona al azar entre quienes se han marcado disponibles (activas en los últimos 21 días).
-app.post("/api/challenges/random", auth, (req, res) => {
+app.post("/api/challenges/random", auth, premium, (req, res) => {
   const since = madridDay(-21);
   const cands = db.prepare(`SELECT id FROM users WHERE open_duel = 1 AND id != ? AND last_seen >= ?
     AND id NOT IN (SELECT to_id FROM challenges WHERE from_id = ? AND status = 'open')`).all(req.user.id, since, req.user.id);
@@ -537,7 +537,7 @@ app.post("/api/challenges/random", auth, (req, res) => {
   res.json(chView(db.prepare("SELECT * FROM challenges WHERE id = ?").get(info.lastInsertRowid), req.user.id));
 });
 app.get("/api/challenges/open-count", auth, (req, res) => res.json({ n: db.prepare("SELECT COUNT(*) n FROM users WHERE open_duel = 1 AND id != ? AND last_seen >= ?").get(req.user.id, madridDay(-21)).n }));
-app.post("/api/challenges/:id/result", auth, (req, res) => {
+app.post("/api/challenges/:id/result", auth, premium, (req, res) => {
   const c = db.prepare("SELECT * FROM challenges WHERE id = ?").get(req.params.id);
   if (!c || (c.from_id !== req.user.id && c.to_id !== req.user.id)) return res.status(404).json({ error: "Reto no encontrado." });
   const col = c.from_id === req.user.id ? "from_result" : "to_result";
@@ -556,6 +556,8 @@ app.post("/api/challenges/:id/result", auth, (req, res) => {
 });
 
 // ---------- admin (ADMIN_KEY en Railway) ----------
+// Taldea (círculo, retos, ranking) es Premium.
+function premium(req, res, next) { if (!premiumOf(req.user).active) return res.status(402).json({ error: "Taldea es parte de Premium.", premium: true }); next(); }
 function admin(req, res, next) {
   const key = process.env.ADMIN_KEY;
   if (!key) return res.status(503).json({ error: "ADMIN_KEY no configurada." });

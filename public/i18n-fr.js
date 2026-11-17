@@ -6141,5 +6141,7 @@ Object.assign(window.FR, {
   "Gestionar suscripción": "Gérer l'abonnement",
   "Pago recibido; se activará en unos segundos.": "Paiement reçu ; activation dans quelques secondes.",
   "Ver planes y códigos": "Offres et codes",
-  "Hazte Premium": "Passer Premium"
+  "Hazte Premium": "Passer Premium",
+  "Tu círculo, los retos con amigos y el ranking semanal son parte de Premium.": "Ton cercle, les défis entre amis et le classement hebdomadaire font partie de Premium.",
+  "o usa un código": "ou utilise un code"
 });

@@ -933,6 +933,12 @@ const TASKS=[
   {need:"l1",t:"Despídete de {X} en euskera de dos formas distintas y escríbelas",check:""}
 ];
 async function renderTeam(){
+  if(!premActive()){
+    app.innerHTML=header()+`<div class="stack pad" style="padding-top:18px;gap:12px"><p class="eyebrow">Taldea</p>
+      <div class="card" style="display:flex;gap:14px;align-items:center"><div style="flex:none">${OLEN("wave",56)}</div><p style="margin:0">${T("Tu círculo, los retos con amigos y el ranking semanal son parte de Premium.")}</p></div>
+      ${inTWA?`<p class="muted">${T("La suscripción se gestiona desde tu cuenta en la web.")}</p>`:`<button class="btn red" id="plans">${T("Hazte Premium")}<small>${T("o usa un código")}</small></button>`}</div>`;
+    const pb=document.getElementById("plans"); if(pb) pb.onclick=()=>renderPlans(); return;
+  }
   app.innerHTML=header()+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
   let friends=[], chs=[], sd={users:[],rank:{}}, oc={n:0}; try{ [friends,chs,sd,oc]=await Promise.all([api("friends"),api("challenges"),api("stats"),api("challenges/open-count")]); }catch(e){}
   const fid=new Set(friends.map(f=>f.id));
