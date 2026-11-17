@@ -3,53 +3,118 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pribatutasuna · Política de privacidad — Euskara Praktika</title>
+<meta name="color-scheme" content="light">
+<title>Pribatutasuna · Euskara Praktika</title>
 <link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  body{font-family:"Inter",system-ui,sans-serif;background:#FFFFFF;color:#141414;margin:0;padding:24px;line-height:1.5}
+  :root{--bg:#FFFFFF;--card:#F6F5F1;--ink:#161412;--muted:#6B675F;--line:rgba(22,20,18,.22);--red:#C1281E}
+  body{font-family:"Inter",system-ui,sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:24px 20px 60px;line-height:1.55;font-size:15px}
   main{max-width:680px;margin:0 auto}
-  h1{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;letter-spacing:.5px;font-size:2rem;margin:0 0 4px}
-  h2{font-size:1.1rem;margin:28px 0 6px;border-bottom:2px solid #141414;padding-bottom:4px}
-  .es{color:#5A5A5A;font-size:.95rem;margin:0 0 20px}
-  code{background:#FFFDF6;border:1px solid #141414;padding:1px 5px;border-radius:3px}
-  a{color:#C8281F}
+  h1{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:2rem;margin:0 0 4px}
+  h2{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:1.15rem;margin:28px 0 6px}
+  .sub{color:var(--muted);font-size:.95rem;margin:0 0 18px}
+  .langs{display:flex;gap:8px;margin:0 0 24px}
+  .langs button{font:inherit;font-weight:600;font-size:13px;padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  .langs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  section[hidden]{display:none}
+  ul{padding-left:20px} li{margin:6px 0}
+  code{background:var(--card);padding:1px 6px;border-radius:4px;font-size:.9em}
+  a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)} a:hover{text-decoration-color:var(--ink)}
+  .back{display:inline-block;margin-bottom:18px;font-size:14px;font-weight:600}
 </style>
 </head>
 <body>
 <main>
+  <a class="back" href="/">‹ Euskara Praktika</a>
   <h1>Pribatutasun-politika</h1>
-  <p class="es">Política de privacidad de Euskara Praktika · Última actualización: 16 de noviembre de 2026</p>
+  <p class="sub" id="updated">Política de privacidad · Privacy policy · Politique de confidentialité — 17/11/2026</p>
+  <div class="langs" role="tablist"><button data-l="es" aria-pressed="true">Castellano</button><button data-l="en" aria-pressed="false">English</button><button data-l="fr" aria-pressed="false">Français</button></div>
 
-  <h2>Qué es Euskara Praktika</h2>
-  <p>Euskara Praktika es una aplicación para practicar euskera entre clases. La desarrolla y mantiene NOMBRE DE LA RESPONSABLE, Madrid (España). Contacto: <a href="mailto:CONTACTO@EJEMPLO.COM">CONTACTO@EJEMPLO.COM</a>.</p>
+  <section data-l="es">
+    <h2>Qué es Euskara Praktika</h2>
+    <p>Euskara Praktika es una aplicación para practicar euskera. La desarrolla y mantiene <span class="owner">Juliana Planas</span>, Madrid (España). Contacto: <a class="mail" href="mailto:planasjuliana@gmail.com">planasjuliana@gmail.com</a>.</p>
+    <h2>Qué datos guardamos</h2>
+    <ul>
+      <li><strong>Cuenta:</strong> tu correo electrónico (para entrar con un código de un solo uso y para avisos imprescindibles sobre tu cuenta), el nombre que eliges mostrar y el idioma de apoyo. No hay contraseñas. Los códigos se guardan cifrados y caducan a los 10 minutos.</li>
+      <li><strong>Perfil opcional:</strong> género gramatical, edad, ciudad, lugar de origen y número de hermanos. Se usan solo para personalizar las frases de práctica (por ejemplo, «Madrilen bizi naiz»).</li>
+      <li><strong>Progreso:</strong> qué frases has practicado, aciertos y errores, fechas de repaso y puntos de cada día. Sirven para el repaso espaciado y para el ranking semanal.</li>
+      <li><strong>Retos y círculo:</strong> las personas que añades a tu círculo, los retos y tareas que envías o recibes y su resultado. Si marcas «disponible», cualquier usuario puede retarte.</li>
+      <li><strong>Avisos (opcional):</strong> si activas las notificaciones, guardamos la suscripción push de tu navegador o móvil. Puedes desactivarlas cuando quieras desde tu perfil.</li>
+      <li><strong>Datos técnicos:</strong> una cookie de sesión (<code>session</code>) para mantenerte identificado y un registro interno de uso (fecha de alta, rondas hechas, avisos activados) que usamos solo en conjunto para mejorar la app. No usamos cookies de terceros, analítica externa ni publicidad.</li>
+    </ul>
+    <h2>Qué ven otros usuarios</h2>
+    <p>Tu nombre, tu ciudad (si la pones), tus puntos de la semana, cuántas frases tienes firmes y tu racha pueden verlos otras personas al buscarte por nombre, en su círculo (Taldea) y en el ranking semanal. Tu correo, tu edad, tu origen, tus hermanos y tus errores concretos no se muestran a nadie.</p>
+    <h2>Servicios de terceros</h2>
+    <p>Los correos con el código se envían a través de Resend, que solo recibe tu dirección y el código. Las frases en euskera se convierten a voz con Google Cloud Text-to-Speech: solo se envía a Google el texto de la frase, nunca datos sobre ti, y el audio se guarda en nuestro servidor para reutilizarlo. Las notificaciones se entregan a través del servicio push de tu navegador (Apple, Google o Mozilla).</p>
+    <h2>Dónde se guardan y durante cuánto tiempo</h2>
+    <p>Los datos se almacenan en un servidor de Railway en una base de datos propia, con copias de seguridad. Se conservan mientras tu cuenta exista. No vendemos ni cedemos datos a terceros.</p>
+    <h2>Cómo borrar tu cuenta</h2>
+    <p>Dentro de la app: <strong>Nire profila → Kontua ezabatu</strong>, escribe tu correo y confirma. Se eliminan de inmediato tu usuario, perfil, progreso, retos y suscripciones de avisos. Si no puedes entrar, escribe a <a class="mail" href="mailto:planasjuliana@gmail.com">planasjuliana@gmail.com</a> desde el correo con el que te registraste y lo borramos en un plazo máximo de 7 días.</p>
+    <h2>Menores</h2>
+    <p>La app está pensada para adultos. No recogemos conscientemente datos de menores de 14 años.</p>
+    <h2>Tus derechos</h2>
+    <p>Conforme al RGPD puedes acceder, rectificar, portar o suprimir tus datos escribiendo a la dirección de contacto, y reclamar ante la Agencia Española de Protección de Datos. Si cambiamos esta política, actualizaremos la fecha de arriba.</p>
+  </section>
 
-  <h2>Qué datos guardamos</h2>
-  <ul>
-    <li><strong>Cuenta:</strong> tu dirección de correo electrónico (para entrar con un código de un solo uso y para avisos imprescindibles sobre tu cuenta) y el nombre que eliges para mostrar. No hay contraseñas. Los códigos de acceso se guardan cifrados y caducan a los 10 minutos.</li>
-    <li><strong>Perfil opcional:</strong> género gramatical, edad, ciudad, lugar de origen y número de hermanos. Se usan solo para personalizar las frases de práctica (por ejemplo, "Madrilen bizi naiz").</li>
-    <li><strong>Progreso:</strong> qué frases has practicado, tus aciertos y errores, las fechas de repaso y los puntos de cada día. Sirven para el repaso espaciado y para el ranking semanal entre usuarios.</li>
-    <li><strong>Retos:</strong> los retos que envías o recibes de otros usuarios y su resultado.</li>
-    <li><strong>Avisos (opcional):</strong> si activas las notificaciones, guardamos la suscripción push de tu navegador o móvil para poder enviarte el recordatorio diario. Puedes desactivarlas en cualquier momento desde tu perfil.</li>
-    <li><strong>Datos técnicos:</strong> una cookie de sesión (<code>session</code>) para mantenerte identificado y un registro interno de uso (fecha de alta, rondas hechas, avisos activados) que usamos solo en conjunto para mejorar la app. No usamos cookies de terceros, analítica externa ni publicidad.</li>
-  </ul>
+  <section data-l="en" hidden lang="en">
+    <h2>What Euskara Praktika is</h2>
+    <p>Euskara Praktika is an app for practising Basque. It is developed and run by <span class="owner">Juliana Planas</span>, Madrid (Spain). Contact: <a class="mail" href="mailto:planasjuliana@gmail.com">planasjuliana@gmail.com</a>.</p>
+    <h2>What we store</h2>
+    <ul>
+      <li><strong>Account:</strong> your email address (to sign in with a one-time code and for essential notices about your account), the display name you choose and your support language. There are no passwords. Codes are stored hashed and expire after 10 minutes.</li>
+      <li><strong>Optional profile:</strong> grammatical gender, age, town, place of origin and number of siblings. Used only to personalise practice sentences (for example, “Madrilen bizi naiz”).</li>
+      <li><strong>Progress:</strong> which phrases you have practised, hits and misses, review dates and daily points. Used for spaced repetition and the weekly ranking.</li>
+      <li><strong>Challenges and circle:</strong> the people you add to your circle, the duels and tasks you send or receive and their results. If you tick “available”, any user may challenge you.</li>
+      <li><strong>Notifications (optional):</strong> if you turn them on, we store your browser or phone push subscription. You can turn them off at any time from your profile.</li>
+      <li><strong>Technical data:</strong> a session cookie (<code>session</code>) to keep you signed in, and an internal usage log (sign-up date, rounds done, notifications on) used only in aggregate to improve the app. No third-party cookies, external analytics or advertising.</li>
+    </ul>
+    <h2>What other users see</h2>
+    <p>Your display name, your town (if you set it), your weekly points, how many phrases you have solid and your streak can be seen by others when they search for you by name, in their circle (Taldea) and in the weekly ranking. Your email, age, origin, siblings and specific mistakes are never shown to anyone.</p>
+    <h2>Third-party services</h2>
+    <p>Code emails are sent through Resend, which receives only your address and the code. Basque phrases are turned into speech with Google Cloud Text-to-Speech: only the phrase text is sent to Google, never data about you, and the audio is cached on our server. Notifications are delivered through your browser’s push service (Apple, Google or Mozilla).</p>
+    <h2>Where and for how long</h2>
+    <p>Data is stored on a Railway server in our own database, with backups, for as long as your account exists. We do not sell or share data with third parties.</p>
+    <h2>Deleting your account</h2>
+    <p>In the app: <strong>Nire profila → Kontua ezabatu</strong>, type your email and confirm. Your user, profile, progress, challenges and push subscriptions are deleted immediately. If you cannot sign in, email <a class="mail" href="mailto:planasjuliana@gmail.com">planasjuliana@gmail.com</a> from the address you registered with and we will delete it within 7 days.</p>
+    <h2>Minors</h2>
+    <p>The app is meant for adults. We do not knowingly collect data from children under 14.</p>
+    <h2>Your rights</h2>
+    <p>Under the GDPR you can access, rectify, port or erase your data by writing to the contact address, and lodge a complaint with the Spanish Data Protection Agency (AEPD). If this policy changes, the date above will be updated.</p>
+  </section>
 
-  <h2>Qué datos ven otros usuarios</h2>
-  <p>Tu nombre para mostrar, tu ciudad (si la pones), tus puntos de la semana, cuántas frases tienes firmes y tu racha pueden verlos otras personas al buscarte por nombre, en su círculo (Taldea) y en el ranking semanal. Tu correo, tu edad, tu origen, tus hermanos y tus errores concretos no se muestran a nadie.</p>
-
-  <h2>Audio</h2>
-  <p>Los correos con el código de acceso se envían a través de Resend; solo recibe tu dirección y el código. Las frases en euskera se convierten a voz con Google Cloud Text-to-Speech. Solo se envía a Google el texto en euskera de la frase, nunca datos sobre ti. El audio generado se guarda en nuestro servidor para reutilizarlo.</p>
-
-  <h2>Dónde se guardan y durante cuánto tiempo</h2>
-  <p>Los datos se almacenan en un servidor de Railway (Unión Europea / Estados Unidos según la región del despliegue) en una base de datos propia. Se conservan mientras tu cuenta exista. No vendemos ni cedemos datos a terceros.</p>
-
-  <h2>Cómo borrar tu cuenta</h2>
-  <p>Dentro de la app: <strong>Profila → Kontua ezabatu / Borrar mi cuenta</strong>, escribe tu correo y confirma. Se eliminan de inmediato tu usuario, perfil, progreso, retos y suscripciones de avisos. Si no puedes entrar en la app, escribe a <a href="mailto:CONTACTO@EJEMPLO.COM">CONTACTO@EJEMPLO.COM</a> indicando tu nombre de usuario y lo borramos en un plazo máximo de 7 días.</p>
-
-  <h2>Menores</h2>
-  <p>La app está pensada para adultos que estudian euskera. No recogemos conscientemente datos de menores de 14 años.</p>
-
-  <h2>Tus derechos</h2>
-  <p>Conforme al RGPD puedes acceder, rectificar, portar o suprimir tus datos escribiendo a la dirección de contacto. Si cambiamos esta política, actualizaremos la fecha de arriba.</p>
+  <section data-l="fr" hidden lang="fr">
+    <h2>Qu’est-ce qu’Euskara Praktika</h2>
+    <p>Euskara Praktika est une application pour pratiquer le basque. Elle est développée et gérée par <span class="owner">Juliana Planas</span>, Madrid (Espagne). Contact : <a class="mail" href="mailto:planasjuliana@gmail.com">planasjuliana@gmail.com</a>.</p>
+    <h2>Quelles données nous conservons</h2>
+    <ul>
+      <li><strong>Compte :</strong> ton adresse e-mail (pour te connecter avec un code à usage unique et pour les avis indispensables sur ton compte), le prénom que tu choisis d’afficher et ta langue d’appui. Pas de mot de passe. Les codes sont stockés chiffrés et expirent au bout de 10 minutes.</li>
+      <li><strong>Profil facultatif :</strong> genre grammatical, âge, ville, lieu d’origine et nombre de frères et sœurs. Utilisés uniquement pour personnaliser les phrases d’entraînement (par exemple « Madrilen bizi naiz »).</li>
+      <li><strong>Progression :</strong> les phrases pratiquées, réussites et erreurs, dates de révision et points de chaque jour. Ils servent à la répétition espacée et au classement hebdomadaire.</li>
+      <li><strong>Défis et cercle :</strong> les personnes que tu ajoutes à ton cercle, les défis et tâches envoyés ou reçus et leurs résultats. Si tu coches « disponible », n’importe quel utilisateur peut te défier.</li>
+      <li><strong>Notifications (facultatif) :</strong> si tu les actives, nous conservons l’abonnement push de ton navigateur ou de ton téléphone. Tu peux les désactiver à tout moment depuis ton profil.</li>
+      <li><strong>Données techniques :</strong> un cookie de session (<code>session</code>) pour te garder connecté·e et un journal d’usage interne (date d’inscription, séries faites, notifications activées) utilisé seulement de façon agrégée pour améliorer l’appli. Pas de cookies tiers, d’analytique externe ni de publicité.</li>
+    </ul>
+    <h2>Ce que voient les autres utilisateurs</h2>
+    <p>Ton prénom, ta ville (si tu la renseignes), tes points de la semaine, le nombre de phrases acquises et ta série de jours peuvent être vus par d’autres personnes quand elles te cherchent par prénom, dans leur cercle (Taldea) et dans le classement hebdomadaire. Ton e-mail, ton âge, ton origine, tes frères et sœurs et tes erreurs précises ne sont montrés à personne.</p>
+    <h2>Services tiers</h2>
+    <p>Les e-mails contenant le code sont envoyés via Resend, qui ne reçoit que ton adresse et le code. Les phrases en basque sont converties en voix avec Google Cloud Text-to-Speech : seul le texte de la phrase est envoyé à Google, jamais de données sur toi, et l’audio est conservé sur notre serveur pour être réutilisé. Les notifications passent par le service push de ton navigateur (Apple, Google ou Mozilla).</p>
+    <h2>Où et combien de temps</h2>
+    <p>Les données sont stockées sur un serveur Railway dans notre propre base de données, avec des sauvegardes, tant que ton compte existe. Nous ne vendons ni ne cédons de données à des tiers.</p>
+    <h2>Supprimer ton compte</h2>
+    <p>Dans l’appli : <strong>Nire profila → Kontua ezabatu</strong>, écris ton e-mail et confirme. Ton utilisateur, ton profil, ta progression, tes défis et tes abonnements push sont supprimés immédiatement. Si tu ne peux pas te connecter, écris à <a class="mail" href="mailto:planasjuliana@gmail.com">planasjuliana@gmail.com</a> depuis l’adresse avec laquelle tu t’es inscrit·e et nous supprimons tout sous 7 jours.</p>
+    <h2>Mineurs</h2>
+    <p>L’appli s’adresse aux adultes. Nous ne collectons pas sciemment de données de mineurs de moins de 14 ans.</p>
+    <h2>Tes droits</h2>
+    <p>Conformément au RGPD, tu peux accéder à tes données, les rectifier, les porter ou les supprimer en écrivant à l’adresse de contact, et déposer une réclamation auprès de l’autorité espagnole de protection des données (AEPD). Si cette politique change, la date ci-dessus sera mise à jour.</p>
+  </section>
 </main>
+<script>
+  const pick=l=>{ document.querySelectorAll("section[data-l]").forEach(s=>s.hidden=s.dataset.l!==l); document.querySelectorAll(".langs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===l)); document.documentElement.lang=l; };
+  document.querySelectorAll(".langs button").forEach(b=>b.onclick=()=>pick(b.dataset.l));
+  let l="es"; try{ const q=new URLSearchParams(location.search).get("lang"); l=q||localStorage.getItem("euskara.lang")||"es"; }catch(e){}
+  if(!["es","en","fr"].includes(l)) l="es"; pick(l);
+</script>
 </body>
 </html>

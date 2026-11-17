@@ -431,7 +431,7 @@ function renderLogin(){
   app.innerHTML=loginHead("Kaixo!",T("Entra o crea tu cuenta con tu correo"))+`
    <div class="stack pad" style="padding-top:22px"><p class="muted">${T("Te mandamos un código de 6 cifras al correo. Sin contraseñas: la sesión se queda abierta en este dispositivo.")}</p>
     <form id="f" class="stack"><input class="ans" id="email" type="email" placeholder="${T("tu@correo.com")}" autocomplete="email" autocapitalize="none" inputmode="email" required value="${esc(saved)}"><p class="err" id="err"></p><button class="btn red bi" type="submit">Bidali kodea<small>${T("Enviar código")}</small></button></form>
-    <p class="hint" style="text-align:center">${T("Al entrar aceptas la")} <a href="privacy.html" target="_blank" rel="noopener">${T("política de privacidad")}</a>. <button class="link" id="chlang" type="button" style="font-size:13px">🌐 ${LANG==="es"?"English · Français":LANG==="en"?"Castellano · Français":"Castellano · English"}</button></p></div>`;
+    <p class="hint" style="text-align:center">${T("Al entrar aceptas la")} <a href="privacy.html?lang=${LANG}" target="_blank" rel="noopener">${T("política de privacidad")}</a>. <button class="link" id="chlang" type="button" style="font-size:13px">🌐 ${LANG==="es"?"English · Français":LANG==="en"?"Castellano · Français":"Castellano · English"}</button></p></div>`;
   document.getElementById("f").onsubmit=async e=>{ e.preventDefault(); const email=document.getElementById("email").value.trim().toLowerCase(); const err=document.getElementById("err"); err.textContent=""; const btn=e.target.querySelector("button"); btn.disabled=true;
     try{ const r=await api("auth/request",{email,lang:LANG}); try{ localStorage.setItem(EMAIL_KEY,email); }catch(x){} renderCode(email,r); }catch(ex){ err.textContent=ex.message; btn.disabled=false; } };
 }
@@ -481,7 +481,7 @@ function renderProfile(first=false){
       <input class="ans" id="delmail" type="email" placeholder="${T("tu@correo.com")}" autocomplete="off" style="margin-top:8px">
       <button class="btn bi" id="delacc" style="margin-top:8px">Ezabatu betiko<small>${T("Borrar para siempre")}</small></button>
       <p class="hint" id="delmsg"></p>
-      <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Pribatutasuna · ${T("Política de privacidad")}</a></p>
+      <p class="hint"><a href="privacy.html?lang=${LANG}" target="_blank" rel="noopener">Pribatutasuna · ${T("Política de privacidad")}</a></p>
     </details>`}
    </div>
    <div class="bottom pad"><button class="btn red bi" id="save">Gorde<small>${T("Guardar")}</small></button></div>`;
