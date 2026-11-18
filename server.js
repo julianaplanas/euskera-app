@@ -111,8 +111,12 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
 // dentro de la app nativa (Capacitor añade "EuskaraPraktikaApp" al user-agent). Otros hosts (Railway) siguen sirviendo la app.
 const LANDING_HOSTS = (process.env.LANDING_HOSTS || "euskarapraktika.eus,www.euskarapraktika.eus").split(",").map(s => s.trim()).filter(Boolean);
 const isNativeApp = (req) => /EuskaraPraktikaApp/.test(req.get("user-agent") || "");
+// Vista previa en el navegador (para probar sin móvil): /?app=1 deja una cookie de 90 días y a partir de ahí se sirve la app; /?app=0 la quita.
 app.use((req, res, next) => {
   if (!LANDING_HOSTS.includes(req.hostname) || isNativeApp(req)) return next();
+  if (req.query.app === "1") { res.cookie("ep_app", "1", { maxAge: 90 * 86400000, httpOnly: true, sameSite: "lax", secure: req.secure }); return res.redirect("/"); }
+  if (req.query.app === "0") { res.clearCookie("ep_app"); return res.redirect("/"); }
+  if (req.cookies && req.cookies.ep_app === "1") return next();
   if (req.path === "/" || req.path === "/index.html") return res.sendFile(path.join(__dirname, "public", "landing.html"));
   next();
 });
