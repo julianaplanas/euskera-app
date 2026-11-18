@@ -418,7 +418,7 @@ function firmPct(l,m){ const its=lessonItems(l); return its.filter(x=>m[x.key]&&
 const premActive=()=>!!(P&&P.premium&&P.premium.active);
 const premLocked=l=>!!(P&&l.module>(P.freeModules||1)&&!premActive());
 // La app de Google Play no puede mostrar precios ni enlaces de compra (política de Play): se detecta por el referrer de la TWA.
-const inTWA=(()=>{ try{ if(document.referrer.startsWith("android-app://")) sessionStorage.setItem("euskara.twa","1"); return sessionStorage.getItem("euskara.twa")==="1"; }catch(e){ return false; } })();
+const inTWA=(()=>{ try{ if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()) return true; if(document.referrer.startsWith("android-app://")) sessionStorage.setItem("euskara.twa","1"); return sessionStorage.getItem("euskara.twa")==="1"; }catch(e){ return false; } })();
 function unlockedIds(){ const m=imap(); const out=new Set(); for(let i=0;i<LESSONS.length;i++){ if(premLocked(LESSONS[i])) break; if(i===0||seenPct(LESSONS[i-1],m)>=0.8) out.add(LESSONS[i].id); else break; } return out; }
 function isUnlocked(l){ return unlockedIds().has(l.id); }
 function moduleOf(l){ return MODULES.find(x=>x.id===l.module)||MODULES[0]; }

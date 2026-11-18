@@ -1,0 +1,18 @@
+{
+  "appId": "eus.euskarapraktika.app",
+  "appName": "Euskara Praktika",
+  "webDir": "www",
+  "server": {
+    "url": "https://www.euskarapraktika.eus",
+    "cleartext": false,
+    "errorPath": "index.html"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#FFFFFF"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#FFFFFF"
+  }
+}

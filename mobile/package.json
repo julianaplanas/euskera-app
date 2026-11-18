@@ -1,0 +1,18 @@
+{
+  "name": "euskara-praktika-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Apps nativas (Capacitor) de Euskara Praktika: cargan https://www.euskarapraktika.eus",
+  "scripts": {
+    "sync": "cap sync",
+    "assets": "capacitor-assets generate --android --iconBackgroundColor '#FFFFFF' --iconBackgroundColorDark '#161412' --splashBackgroundColor '#FFFFFF' --splashBackgroundColorDark '#161412'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0"
+  }
+}

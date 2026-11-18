@@ -3,3 +3,14 @@ data/
 *.db
 *.db-*
 node_modules
+
+# Apps nativas (Capacitor)
+mobile/node_modules/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/.idea/
+mobile/ios/App/Pods/
+*.jks
+*.keystore
