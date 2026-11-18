@@ -339,7 +339,11 @@ async function inboundMail(req, res) {
 const FREE_MODULES = +process.env.FREE_MODULES || 1;
 const PLANS = { month: { months: 1, amount: 399 }, quarter: { months: 3, amount: 999 }, half: { months: 6, amount: 1999 }, life: { months: 0, amount: 4999 } }; // life = pago único (producto premium_lifetime en Play)
 const FOREVER = "2099-12-31";
-const LESSON_MODULE = (() => { try { const w = {}; new Function("window", fs.readFileSync(path.join(__dirname, "public", "lessons.js"), "utf8"))(w); return Object.fromEntries(w.LESSONS.map(l => [l.id, l.module])); } catch (e) { console.error("No se pudo leer lessons.js:", e.message); return {}; } })();
+const LESSON_DATA = (() => { try { const w = {}; new Function("window", fs.readFileSync(path.join(__dirname, "public", "lessons.js"), "utf8"))(w); return w; } catch (e) { console.error("No se pudo leer lessons.js:", e.message); return { LESSONS: [], MODULES: [] }; } })();
+const LESSON_MODULE = Object.fromEntries(LESSON_DATA.LESSONS.map(l => [l.id, l.module]));
+const MODULE_BY_ID = Object.fromEntries(LESSON_DATA.MODULES.map(m => [m.id, m]));
+// Módulos de temporada (p. ej. Gabonak): abiertos y gratis solo entre sus fechas (MM-DD, puede cruzar el año nuevo).
+const seasonOpen = (mod, day = madridDay()) => { if (!mod || !mod.season || process.env.SEASON_ALL === "1") return true; const md = day.slice(5), { from, to } = mod.season; return from <= to ? (md >= from && md <= to) : (md >= from || md <= to); };
 const setting = (k, v) => v === undefined ? (db.prepare("SELECT v FROM settings WHERE k = ?").get(k) || {}).v : db.prepare("INSERT INTO settings (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").run(k, v);
 function premiumOf(user) {
   const today = madridDay();
@@ -347,9 +351,9 @@ function premiumOf(user) {
   return { active, until: user.premium_until || null, src: user.premium_src || null, status: user.sub_status || null, cancels: !!user.sub_cancel, plan: user.sub_plan || null, store: user.sub_store || null, managed: !!user.sub_product };
 }
 // Gratis = FREE_MODULES módulos a partir del módulo por el que el usuario empezó (start_module); el resto, premium.
-const MODULE_COUNT = (() => { try { return Math.max(...Object.values(LESSON_MODULE)); } catch (e) { return 16; } })();
+const MODULE_COUNT = (() => { try { return Math.max(...LESSON_DATA.MODULES.filter(m => !m.season).map(m => m.id)); } catch (e) { return 16; } })();
 const freeWindow = (user) => { const from = Math.max(1, Math.min(MODULE_COUNT, user.start_module || 1)); return { from, to: from + FREE_MODULES - 1 }; };
-const lessonAllowed = (user, lessonId) => { const m = LESSON_MODULE[lessonId]; if (!m) return true; const w = freeWindow(user); return (m >= w.from && m <= w.to) || premiumOf(user).active; };
+const lessonAllowed = (user, lessonId) => { const m = LESSON_MODULE[lessonId]; if (!m) return true; const mod = MODULE_BY_ID[m]; if (mod && mod.season) return seasonOpen(mod); if (mod && mod.free) return true; const w = freeWindow(user); return (m >= w.from && m <= w.to) || premiumOf(user).active; };
 function addPremiumDays(userId, days, src) {
   const u = db.prepare("SELECT premium_until FROM users WHERE id = ?").get(userId); const today = madridDay();
   const base = u && u.premium_until && u.premium_until > today ? new Date(u.premium_until + "T12:00:00Z") : new Date(today + "T12:00:00Z");

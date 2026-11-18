@@ -419,13 +419,17 @@ function firmPct(l,m){ const its=lessonItems(l); return its.filter(x=>m[x.key]&&
 const premActive=()=>!!(P&&P.premium&&P.premium.active);
 // Gratis = P.freeModules módulos desde el módulo de inicio (P.startModule). Módulos anteriores al inicio o saltados («ya sé esto») no bloquean el camino.
 const freeWin=()=>{ const from=(P&&P.startModule)||1; return {from,to:from+((P&&P.freeModules)||1)-1}; };
-const premLocked=l=>{ if(!P||premActive()) return false; const w=freeWin(); return l.module<w.from||l.module>w.to; };
+const seasonOpen=mod=>{ if(!mod||!mod.season) return true; const d=new Date(); const md=String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); const {from,to}=mod.season; return from<=to?(md>=from&&md<=to):(md>=from||md<=to); };
+const isSeasonMod=mid=>{ const m=MODULES.find(x=>x.id===mid); return !!(m&&m.season); };
+const MAIN_MODULES=MODULES.filter(m=>!m.season);
+const premLocked=l=>{ if(!P||premActive()) return false; const mod=MODULES.find(x=>x.id===l.module); if(mod&&(mod.free||mod.season)) return false; const w=freeWin(); return l.module<w.from||l.module>w.to; };
 const beforeStart=mid=>!!(P&&mid<((P.startModule)||1));
 const isSkipped=mid=>!!(P&&(P.skipped||[]).includes(mid));
 const modPassed=(mid,m)=>beforeStart(mid)||isSkipped(mid)||LESSONS.filter(l=>l.module===mid).every(l=>seenPct(l,m)>=0.8);
 // La app de Google Play no puede mostrar precios ni enlaces de compra (política de Play): se detecta por el referrer de la TWA.
 function unlockedIds(){ const m=imap(); const out=new Set();
   for(let i=0;i<LESSONS.length;i++){ const l=LESSONS[i]; if(premLocked(l)) continue;
+    if(isSeasonMod(l.module)){ const mod=MODULES.find(x=>x.id===l.module); if(!seasonOpen(mod)) continue; const prev=LESSONS[i-1]; if(!prev||prev.module!==l.module||(out.has(prev.id)&&seenPct(prev,m)>=0.8)) out.add(l.id); continue; } // módulo de temporada: va aparte del camino
     if(beforeStart(l.module)||isSkipped(l.module)){ out.add(l.id); continue; } // territorio ya conocido: todo abierto
     const prev=LESSONS[i-1]; const ok=!prev||(prev.module!==l.module?modPassed(prev.module,m):(out.has(prev.id)&&seenPct(prev,m)>=0.8));
     if(ok) out.add(l.id); }
@@ -673,7 +677,7 @@ const seenWelcome=()=>{ try{ return localStorage.getItem("euskara.welcome."+P.id
 function dueToday(){ const t=todayStr(); return ITEMS.filter(i=>i.due<=t).sort((a,b)=>a.due<b.due?-1:a.due>b.due?1:b.lapses-a.lapses); }
 function nextNew(n){
   const known=new Set(ITEMS.map(i=>i.key)); const out=[];
-  const ul=unlockedIds(); for(const l of LESSONS){ if(beforeStart(l.module)||isSkipped(l.module)) continue; if(!ul.has(l.id)) break; for(const it of lessonItems(l)) if(!known.has(it.key)){ out.push(it); if(out.length>=n) return out; } if(out.length) return out; }
+  const ul=unlockedIds(); for(const l of LESSONS){ if(isSeasonMod(l.module)) continue; if(beforeStart(l.module)||isSkipped(l.module)) continue; if(!ul.has(l.id)) break; for(const it of lessonItems(l)) if(!known.has(it.key)){ out.push(it); if(out.length>=n) return out; } if(out.length) return out; }
   return out;
 }
 function todayPlan(){
@@ -852,7 +856,7 @@ async function finish(){
 
 // ---------- IKASGAIAK ----------
 // "A1 · Baiona → Portugalete · A2 · Durango → …": un tramo por nivel
-function pathRange(){ const lv=[]; MODULES.forEach(m=>{ if(m.level&&!lv.find(x=>x.level===m.level)) lv.push({level:m.level,from:m.town,to:m.town}); else if(lv.length) lv[lv.length-1].to=m.town; }); return lv.map(x=>x.from===x.to?`${x.level} · ${x.from}`:`${x.level} · ${x.from} → ${x.to}`).join(" · "); }
+function pathRange(){ const lv=[]; MAIN_MODULES.forEach(m=>{ if(m.level&&!lv.find(x=>x.level===m.level)) lv.push({level:m.level,from:m.town,to:m.town}); else if(lv.length) lv[lv.length-1].to=m.town; }); return lv.map(x=>x.from===x.to?`${x.level} · ${x.from}`:`${x.level} · ${x.from} → ${x.to}`).join(" · "); }
 const foldKey=()=>"euskara.fold."+(P?P.id:"");
 function foldOpen(){ try{ return new Set(JSON.parse(localStorage.getItem(foldKey())||"[]")); }catch(e){ return new Set(); } }
 function foldToggle(id){ const o=foldOpen(); o.has(id)?o.delete(id):o.add(id); try{ localStorage.setItem(foldKey(),JSON.stringify([...o])); }catch(e){} renderLessons(id); }
@@ -860,10 +864,14 @@ let honaOff=null;
 function renderLessons(focusMod){
   if(honaOff){ honaOff(); honaOff=null; }
   const m=imap(); const ul=unlockedIds(); const fo_=foldOpen();
-  const active=LESSONS.find(l=>ul.has(l.id)&&!beforeStart(l.module)&&!isSkipped(l.module)&&seenPct(l,m)<0.8)||[...LESSONS].reverse().find(l=>ul.has(l.id)&&!beforeStart(l.module)&&!isSkipped(l.module))||[...LESSONS].reverse().find(l=>ul.has(l.id));
+  const MAINL=LESSONS.filter(l=>!isSeasonMod(l.module));
+  const active=MAINL.find(l=>ul.has(l.id)&&!beforeStart(l.module)&&!isSkipped(l.module)&&seenPct(l,m)<0.8)||[...MAINL].reverse().find(l=>ul.has(l.id)&&!beforeStart(l.module)&&!isSkipped(l.module))||[...MAINL].reverse().find(l=>ul.has(l.id));
+  // Módulo de temporada abierto (p. ej. Gabonak): tarjeta propia encima del camino, gratis para todo el mundo.
+  const seasonCard=MODULES.filter(mod=>mod.season&&seasonOpen(mod)).map(mod=>{ const ls=LESSONS.filter(l=>l.module===mod.id); const until=mod.season.to.split("-"); const untilTxt=new Date(2000,+until[0]-1,+until[1]).toLocaleDateString(LANG==="en"?"en-GB":LANG==="fr"?"fr-FR":"es-ES",{day:"numeric",month:"long"});
+    return `<div class="card season" style="background:linear-gradient(135deg,#fff6f5,#fff);border:1.5px solid var(--red);padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;gap:12px;align-items:center"><span style="font-size:34px;line-height:1">${mod.emoji||"🎄"}</span><div style="flex:1"><p class="eyebrow" style="margin:0;color:var(--red)">${esc(mod.eu)} · ${T(mod.es)}</p><p style="margin:2px 0 0;font-weight:600">${T("Módulo especial de Navidad")}</p><p class="hint" style="margin:0">${T("gratis para todos hasta el 6 de enero").replace("6 de enero",untilTxt)}</p></div></div><p class="hint" style="margin:0">${T("Dos lecciones fuera del camino: Olentzero, la cena, las uvas y cómo felicitar las fiestas en euskera.")}</p><div class="row" style="flex-wrap:wrap;gap:8px">${ls.map(l=>{ const open=ul.has(l.id), firm=seenPct(l,m); return `<button type="button" class="btn ${firm>=0.8?"ghost":open?"red":"ghost"} ${open?"":"locked"}" data-l="${l.id}" style="flex:1;min-width:140px;opacity:${open?1:.55}">${l.emoji||""} ${esc(l.eu)}<small>${T(l.title)}${firm>=0.8?" ✓":""}</small></button>`; }).join("")}</div></div>`; }).join("");
   const W=360, CX=180, AMP=104, STEP=98, TOWN=100, PADT=10, PADB=30, LW=156;
   const stops=[]; let y=PADT, k=0;
-  MODULES.forEach(mod=>{ const ls=LESSONS.filter(l=>l.module===mod.id); const pr=moduleProgress(mod,m); const reached=!!(ls.length&&ul.has(ls[0].id));
+  MAIN_MODULES.forEach(mod=>{ const ls=LESSONS.filter(l=>l.module===mod.id); const pr=moduleProgress(mod,m); const reached=!!(ls.length&&ul.has(ls[0].id));
     const known=beforeStart(mod.id)||isSkipped(mod.id), done=!!(ls.length&&pr.firm>=0.7)||known, hasActive=!!(active&&active.module===mod.id), isNext=!!(active&&mod.id===active.module+1), folded=!hasActive&&!isNext&&!fo_.has(mod.id);
     const skippable=!known&&!premLocked({module:mod.id})&&pr.seen<0.8&&(hasActive||isNext);
     y+=TOWN/2; stops.push({type:"town",mod,x:CX,y,reached,done,known,skippable,folded,foldable:!hasActive&&!isNext,nles:ls.length,firm:pr.firm}); y+=TOWN/2+(!hasActive&&!isNext?30:0)+(skippable?22:0);
@@ -893,7 +901,7 @@ function renderLessons(focusMod){
     else { const r=17,c=2*Math.PI*r; g=`<circle cx="${s.x}" cy="${s.y}" r="20" fill="var(--bg)" stroke="var(--line2)" stroke-width="1.5"/>${seen?`<circle cx="${s.x}" cy="${s.y}" r="${r}" fill="none" stroke="var(--soft)" stroke-width="4"/><circle cx="${s.x}" cy="${s.y}" r="${r}" fill="none" stroke="${firm>0?"var(--green)":"var(--ochre)"}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c*(1-Math.max(firm,.06))).toFixed(1)}" transform="rotate(-90 ${s.x} ${s.y})"/>`:""}<text x="${s.x}" y="${s.y+5}" text-anchor="middle" font-family="var(--display)" font-weight="700" font-size="14" fill="var(--ink)">${LESSONS.indexOf(l)+1}</text>`; }
     return `<g class="pn ${open?"":"locked"} ${isActive?"active":""}" data-l="${l.id}" role="button" tabindex="0" aria-label="${esc(T(l.title))} · ${status}">${g}</g>${lab(open?"":"locked",l.eu||T(l.title),`${its.length} ${L2("frases","phrases")} · ${status}`)}`; };
   const pl=todayPlan();
-  app.innerHTML=header()+`<div class="stack pad" style="padding-top:16px;gap:10px">${todayCard(pl)}<p class="eyebrow" data-es="${pathRange()}" style="margin-top:6px">Bidea</p><div class="towns" role="tablist" aria-label="${L2("Ir a un módulo","Go to a module","Aller à un module")}">${stops.filter(s=>s.type==="town").map(s=>`<button type="button" data-jump="${s.mod.id}" class="${active&&active.module===s.mod.id?"cur":""} ${s.done?"done":""} ${s.reached?"":"locked"}" aria-label="${esc(s.mod.town)}">${s.done?ic("check",3):s.reached?"":ic("lock",2.2)}${esc(s.mod.town)}${s.mod.level&&(s.mod.id===1||s.mod.id===9)?`<small>${s.mod.level}</small>`:""}</button>`).join("")}</div>
+  app.innerHTML=header()+`<div class="stack pad" style="padding-top:16px;gap:10px">${todayCard(pl)}${seasonCard}<p class="eyebrow" data-es="${pathRange()}" style="margin-top:6px">Bidea</p><div class="towns" role="tablist" aria-label="${L2("Ir a un módulo","Go to a module","Aller à un module")}">${stops.filter(s=>s.type==="town").map(s=>`<button type="button" data-jump="${s.mod.id}" class="${active&&active.module===s.mod.id?"cur":""} ${s.done?"done":""} ${s.reached?"":"locked"}" aria-label="${esc(s.mod.town)}">${s.done?ic("check",3):s.reached?"":ic("lock",2.2)}${esc(s.mod.town)}${s.mod.level&&(s.mod.id===1||s.mod.id===9)?`<small>${s.mod.level}</small>`:""}</button>`).join("")}</div>
    <svg class="path" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-label="${L2("Camino de lecciones","Lesson path")}">${hills}<path d="${dOf(stops)}" fill="none" stroke="var(--line2)" stroke-width="3" stroke-dasharray="1 9" stroke-linecap="round"/><path d="${dOf(donePts)}" fill="none" stroke="var(--green)" stroke-width="3.5" stroke-linecap="round"/>${stops.map(node).join("")}</svg></div>`;
   app.querySelectorAll("[data-g]").forEach(b=>{ const g=GRAMMAR.find(x=>x.id===b.dataset.g); const go=()=>{ if(b.classList.contains("locked")){ if(premLocked(lessonOf(g.lessons[0]))){ renderPlans("grammar"); return; } toast(L2("Empieza su lección para abrir esta ficha","Start its lesson to unlock this card")); return; } renderGrammar(g); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
   app.querySelectorAll("[data-l]").forEach(b=>{ const go=()=>{ const l=lessonOf(b.dataset.l); if(premLocked(l)){ renderPlans("lesson"); return; } if(!ul.has(l.id)){ toast(L2("Termina la lección anterior para abrir esta","Finish the previous lesson to unlock this one")); return; } renderLesson(l); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
@@ -976,7 +984,7 @@ function renderLesson(l){
   noTabs(); const m=imap(); const its=lessonItems(l); const fresh=its.filter(x=>!m[x.key]); const pend=(()=>{ const d=loadSes(); return d&&d.lessonId===l.id?d:null; })();
   const st=k=>!m[k]?"":m[k].interval>=7?"ok":"new";
   const firmN=its.filter(x=>m[x.key]&&m[x.key].interval>=7).length;
-  app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1;min-width:0"><p class="eyebrow">${LESSONS.indexOf(l)+1}. ikasgaia</p><h2>${esc(l.eu||T(l.title))}</h2><p class="sub" style="margin-top:2px">${esc(T(l.title))}</p></div>${ring(firmN/its.length,40)}</div>
+  app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1;min-width:0"><p class="eyebrow">${isSeasonMod(l.module)?`${esc(moduleOf(l).eu)} · ${LESSONS.filter(x=>x.module===l.module).indexOf(l)+1}`:LESSONS.indexOf(l)+1}. ikasgaia</p><h2>${esc(l.eu||T(l.title))}</h2><p class="sub" style="margin-top:2px">${esc(T(l.title))}</p></div>${ring(firmN/its.length,40)}</div>
    <div class="stack pad" style="flex:1;gap:18px">
     ${l.pattern?`<div class="pattern"><div style="flex:1;min-width:0"><p class="eyebrow">Egitura</p><p class="pat">${esc(T(l.pattern)).replace("___",'<span class="blank">___</span>')}</p></div></div>`:""}
     ${l.grid?`<p class="eyebrow" data-es="${esc(T(l.grid.title))}">Nork esaten du</p><table class="gtab"><tr><th></th>${l.grid.cols.map(c=>`<th>${esc(T(c))}</th>`).join("")}</tr>${l.grid.rows.map(r=>`<tr><td class="lab">${esc(T(r[0]))}</td>${r.slice(1).map(c=>`<td><b>${esc(T(c))}</b></td>`).join("")}</tr>`).join("")}</table>`:""}
