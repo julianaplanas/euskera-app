@@ -152,21 +152,51 @@ function profile(user) {
 let webpush = null;
 const PUSH_ON = !!(process.env.VAPID_PUBLIC && process.env.VAPID_PRIVATE);
 if (PUSH_ON) { webpush = require("web-push"); webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:euskara@example.com", process.env.VAPID_PUBLIC, process.env.VAPID_PRIVATE); }
+// ---------- push nativo (Firebase Cloud Messaging) para la app Android/iOS ----------
+// FCM_SERVICE_ACCOUNT = contenido JSON de la cuenta de servicio de Firebase. Los tokens se guardan en push_subs con endpoint "fcm:<token>".
+const FCM_SA = (() => { try { return process.env.FCM_SERVICE_ACCOUNT ? JSON.parse(process.env.FCM_SERVICE_ACCOUNT) : null; } catch (e) { console.error("FCM_SERVICE_ACCOUNT no es JSON válido"); return null; } })();
+const FCM_ON = !!(FCM_SA && FCM_SA.client_email && FCM_SA.private_key && FCM_SA.project_id);
+let fcmTok = { token: null, exp: 0 };
+async function fcmAccessToken() {
+  if (fcmTok.token && Date.now() < fcmTok.exp - 60000) return fcmTok.token;
+  const now = Math.floor(Date.now() / 1000), b64 = o => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const unsigned = b64({ alg: "RS256", typ: "JWT" }) + "." + b64({ iss: FCM_SA.client_email, scope: "https://www.googleapis.com/auth/firebase.messaging", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 });
+  const sig = crypto.sign("RSA-SHA256", Buffer.from(unsigned), FCM_SA.private_key).toString("base64url");
+  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: unsigned + "." + sig }) });
+  const d = await r.json(); if (!r.ok || !d.access_token) throw new Error("FCM auth " + r.status + " " + JSON.stringify(d).slice(0, 200));
+  fcmTok = { token: d.access_token, exp: Date.now() + (d.expires_in || 3600) * 1000 }; return fcmTok.token;
+}
+async function fcmSend(token, payload) {
+  const at = await fcmAccessToken();
+  const message = { token, notification: { title: payload.title, body: payload.body }, data: { url: String(payload.url || "/"), tag: String(payload.tag || "") },
+    android: { ttl: "43200s", collapse_key: payload.tag || undefined, notification: { icon: "ic_stat_notify", color: "#C1281E", tag: payload.tag || undefined, click_action: "eus.euskarapraktika.app.OPEN" } },
+    apns: { payload: { aps: { sound: "default", "thread-id": payload.tag || "general" } } } };
+  const r = await fetch(`https://fcm.googleapis.com/v1/projects/${FCM_SA.project_id}/messages:send`, { method: "POST", headers: { Authorization: "Bearer " + at, "Content-Type": "application/json" }, body: JSON.stringify({ message }) });
+  if (r.ok) return true;
+  const d = await r.json().catch(() => ({})); const code = d.error && d.error.details && d.error.details.find(x => x.errorCode) ? d.error.details.find(x => x.errorCode).errorCode : (d.error && d.error.status);
+  const err = new Error("FCM " + r.status + " " + code); err.gone = r.status === 404 || code === "UNREGISTERED" || code === "INVALID_ARGUMENT"; throw err;
+}
 async function sendPush(userId, payload, kind) {
-  if (!PUSH_ON) return 0;
+  if (!PUSH_ON && !FCM_ON) return 0;
   const col = kind === "daily" ? "daily" : "challenges";
   const subs = db.prepare(`SELECT endpoint, sub FROM push_subs WHERE user_id = ? AND ${col} = 1`).all(userId);
   let n = 0;
   for (const row of subs) {
-    try { await webpush.sendNotification(JSON.parse(row.sub), JSON.stringify(payload), { TTL: 60 * 60 * 12 }); n++; }
-    catch (e) { if (e.statusCode === 404 || e.statusCode === 410) db.prepare("DELETE FROM push_subs WHERE endpoint = ?").run(row.endpoint); else console.error("push error", e.statusCode || e.message); }
+    const native = row.endpoint.startsWith("fcm:");
+    try {
+      if (native) { if (!FCM_ON) continue; await fcmSend(row.endpoint.slice(4), payload); n++; }
+      else { if (!PUSH_ON) continue; await webpush.sendNotification(JSON.parse(row.sub), JSON.stringify(payload), { TTL: 60 * 60 * 12 }); n++; }
+    } catch (e) {
+      if (e.gone || e.statusCode === 404 || e.statusCode === 410) db.prepare("DELETE FROM push_subs WHERE endpoint = ?").run(row.endpoint);
+      else console.error("push error", e.statusCode || e.message);
+    }
   }
   return n;
 }
-app.get("/api/push/key", (req, res) => res.json({ enabled: PUSH_ON, key: process.env.VAPID_PUBLIC || null }));
+app.get("/api/push/key", (req, res) => res.json({ enabled: PUSH_ON || FCM_ON, web: PUSH_ON, native: FCM_ON, key: process.env.VAPID_PUBLIC || null }));
 app.get("/api/push/status", auth, (req, res) => {
   const rows = db.prepare("SELECT endpoint, daily, challenges, hour FROM push_subs WHERE user_id = ?").all(req.user.id);
-  res.json({ enabled: PUSH_ON, subs: rows });
+  res.json({ enabled: PUSH_ON || FCM_ON, subs: rows });
 });
 app.post("/api/push/subscribe", auth, (req, res) => {
   const sub = req.body.sub; if (!sub || !sub.endpoint) return res.status(400).json({ error: "Suscripción inválida." });
@@ -180,7 +210,7 @@ app.post("/api/push/unsubscribe", auth, (req, res) => { if (req.body.endpoint) d
 app.post("/api/push/test", auth, async (req, res) => { const n = await sendPush(req.user.id, { title: "Kaixo! 👋", body: "Así se verán los recordatorios. Ondo dago!", url: "/" }, "challenges"); res.json({ sent: n }); });
 // Recordatorio diario: cada hora en punto, a quien tenga esa hora elegida, frases pendientes y no haya practicado hoy
 async function dailyReminders() {
-  if (!PUSH_ON) return;
+  if (!PUSH_ON && !FCM_ON) return;
   const today = madridDay();
   const hourNow = parseInt(new Date().toLocaleTimeString("en-GB", { timeZone: process.env.TZ_NAME || "Europe/Madrid", hour: "2-digit", hour12: false }));
   const rows = db.prepare("SELECT DISTINCT user_id FROM push_subs WHERE daily = 1 AND hour = ? AND (last_sent IS NULL OR last_sent < ?)").all(hourNow, today);
@@ -194,8 +224,8 @@ async function dailyReminders() {
     if (n) db.prepare("UPDATE push_subs SET last_sent = ? WHERE user_id = ? AND daily = 1").run(today, u.id);
   }
 }
-if (PUSH_ON) { setInterval(() => { const m = new Date().getMinutes(); if (m === 0 || m === 1) dailyReminders().catch(e => console.error(e)); }, 60 * 1000); console.log("Push activado; recordatorios diarios en marcha."); }
-else console.log("Push desactivado (faltan VAPID_PUBLIC / VAPID_PRIVATE).");
+if (PUSH_ON || FCM_ON) { setInterval(() => { const m = new Date().getMinutes(); if (m === 0 || m === 1) dailyReminders().catch(e => console.error(e)); }, 60 * 1000); console.log(`Push activado (web: ${PUSH_ON ? "sí" : "no"}, app: ${FCM_ON ? "sí" : "no"}); recordatorios diarios en marcha.`); }
+else console.log("Push desactivado (faltan VAPID_PUBLIC / VAPID_PRIVATE y FCM_SERVICE_ACCOUNT).");
 
 // ---------- correo (Resend) ----------
 const MAIL_ON = !!process.env.RESEND_API_KEY;

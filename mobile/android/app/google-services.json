@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1088701444031",
+    "project_id": "euskara-praktika",
+    "storage_bucket": "euskara-praktika.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1088701444031:android:d46752144f4eafb8527b0a",
+        "android_client_info": {
+          "package_name": "eus.euskarapraktika.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgQcCz__z0BAQAdoQDQ-YaiGTVxN1gbWA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
