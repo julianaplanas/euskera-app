@@ -105,6 +105,15 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
     target: { namespace: "android_app", package_name: pkg, sha256_cert_fingerprints: prints }
   }] : []);
 });
+// La web pública es solo informativa: en www.euskarapraktika.eus los navegadores ven la landing; la app solo se sirve
+// dentro de la app nativa (Capacitor añade "EuskaraPraktikaApp" al user-agent). Otros hosts (Railway) siguen sirviendo la app.
+const LANDING_HOSTS = (process.env.LANDING_HOSTS || "euskarapraktika.eus,www.euskarapraktika.eus").split(",").map(s => s.trim()).filter(Boolean);
+const isNativeApp = (req) => /EuskaraPraktikaApp/.test(req.get("user-agent") || "");
+app.use((req, res, next) => {
+  if (!LANDING_HOSTS.includes(req.hostname) || isNativeApp(req)) return next();
+  if (req.path === "/" || req.path === "/index.html") return res.sendFile(path.join(__dirname, "public", "landing.html"));
+  next();
+});
 app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"] }));
 
 function auth(req, res, next) {

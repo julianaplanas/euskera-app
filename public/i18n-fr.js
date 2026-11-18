@@ -6158,6 +6158,7 @@ Object.assign(window.FR, {
   "Prefiero empezar un poco antes": "Je préfère commencer un peu avant",
   "¿Qué significa?": "Qu'est-ce que ça veut dire ?",
   "No lo sé · terminar aquí": "Je ne sais pas · arrêter ici",
+  "Pista": "Indice", "Opciones": "Options",
   "Hazte Premium": "Passer Premium",
   "Tu círculo, los retos con amigos y el ranking semanal son parte de Premium.": "Ton cercle, les défis entre amis et le classement hebdomadaire font partie de Premium.",
   "o usa un código": "ou utilise un code"

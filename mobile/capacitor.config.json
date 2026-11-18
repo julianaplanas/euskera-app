@@ -1,6 +1,7 @@
 {
   "appId": "eus.euskarapraktika.app",
   "appName": "Euskara Praktika",
+  "appendUserAgent": "EuskaraPraktikaApp",
   "webDir": "www",
   "server": {
     "url": "https://www.euskarapraktika.eus",

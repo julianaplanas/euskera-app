@@ -99,7 +99,7 @@ window.EN = {
   "¿Qué significa? Elige": "What does it mean? Pick", "Cópiala mirando el modelo": "Copy it while looking at the model", "Escríbela igual…": "Type it exactly…",
   "Escribirla una vez fija la forma. Mañana te la pediré sin modelo.": "Typing it once fixes the form. Tomorrow I'll ask for it without the model.",
   "escucha y escribe": "listen and type", "Toca para repetir · mantén pulsado para oírlo despacio 🐢": "Tap to repeat · press and hold to hear it slowly 🐢", "Lo que has oído, en euskera…": "What you heard, in Basque…",
-  "💡 Pista": "💡 Hint", "🔘 Opciones": "🔘 Options", "¿cuántos hay? Escríbelo en euskera": "how many? Type it in Basque", "Número en euskera…": "Number in Basque…",
+  "Pista": "Hint", "Opciones": "Options", "💡 Pista": "💡 Hint", "🔘 Opciones": "🔘 Options", "¿cuántos hay? Escríbelo en euskera": "how many? Type it in Basque", "Número en euskera…": "Number in Basque…",
   "Transforma la frase": "Transform the sentence", "La frase transformada…": "The transformed sentence…", "¿qué significa?": "what does it mean?", "En castellano…": "In English…",
   "escríbelo en euskera": "type it in Basque", "En euskera…": "In Basque…",
   "comprobar": "check", "pista": "hint", "opciones": "options", "elegir": "pick", "escuchar": "listen", "(fuera del campo, o con Alt)": "(outside the field, or with Alt)",
