@@ -68,6 +68,7 @@ db.exec(`
     premium_until: "TEXT", premium_src: "TEXT", stripe_customer: "TEXT", stripe_sub: "TEXT", stripe_status: "TEXT", stripe_cancel: "INTEGER NOT NULL DEFAULT 0", stripe_plan: "TEXT" };
   db.exec(`CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS gift_codes (code TEXT PRIMARY KEY, days INTEGER NOT NULL, max_uses INTEGER NOT NULL DEFAULT 1, uses INTEGER NOT NULL DEFAULT 0, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+    CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, concept TEXT NOT NULL, amount REAL NOT NULL, currency TEXT NOT NULL DEFAULT 'EUR', recurring TEXT, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
     CREATE TABLE IF NOT EXISTS gift_redemptions (code TEXT NOT NULL, user_id INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (code, user_id));`);
   if (!db.prepare("PRAGMA table_info(login_codes)").all().some(c => c.name === "ip")) { db.exec("ALTER TABLE login_codes ADD COLUMN ip TEXT"); db.exec("CREATE INDEX IF NOT EXISTS login_codes_ip ON login_codes (ip, created_at)"); console.log("Migración: columna login_codes.ip"); }
   for (const [c, def] of Object.entries(want)) if (!cols().includes(c)) { db.exec(`ALTER TABLE users ADD COLUMN ${c} ${def}`); console.log("Migración: columna users." + c); }
@@ -224,6 +225,7 @@ function addPremiumDays(userId, days, src) {
   const n = db.prepare("UPDATE users SET premium_until = NULL, premium_src = NULL WHERE premium_src = 'gift' AND id NOT IN (SELECT user_id FROM gift_redemptions)").run().changes;
   setting("grandfather_undone", new Date().toISOString()); console.log(`Premium de cortesía retirado a ${n} cuentas`);
 })();
+if (!db.prepare("SELECT COUNT(*) n FROM expenses").get().n) db.prepare("INSERT INTO expenses (day, concept, amount, currency, note) VALUES (?, ?, ?, ?, ?)").run("2026-11-17", "Google Play Console (cuenta de desarrollador, pago único)", 25, "USD", "");
 const STRIPE_ON = !!process.env.STRIPE_SECRET_KEY;
 const stripe = STRIPE_ON ? require("stripe")(process.env.STRIPE_SECRET_KEY) : null;
 const appUrl = (req) => (process.env.APP_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
@@ -603,6 +605,17 @@ app.post("/api/admin/gift", admin, (req, res) => {
   try { db.prepare("INSERT INTO gift_codes (code, days, max_uses, note) VALUES (?, ?, ?, ?)").run(code, days, uses, note); } catch (e) { return res.status(409).json({ error: "Ese código ya existe." }); }
   res.json({ code, days, uses, note });
 });
+// Gastos del proyecto (para ver qué cuesta hacer la app)
+app.get("/api/admin/expenses", admin, (req, res) => res.json(db.prepare("SELECT * FROM expenses ORDER BY day DESC, id DESC").all()));
+app.post("/api/admin/expenses", admin, (req, res) => {
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(req.body.day || "") ? req.body.day : madridDay(); const concept = String(req.body.concept || "").trim().slice(0, 120); const amount = +req.body.amount;
+  if (!concept || !(amount > 0)) return res.status(400).json({ error: "Concepto e importe obligatorios." });
+  const cur = ["EUR", "USD"].includes(String(req.body.currency).toUpperCase()) ? String(req.body.currency).toUpperCase() : "EUR";
+  const rec = ["mensual", "anual"].includes(req.body.recurring) ? req.body.recurring : null;
+  const r = db.prepare("INSERT INTO expenses (day, concept, amount, currency, recurring, note) VALUES (?, ?, ?, ?, ?, ?)").run(day, concept, amount, cur, rec, String(req.body.note || "").slice(0, 200));
+  res.json({ id: r.lastInsertRowid });
+});
+app.post("/api/admin/expenses/delete", admin, (req, res) => { db.prepare("DELETE FROM expenses WHERE id = ?").run(+req.body.id); res.json({ ok: true }); });
 app.get("/api/admin/gifts", admin, (req, res) => res.json(db.prepare("SELECT * FROM gift_codes ORDER BY created_at DESC LIMIT 200").all()));
 app.post("/api/admin/grant", admin, (req, res) => {
   const u = db.prepare("SELECT id FROM users WHERE email = ?").get(normEmail(req.body.email)); if (!u) return res.status(404).json({ error: "No existe ese usuario." });

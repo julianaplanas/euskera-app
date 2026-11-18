@@ -85,6 +85,10 @@ code{background:var(--card);padding:1px 5px;border:1px solid var(--line)}
 <div class="row"><input id="gemail" type="email" placeholder="correo del usuario" style="flex:1"><input id="gedays" type="number" value="90" style="width:80px" title="días"><button class="ghost" id="ggrant">Dar Premium</button></div>
 <p class="msg" id="m3"></p>
 <div class="wrap"><table id="gifts"></table></div>
+<h2>Gastos <small>lo que cuesta hacer y mantener la app</small></h2>
+<div class="row"><input id="xday" type="date" style="width:150px"><input id="xconcept" placeholder="concepto" style="flex:1"><input id="xamount" type="number" step="0.01" placeholder="importe" style="width:100px"><select id="xcur"><option>EUR</option><option>USD</option></select><select id="xrec"><option value="">único</option><option value="mensual">mensual</option><option value="anual">anual</option></select><button class="ghost" id="xadd">Añadir</button></div>
+<p class="msg" id="m4"></p>
+<div class="wrap"><table id="expenses"></table></div>
 </div>
 
 <script>
@@ -107,7 +111,7 @@ async function load(){
     $("towns").textContent=m.towns.length?m.towns.map(t=>`${t.town} (${t.n})`).join(" · "):"Sin datos todavía.";
     $("lessons").innerHTML=`<tr><th>Lección</th><th>Rondas</th><th>Personas</th><th>Acierto</th></tr>`+m.lessons.map(l=>`<tr><td>${esc(l.lesson_id)}</td><td class="n">${l.rounds}</td><td>${l.users}</td><td>${l.acc}%</td></tr>`).join("");
     $("hardest").innerHTML=`<tr><th>Frase</th><th>Fallos</th><th>Personas</th><th>Intervalo medio</th></tr>`+m.hardest.map(h=>`<tr><td title="${esc(h.es)}">${esc(h.eu)}</td><td class="n">${h.lapses}</td><td>${h.users}</td><td>${h.avgInterval} d</td></tr>`).join("");
-    await users(); gifts();
+    await users(); gifts(); expenses();
   }catch(e){ $("m1").textContent=e.message; $("m1").className="msg err"; }
 }
 async function users(){
@@ -119,6 +123,11 @@ $("load").onclick=load; $("key").onkeydown=e=>{ if(e.key==="Enter") load(); };
 async function gifts(){ try{ const g=await api("gifts"); $("gifts").innerHTML=g.length?`<tr><th>Código</th><th>Días</th><th>Usos</th><th>Nota</th><th>Creado</th></tr>`+g.map(x=>`<tr><td><b>${esc(x.code)}</b></td><td class="n">${x.days}</td><td class="n">${x.uses}/${x.max_uses}</td><td>${esc(x.note||"")}</td><td>${x.created_at.slice(0,10)}</td></tr>`).join(""):""; }catch(e){} }
 $("gmake").onclick=async()=>{ try{ const r=await api("gift",{days:+$("gdays").value,uses:+$("guses").value,note:$("gnote").value}); $("m3").textContent=`Código ${r.code} · ${r.days} días · ${r.uses} usos`; $("m3").className="msg ok"; gifts(); }catch(e){ $("m3").textContent=e.message; $("m3").className="msg err"; } };
 $("ggrant").onclick=async()=>{ try{ const r=await api("grant",{email:$("gemail").value,days:+$("gedays").value}); $("m3").textContent=`Premium hasta ${r.until}`; $("m3").className="msg ok"; users(); }catch(e){ $("m3").textContent=e.message; $("m3").className="msg err"; } };
+async function expenses(){ try{ const xs=await api("expenses"); const tot={}; for(const x of xs) tot[x.currency]=(tot[x.currency]||0)+x.amount; const f=(a,c)=>a.toFixed(2).replace(".",",")+" "+(c==="EUR"?"€":"$");
+  $("expenses").innerHTML=`<tr><th>Fecha</th><th>Concepto</th><th>Importe</th><th>Periodicidad</th><th></th></tr>`+xs.map(x=>`<tr><td>${x.day}</td><td>${esc(x.concept)}${x.note?` <span class="sub">· ${esc(x.note)}</span>`:""}</td><td class="n">${f(x.amount,x.currency)}</td><td>${x.recurring||"único"}</td><td><button class="ghost" data-xdel="${x.id}">✕</button></td></tr>`).join("")+`<tr><td></td><td><b>Total</b></td><td class="n"><b>${Object.entries(tot).map(([c,a])=>f(a,c)).join(" + ")||"0"}</b></td><td></td><td></td></tr>`;
+  document.querySelectorAll("[data-xdel]").forEach(b=>b.onclick=async()=>{ if(!confirm("¿Borrar este gasto?")) return; await api("expenses/delete",{id:+b.dataset.xdel}); expenses(); }); }catch(e){} }
+$("xday").value=new Date().toISOString().slice(0,10);
+$("xadd").onclick=async()=>{ try{ await api("expenses",{day:$("xday").value,concept:$("xconcept").value,amount:$("xamount").value,currency:$("xcur").value,recurring:$("xrec").value}); $("xconcept").value=""; $("xamount").value=""; $("m4").textContent="Añadido."; $("m4").className="msg ok"; expenses(); }catch(e){ $("m4").textContent=e.message; $("m4").className="msg err"; } };
 $("search").onclick=users; $("q").onkeydown=e=>{ if(e.key==="Enter") users(); };
 $("backup").onclick=()=>{ const a=document.createElement("a"); a.href="/api/admin/backup?key="+encodeURIComponent(key()); a.click(); };
 </script>
