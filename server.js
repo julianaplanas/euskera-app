@@ -66,7 +66,8 @@ db.exec(`
   }
   const want = { weak: "TEXT NOT NULL DEFAULT '[]'", profile: "TEXT NOT NULL DEFAULT '{}'", last_seen: "TEXT", lang: "TEXT NOT NULL DEFAULT 'es'", open_duel: "INTEGER NOT NULL DEFAULT 0",
     start_module: "INTEGER NOT NULL DEFAULT 1", skipped: "TEXT NOT NULL DEFAULT '[]'", premium_until: "TEXT", premium_src: "TEXT", stripe_customer: "TEXT", stripe_sub: "TEXT", stripe_status: "TEXT", stripe_cancel: "INTEGER NOT NULL DEFAULT 0", stripe_plan: "TEXT",
-    sub_status: "TEXT", sub_cancel: "INTEGER NOT NULL DEFAULT 0", sub_plan: "TEXT", sub_store: "TEXT", sub_product: "TEXT" }; // stripe_* ya no se usan (quedan vacías)
+    sub_status: "TEXT", sub_cancel: "INTEGER NOT NULL DEFAULT 0", sub_plan: "TEXT", sub_store: "TEXT", sub_product: "TEXT",
+    mail_opt: "INTEGER NOT NULL DEFAULT 1", welcome_sent: "INTEGER NOT NULL DEFAULT 0", nudge_last: "TEXT" }; // stripe_* ya no se usan (quedan vacías)
   db.exec(`CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS gift_codes (code TEXT PRIMARY KEY, days INTEGER NOT NULL, max_uses INTEGER NOT NULL DEFAULT 1, uses INTEGER NOT NULL DEFAULT 0, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
     CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, concept TEXT NOT NULL, amount REAL NOT NULL, currency TEXT NOT NULL DEFAULT 'EUR', recurring TEXT, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
@@ -244,6 +245,55 @@ async function sendMail(to, subject, text, html) {
 }
 
 
+// ---------- correos de bienvenida y de «te echamos de menos» ----------
+// Bienvenida al completar el perfil; recordatorio por correo a los 3 y a los 10 días sin practicar (a las 18:00, hora de Madrid),
+// con enlace para no recibir más. MAIL_NUDGES=0 los desactiva. Es independiente de los avisos push.
+const APP_PUBLIC = () => (process.env.APP_URL || "https://www.euskarapraktika.eus").replace(/\/$/, "");
+const unsubToken = (id) => crypto.createHmac("sha256", SECRET).update("unsub:" + id).digest("hex").slice(0, 32);
+const unsubUrl = (id) => `${APP_PUBLIC()}/api/mail/unsub?u=${id}&t=${unsubToken(id)}`;
+function mailHtml({ eyebrow = "Euskara Praktika", title, sub, paras, cta, unsub }) {
+  const p = paras.map(x => `<p style="margin:0 0 12px;font-size:16px;line-height:1.5">${x}</p>`).join("");
+  return `<div style="font-family:system-ui,sans-serif;max-width:460px;margin:auto;padding:28px;background:#FFF9EC;color:#141414"><p style="margin:0 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase">${eyebrow}</p><h1 style="margin:0 0 18px;font-size:24px">${title}${sub ? `<br><span style="font-size:15px;font-weight:400;color:#5A5A5A">${sub}</span>` : ""}</h1>${p}${cta ? `<p style="margin:18px 0 0"><a href="${cta.url}" style="display:inline-block;background:#C1281E;color:#fff;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:12px">${cta.label}</a></p>` : ""}${unsub ? `<p style="margin:26px 0 0;font-size:12px;color:#8a8a8a">${unsub.text} <a href="${unsub.url}" style="color:#8a8a8a">${unsub.label}</a></p>` : ""}</div>`;
+}
+const MAIL_T = {
+  es: { wsubj: "Ongi etorri! Así funciona Euskara Praktika", wtitle: "Ongi etorri", wsub: "Bienvenida/o al camino", w: ["Ya tienes tu sitio en el camino de Baiona a Maule. La idea es sencilla: <b>cinco minutos al día</b>. Cada frase nueva vuelve al día siguiente, a los tres días, a los siete… justo antes de que la olvides.", "Escribe las frases, no las elijas: es más lento al principio y mucho más firme después. Y si un día fallas, no pasa nada: vuelve mañana.", "Si activas los avisos en «Nire profila», la app te dirá cuándo toca repasar."], cta: "Abrir la app", nsubj3: "Zure esaldiak zain daude · tus frases te esperan", nsubj10: "Hamar egun · diez días sin verte", ntitle: "Kaixo", n3: (due) => [`Hace tres días que no practicas. ${due ? `Tienes <b>${due} ${due === 1 ? "frase" : "frases"}</b> para repasar: ` : ""}cinco minutos y vuelven a estar firmes.`, "No hace falta ponerse al día de golpe; con una ronda hoy, el repaso se reordena solo."], n10: (due) => ["Diez días sin euskera. Las frases no se han ido: están esperando, y la app las sacará en el orden justo cuando vuelvas.", "Una ronda hoy y mañana otra. Eso es todo."], ncta: "Practicar ahora", unsub: "Si no quieres recibir estos correos,", unsubl: "date de baja aquí", done: "Listo. No te enviaremos más correos de recordatorio (los códigos para entrar siguen llegando)." },
+  en: { wsubj: "Ongi etorri! Here's how Euskara Praktika works", wtitle: "Ongi etorri", wsub: "Welcome to the road", w: ["You now have your place on the road from Baiona to Maule. The idea is simple: <b>five minutes a day</b>. Every new phrase comes back the next day, after three days, after seven… right before you'd forget it.", "Write the phrases, don't pick them: slower at first, much more solid later. And if you slip one day, no problem: come back tomorrow.", "Turn on reminders in «Nire profila» and the app will tell you when it's time to review."], cta: "Open the app", nsubj3: "Zure esaldiak zain daude · your phrases are waiting", nsubj10: "Hamar egun · ten days without you", ntitle: "Kaixo", n3: (due) => [`It's been three days. ${due ? `You have <b>${due} ${due === 1 ? "phrase" : "phrases"}</b> to review: ` : ""}five minutes and they're solid again.`, "No need to catch up all at once; one round today and the review reorders itself."], n10: (due) => ["Ten days without Basque. The phrases haven't gone anywhere: they're waiting, and the app will bring them back in the right order when you return.", "One round today, another tomorrow. That's all."], ncta: "Practise now", unsub: "If you don't want these emails,", unsubl: "unsubscribe here", done: "Done. We won't send you any more reminder emails (sign-in codes still arrive)." },
+  fr: { wsubj: "Ongi etorri ! Voici comment marche Euskara Praktika", wtitle: "Ongi etorri", wsub: "Bienvenue sur le chemin", w: ["Tu as maintenant ta place sur le chemin de Baiona à Maule. L'idée est simple : <b>cinq minutes par jour</b>. Chaque nouvelle phrase revient le lendemain, au bout de trois jours, de sept… juste avant que tu ne l'oublies.", "Écris les phrases, ne les choisis pas : plus lent au début, bien plus solide ensuite. Et si tu te trompes un jour, pas grave : reviens demain.", "Active les rappels dans « Nire profila » et l'appli te dira quand c'est l'heure de réviser."], cta: "Ouvrir l'appli", nsubj3: "Zure esaldiak zain daude · tes phrases t'attendent", nsubj10: "Hamar egun · dix jours sans toi", ntitle: "Kaixo", n3: (due) => [`Ça fait trois jours. ${due ? `Tu as <b>${due} ${due === 1 ? "phrase" : "phrases"}</b> à réviser : ` : ""}cinq minutes et elles sont de nouveau acquises.`, "Pas besoin de tout rattraper d'un coup ; une série aujourd'hui et la révision se réorganise toute seule."], n10: (due) => ["Dix jours sans basque. Les phrases ne sont pas parties : elles attendent, et l'appli les ressortira dans le bon ordre quand tu reviendras.", "Une série aujourd'hui, une autre demain. C'est tout."], ncta: "Pratiquer maintenant", unsub: "Si tu ne veux plus recevoir ces e-mails,", unsubl: "désabonne-toi ici", done: "C'est fait. Nous ne t'enverrons plus d'e-mails de rappel (les codes de connexion continuent d'arriver)." }
+};
+const strip = (h) => h.replace(/<[^>]+>/g, "");
+async function sendWelcome(u) {
+  if (u.welcome_sent || process.env.MAIL_NUDGES === "0") return;
+  db.prepare("UPDATE users SET welcome_sent = 1 WHERE id = ?").run(u.id);
+  const T = MAIL_T[u.lang] || MAIL_T.es; const name = displayName(u);
+  try { await sendMail(u.email, T.wsubj, `${T.wtitle}, ${name}!\n\n${T.w.map(strip).join("\n\n")}`, mailHtml({ title: `${T.wtitle}, ${name}!`, sub: T.wsub, paras: T.w, cta: { url: APP_PUBLIC(), label: T.cta }, unsub: { text: T.unsub, label: T.unsubl, url: unsubUrl(u.id) } })); logEvent(u.id, "mail_welcome"); }
+  catch (e) { console.error("bienvenida:", e.message); }
+}
+async function mailNudges() {
+  if (process.env.MAIL_NUDGES === "0") return 0; let sent = 0;
+  const today = madridDay();
+  for (const days of [3, 10]) {
+    const day = madridDay(-days);
+    const rows = db.prepare(`SELECT * FROM users WHERE mail_opt = 1 AND json_extract(profile, '$.gender') IS NOT NULL AND COALESCE(MAX(last_day, last_seen), substr(created_at, 1, 10)) = ? AND (nudge_last IS NULL OR nudge_last < ?)`).all(day, madridDay(-2));
+    for (const u of rows) {
+      const T = MAIL_T[u.lang] || MAIL_T.es; const due = db.prepare("SELECT COUNT(*) n FROM items WHERE user_id = ? AND due <= ?").get(u.id, today).n;
+      const paras = days === 3 ? T.n3(due) : T.n10(due); const subj = days === 3 ? T.nsubj3 : T.nsubj10;
+      db.prepare("UPDATE users SET nudge_last = ? WHERE id = ?").run(today, u.id);
+      try { await sendMail(u.email, subj, `${T.ntitle}, ${displayName(u)}!\n\n${paras.map(strip).join("\n\n")}\n\n${T.unsub} ${unsubUrl(u.id)}`, mailHtml({ title: `${T.ntitle}, ${displayName(u)}!`, paras, cta: { url: APP_PUBLIC(), label: T.ncta }, unsub: { text: T.unsub, label: T.unsubl, url: unsubUrl(u.id) } })); logEvent(u.id, "mail_nudge", { days, due }); sent++; }
+      catch (e) { console.error("recordatorio por correo:", e.message); }
+    }
+  }
+  return sent;
+}
+if (MAIL_ON && process.env.MAIL_NUDGES !== "0") setInterval(() => { const d = new Date(); const h = parseInt(d.toLocaleTimeString("en-GB", { timeZone: process.env.TZ_NAME || "Europe/Madrid", hour: "2-digit", hour12: false })); if (h === 18 && d.getMinutes() === 5) mailNudges().catch(e => console.error(e)); }, 60 * 1000);
+app.post("/api/admin/mail/nudges", admin, async (req, res) => { try { res.json({ sent: await mailNudges() }); } catch (e) { res.status(500).json({ error: e.message }); } });
+app.get("/api/mail/unsub", (req, res) => {
+  const id = +req.query.u, t = String(req.query.t || "");
+  const u = id && db.prepare("SELECT id, lang FROM users WHERE id = ?").get(id);
+  if (!u || t !== unsubToken(id)) return res.status(400).send("Enlace no válido.");
+  db.prepare("UPDATE users SET mail_opt = 0 WHERE id = ?").run(id); logEvent(id, "mail_unsub");
+  const T = MAIL_T[u.lang] || MAIL_T.es;
+  res.send(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Euskara Praktika</title>${mailHtml({ title: "Ados.", paras: [T.done] })}`);
+});
 // ---------- correo entrante (Resend Inbound → reenvío a tu buzón) ----------
 //   RESEND_WEBHOOK_SECRET  secreto «whsec_…» del webhook email.received (firma Svix). MAIL_FORWARD_TO  dirección a la que reenviar.
 // Se descarga el mensaje y sus adjuntos por la API de Resend y se reenvía desde MAIL_FROM con «Responder a» = remitente original.
@@ -481,6 +531,7 @@ app.post("/api/profile", auth, (req, res) => {
   db.prepare("UPDATE users SET profile = ?, lang = ?, open_duel = ?" + (name.length >= 2 ? ", name = ?" : "") + " WHERE id = ?").run(...(name.length >= 2 ? [JSON.stringify(clean), lang, openDuel, name, req.user.id] : [JSON.stringify(clean), lang, openDuel, req.user.id]));
   logEvent(req.user.id, "profile", { complete: !!clean.gender, lang });
   res.json({ ...clean, name: name.length >= 2 ? name : req.user.name, lang, openDuel: !!openDuel });
+  if (clean.gender) sendWelcome(db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id));
 });
 
 // «Ya sé esto»: saltar un módulo (abre el siguiente sin meter sus frases en el repaso); se puede deshacer.
