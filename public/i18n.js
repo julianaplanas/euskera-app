@@ -183,6 +183,11 @@ Object.assign(window.EN, {
   "Gestionar suscripción": "Manage subscription",
   "Pago recibido; se activará en unos segundos.": "Payment received; it will activate in a few seconds.",
   "Ver planes y códigos": "Plans and codes",
+  "¿Has estudiado euskera antes?": "Have you studied Basque before?",
+  "Nunca · empiezo desde cero (Baiona)": "Never · I start from scratch (Baiona)",
+  "Algo: sé saludar, presentarme, los números (empiezo en Hondarribia)": "A bit: greetings, introducing myself, numbers (I start in Hondarribia)",
+  "Tengo el A1 · empiezo el A2 (Durango)": "I have A1 · I start A2 (Durango)",
+  "Tu primer módulo (TOWN) es gratis. Con Premium abres los 16 módulos (A1 y A2): 84 lecciones, 66 fichas de gramática, audio nativo y repaso espaciado sin límite.": "Your first module (TOWN) is free. Premium opens all 16 modules (A1 and A2): 84 lessons, 66 grammar cards, native audio and unlimited spaced review.",
   "Hazte Premium": "Go Premium",
   "Tu círculo, los retos con amigos y el ranking semanal son parte de Premium.": "Your circle, challenges with friends and the weekly ranking are part of Premium.",
   "o usa un código": "or use a code"

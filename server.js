@@ -65,7 +65,7 @@ db.exec(`
     console.log("Migración: tabla users antigua (PIN) apartada como users_old_pin.");
   }
   const want = { weak: "TEXT NOT NULL DEFAULT '[]'", profile: "TEXT NOT NULL DEFAULT '{}'", last_seen: "TEXT", lang: "TEXT NOT NULL DEFAULT 'es'", open_duel: "INTEGER NOT NULL DEFAULT 0",
-    premium_until: "TEXT", premium_src: "TEXT", stripe_customer: "TEXT", stripe_sub: "TEXT", stripe_status: "TEXT", stripe_cancel: "INTEGER NOT NULL DEFAULT 0", stripe_plan: "TEXT" };
+    start_module: "INTEGER NOT NULL DEFAULT 1", skipped: "TEXT NOT NULL DEFAULT '[]'", premium_until: "TEXT", premium_src: "TEXT", stripe_customer: "TEXT", stripe_sub: "TEXT", stripe_status: "TEXT", stripe_cancel: "INTEGER NOT NULL DEFAULT 0", stripe_plan: "TEXT" };
   db.exec(`CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS gift_codes (code TEXT PRIMARY KEY, days INTEGER NOT NULL, max_uses INTEGER NOT NULL DEFAULT 1, uses INTEGER NOT NULL DEFAULT 0, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
     CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, concept TEXT NOT NULL, amount REAL NOT NULL, currency TEXT NOT NULL DEFAULT 'EUR', recurring TEXT, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
@@ -136,7 +136,7 @@ function profile(user) {
   const gram = {};
   for (const g of db.prepare("SELECT card_id, done FROM grammar WHERE user_id = ?").all(user.id)) gram[g.card_id] = g.done;
   const pending = db.prepare("SELECT COUNT(*) n FROM challenges WHERE to_id = ? AND status = 'open' AND to_result IS NULL").get(user.id).n;
-  return { id: user.id, name: user.name, email: user.email, lang: user.lang || "es", premium: premiumOf(user), freeModules: FREE_MODULES, billing: STRIPE_ON, openDuel: !!user.open_duel, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, gram, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
+  return { id: user.id, name: user.name, email: user.email, lang: user.lang || "es", premium: premiumOf(user), freeModules: FREE_MODULES, startModule: freeWindow(user).from, skipped: J(user.skipped, []), billing: STRIPE_ON, openDuel: !!user.open_duel, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, gram, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
 }
 
 // ---------- notificaciones push (web-push, sin servicio externo) ----------
@@ -210,7 +210,10 @@ function premiumOf(user) {
   const active = !!user.premium_until && user.premium_until >= today;
   return { active, until: user.premium_until || null, src: user.premium_src || null, status: user.stripe_status || null, cancels: !!user.stripe_cancel, plan: user.stripe_plan || null, customer: !!user.stripe_customer };
 }
-const lessonAllowed = (user, lessonId) => { const m = LESSON_MODULE[lessonId]; return !m || m <= FREE_MODULES || premiumOf(user).active; };
+// Gratis = FREE_MODULES módulos a partir del módulo por el que el usuario empezó (start_module); el resto, premium.
+const MODULE_COUNT = (() => { try { return Math.max(...Object.values(LESSON_MODULE)); } catch (e) { return 16; } })();
+const freeWindow = (user) => { const from = Math.max(1, Math.min(MODULE_COUNT, user.start_module || 1)); return { from, to: from + FREE_MODULES - 1 }; };
+const lessonAllowed = (user, lessonId) => { const m = LESSON_MODULE[lessonId]; if (!m) return true; const w = freeWindow(user); return (m >= w.from && m <= w.to) || premiumOf(user).active; };
 function addPremiumDays(userId, days, src) {
   const u = db.prepare("SELECT premium_until FROM users WHERE id = ?").get(userId); const today = madridDay();
   const base = u && u.premium_until && u.premium_until > today ? new Date(u.premium_until + "T12:00:00Z") : new Date(today + "T12:00:00Z");
@@ -404,9 +407,22 @@ app.post("/api/profile", auth, (req, res) => {
     nebak: Math.max(0, Math.min(9, p.nebak | 0)), ahizpak: Math.max(0, Math.min(9, p.ahizpak | 0)), town: String(p.town || "").slice(0, 40), origin: String(p.origin || "").slice(0, 40) };
   const name = cleanName(p.name); const lang = p.lang ? cleanLang(p.lang) : req.user.lang;
   const openDuel = typeof p.openDuel === "boolean" ? (p.openDuel ? 1 : 0) : req.user.open_duel;
+  if (Number.isInteger(p.startModule) && p.startModule >= 1 && p.startModule <= MODULE_COUNT && p.startModule !== req.user.start_module) {
+    const started = db.prepare("SELECT COUNT(*) n FROM items WHERE user_id = ? AND lesson_id IS NOT NULL AND lesson_id != 'me'").get(req.user.id).n;
+    if (started) return res.status(409).json({ error: "El punto de partida solo se puede elegir antes de empezar las lecciones." });
+    db.prepare("UPDATE users SET start_module = ? WHERE id = ?").run(p.startModule, req.user.id); logEvent(req.user.id, "start_module", { m: p.startModule });
+  }
   db.prepare("UPDATE users SET profile = ?, lang = ?, open_duel = ?" + (name.length >= 2 ? ", name = ?" : "") + " WHERE id = ?").run(...(name.length >= 2 ? [JSON.stringify(clean), lang, openDuel, name, req.user.id] : [JSON.stringify(clean), lang, openDuel, req.user.id]));
   logEvent(req.user.id, "profile", { complete: !!clean.gender, lang });
   res.json({ ...clean, name: name.length >= 2 ? name : req.user.name, lang, openDuel: !!openDuel });
+});
+
+// «Ya sé esto»: saltar un módulo (abre el siguiente sin meter sus frases en el repaso); se puede deshacer.
+app.post("/api/skip", auth, (req, res) => {
+  const m = +req.body.module; if (!Number.isInteger(m) || m < 1 || m > MODULE_COUNT) return res.status(400).json({ error: "Módulo desconocido." });
+  const set = new Set(J(req.user.skipped, [])); req.body.skip === false ? set.delete(m) : set.add(m);
+  const arr = [...set].sort((a, b) => a - b); db.prepare("UPDATE users SET skipped = ? WHERE id = ?").run(JSON.stringify(arr), req.user.id);
+  logEvent(req.user.id, req.body.skip === false ? "unskip" : "skip", { m }); res.json({ skipped: arr });
 });
 
 // ---------- lagunak: a quién puedes retar y con quién te comparas ----------

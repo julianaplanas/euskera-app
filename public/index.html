@@ -416,10 +416,20 @@ function seenPct(l,m){ const its=lessonItems(l); return its.filter(x=>m[x.key]).
 function firmPct(l,m){ const its=lessonItems(l); return its.filter(x=>m[x.key]&&m[x.key].interval>=7).length/Math.max(1,its.length); }
 // Premium: los primeros P.freeModules módulos son gratis; el resto requiere premium activo (servidor manda).
 const premActive=()=>!!(P&&P.premium&&P.premium.active);
-const premLocked=l=>!!(P&&l.module>(P.freeModules||1)&&!premActive());
+// Gratis = P.freeModules módulos desde el módulo de inicio (P.startModule). Módulos anteriores al inicio o saltados («ya sé esto») no bloquean el camino.
+const freeWin=()=>{ const from=(P&&P.startModule)||1; return {from,to:from+((P&&P.freeModules)||1)-1}; };
+const premLocked=l=>{ if(!P||premActive()) return false; const w=freeWin(); return l.module<w.from||l.module>w.to; };
+const beforeStart=mid=>!!(P&&mid<((P.startModule)||1));
+const isSkipped=mid=>!!(P&&(P.skipped||[]).includes(mid));
+const modPassed=(mid,m)=>beforeStart(mid)||isSkipped(mid)||LESSONS.filter(l=>l.module===mid).every(l=>seenPct(l,m)>=0.8);
 // La app de Google Play no puede mostrar precios ni enlaces de compra (política de Play): se detecta por el referrer de la TWA.
 const inTWA=(()=>{ try{ if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()) return true; if(document.referrer.startsWith("android-app://")) sessionStorage.setItem("euskara.twa","1"); return sessionStorage.getItem("euskara.twa")==="1"; }catch(e){ return false; } })();
-function unlockedIds(){ const m=imap(); const out=new Set(); for(let i=0;i<LESSONS.length;i++){ if(premLocked(LESSONS[i])) break; if(i===0||seenPct(LESSONS[i-1],m)>=0.8) out.add(LESSONS[i].id); else break; } return out; }
+function unlockedIds(){ const m=imap(); const out=new Set();
+  for(let i=0;i<LESSONS.length;i++){ const l=LESSONS[i]; if(premLocked(l)) continue;
+    if(beforeStart(l.module)||isSkipped(l.module)){ out.add(l.id); continue; } // territorio ya conocido: todo abierto
+    const prev=LESSONS[i-1]; const ok=!prev||(prev.module!==l.module?modPassed(prev.module,m):(out.has(prev.id)&&seenPct(prev,m)>=0.8));
+    if(ok) out.add(l.id); }
+  return out; }
 function isUnlocked(l){ return unlockedIds().has(l.id); }
 function moduleOf(l){ return MODULES.find(x=>x.id===l.module)||MODULES[0]; }
 function moduleProgress(mod,m){ const ls=LESSONS.filter(l=>l.module===mod.id); if(!ls.length) return {seen:0,firm:0,n:0}; const its=ls.flatMap(lessonItems); return {n:its.length,seen:its.filter(x=>m[x.key]).length/its.length,firm:its.filter(x=>m[x.key]&&m[x.key].interval>=7).length/its.length}; }
@@ -477,7 +487,7 @@ function renderPlans(){
   const plans=Object.entries(PLAN_META).map(([k,m])=>{ const amt={month:399,quarter:999,half:1699}[k]; const per=amt/m.n; return `<button class="plan ${k==="half"?"best":""}" data-plan="${k}"><span class="pl-t">${m.eu}<small>${m.n===1?T("cada mes"):T("cada N meses").replace("N",m.n)}</small></span><span class="pl-p"><b>${eur(amt)}</b>${m.n>1?`<small>${eur(Math.round(per))} / ${T("mes")}</small>`:""}</span>${k==="half"?`<i>${T("Mejor precio")}</i>`:""}</button>`; }).join("");
   app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1"><p class="eyebrow">Premium</p><h2>Bide osoa · ${T("todo el camino")}</h2></div></div>
    <div class="stack pad" style="flex:1;gap:12px">
-    <div class="card" style="display:flex;gap:14px;align-items:center"><div style="flex:none">${OLEN("wave",56)}</div><p style="margin:0">${T("El módulo 1 es gratis. Con Premium abres los 16 módulos (A1 y A2): 84 lecciones, 66 fichas de gramática, audio nativo y repaso espaciado sin límite.").replace("1",free)}</p></div>
+    <div class="card" style="display:flex;gap:14px;align-items:center"><div style="flex:none">${OLEN("wave",56)}</div><p style="margin:0">${T("Tu primer módulo (TOWN) es gratis. Con Premium abres los 16 módulos (A1 y A2): 84 lecciones, 66 fichas de gramática, audio nativo y repaso espaciado sin límite.").replace("TOWN",(MODULES.find(x=>x.id===freeWin().from)||MODULES[0]).town)}</p></div>
     ${pr.active?`<p class="card" style="background:var(--green);color:#fff;font-weight:600;display:flex;align-items:center;gap:10px;margin:0"><span style="flex:none;width:22px;height:22px;display:inline-flex">${ic("check",3)}</span><span>${premiumLine()}</span></p>`:""}
     ${inTWA?`<p class="muted">${T("La suscripción se gestiona desde tu cuenta en la web.")}</p>`:B?`<div class="plans">${plans}</div><p class="hint">${T("Renovación automática; cancela cuando quieras desde tu perfil. IVA incluido. Pago seguro con Stripe.")}</p>`:`<p class="muted">${T("Los pagos se activarán muy pronto. Si tienes un código, úsalo aquí abajo.")}</p>`}
     <p class="eyebrow" data-es="${T("¿Tienes un código?")}">Kodea baduzu?</p>
@@ -500,6 +510,8 @@ function renderProfile(first=false){
     <p class="eyebrow" data-es="${T("Idioma de apoyo")}">Hizkuntza</p>
     <div class="opts" style="grid-template-columns:1fr 1fr 1fr"><button class="opt" data-lang="es" aria-pressed="${LANG==="es"}">🇪🇸 Castellano</button><button class="opt" data-lang="en" aria-pressed="${LANG==="en"}">🇬🇧 English</button><button class="opt" data-lang="fr" aria-pressed="${LANG==="fr"}">🇫🇷 Français</button></div>
     <p class="eyebrow" data-es="${T("Tu nombre, como lo ven los demás")}">Izena</p><input class="ans" id="pname" placeholder="${T("Nombre")}" maxlength="30" autocomplete="nickname" value="${esc(P.name||"")}">
+    ${first?`<p class="eyebrow" data-es="${T("¿Has estudiado euskera antes?")}">Euskara ikasi duzu lehen?</p>
+    <div class="opts" style="grid-template-columns:1fr"><button class="opt" data-start="1" aria-pressed="true">🌱 Inoiz ez<br><small class="muted">${T("Nunca · empiezo desde cero (Baiona)")}</small></button><button class="opt" data-start="3" aria-pressed="false">🌿 Zerbait<br><small class="muted">${T("Algo: sé saludar, presentarme, los números (empiezo en Hondarribia)")}</small></button><button class="opt" data-start="9" aria-pressed="false">🌳 A1 badut<br><small class="muted">${T("Tengo el A1 · empiezo el A2 (Durango)")}</small></button></div>`:""}
     <p class="eyebrow" data-es="${T("¿Chica o chico?")}">Neska ala mutila?</p>
     <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-g="neska" aria-pressed="${pr.gender==="neska"}">👧 Neska<br><small class="muted">${T("chica · neba / ahizpa")}</small></button><button class="opt" data-g="mutila" aria-pressed="${pr.gender==="mutila"}">👦 Mutila<br><small class="muted">${T("chico · anaia / arreba")}</small></button></div>
     <p class="eyebrow" data-es="${T("¿Cuántos años tienes?")}">Zenbat urte dituzu?</p><input class="ans" id="age" type="number" inputmode="numeric" min="1" max="119" placeholder="${T("Edad")}" value="${pr.age||""}">
@@ -530,11 +542,12 @@ function renderProfile(first=false){
   renderPushBox();
   app.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{ SLOW=b.dataset.sp==="1"; try{ localStorage.setItem("euskara.slow",SLOW?"1":"0"); }catch(e){} app.querySelectorAll("[data-sp]").forEach(x=>x.setAttribute("aria-pressed",(x.dataset.sp==="1")===SLOW)); if(VOICE) speak("Kaixo, zer moduz?"); });
   app.querySelectorAll("[data-lang]").forEach(b=>b.onclick=async()=>{ try{ await loadLang(b.dataset.lang); }catch(e){ toast(e.message); return; } setLang(b.dataset.lang); applyStatic(); renderProfile(first); });
+  let startM=1; app.querySelectorAll("[data-start]").forEach(b=>b.onclick=()=>{ startM=+b.dataset.start; app.querySelectorAll("[data-start]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.start===b.dataset.start)); });
   let g=pr.gender||null;
   app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ g=b.dataset.g; app.querySelectorAll("[data-g]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.g===g)); });
   document.getElementById("back").onclick=()=>first?null:setTab("ikasgaiak");
   document.getElementById("save").onclick=async()=>{
-    const body={name:document.getElementById("pname").value.trim(),lang:LANG,gender:g,age:+document.getElementById("age").value||null,nebak:+document.getElementById("nebak").value||0,ahizpak:+document.getElementById("ahizpak").value||0,town:document.getElementById("town").value.trim(),origin:document.getElementById("origin").value.trim()};
+    const body={name:document.getElementById("pname").value.trim(),lang:LANG,gender:g,...(first?{startModule:startM}:{}),age:+document.getElementById("age").value||null,nebak:+document.getElementById("nebak").value||0,ahizpak:+document.getElementById("ahizpak").value||0,town:document.getElementById("town").value.trim(),origin:document.getElementById("origin").value.trim()};
     try{ const pr=await api("profile",body); P.name=pr.name; P.lang=pr.lang; delete pr.name; delete pr.lang; P.profile=pr; await api("items/introduce",{items:personalItems()}); await loadItems(); P=await api("me"); if(first&&!seenWelcome()) renderWelcome(); else setTab("ikasgaiak"); }catch(e){ toast(e.message); }
   };
 }
@@ -598,7 +611,7 @@ const seenWelcome=()=>{ try{ return localStorage.getItem("euskara.welcome."+P.id
 function dueToday(){ const t=todayStr(); return ITEMS.filter(i=>i.due<=t).sort((a,b)=>a.due<b.due?-1:a.due>b.due?1:b.lapses-a.lapses); }
 function nextNew(n){
   const known=new Set(ITEMS.map(i=>i.key)); const out=[];
-  const ul=unlockedIds(); for(const l of LESSONS){ if(!ul.has(l.id)) break; for(const it of lessonItems(l)) if(!known.has(it.key)){ out.push(it); if(out.length>=n) return out; } if(out.length) return out; }
+  const ul=unlockedIds(); for(const l of LESSONS){ if(beforeStart(l.module)||isSkipped(l.module)) continue; if(!ul.has(l.id)) break; for(const it of lessonItems(l)) if(!known.has(it.key)){ out.push(it); if(out.length>=n) return out; } if(out.length) return out; }
   return out;
 }
 function todayPlan(){
@@ -785,12 +798,13 @@ let honaOff=null;
 function renderLessons(focusMod){
   if(honaOff){ honaOff(); honaOff=null; }
   const m=imap(); const ul=unlockedIds(); const fo_=foldOpen();
-  const active=LESSONS.find(l=>ul.has(l.id)&&seenPct(l,m)<0.8)||[...LESSONS].reverse().find(l=>ul.has(l.id));
+  const active=LESSONS.find(l=>ul.has(l.id)&&!beforeStart(l.module)&&!isSkipped(l.module)&&seenPct(l,m)<0.8)||[...LESSONS].reverse().find(l=>ul.has(l.id)&&!beforeStart(l.module)&&!isSkipped(l.module))||[...LESSONS].reverse().find(l=>ul.has(l.id));
   const W=360, CX=180, AMP=104, STEP=98, TOWN=100, PADT=10, PADB=30, LW=156;
   const stops=[]; let y=PADT, k=0;
   MODULES.forEach(mod=>{ const ls=LESSONS.filter(l=>l.module===mod.id); const pr=moduleProgress(mod,m); const reached=!!(ls.length&&ul.has(ls[0].id));
-    const done=!!(ls.length&&pr.firm>=0.7), hasActive=!!(active&&active.module===mod.id), isNext=!!(active&&mod.id===active.module+1), folded=!hasActive&&!isNext&&!fo_.has(mod.id);
-    y+=TOWN/2; stops.push({type:"town",mod,x:CX,y,reached,done,folded,foldable:!hasActive&&!isNext,nles:ls.length,firm:pr.firm}); y+=TOWN/2+(!hasActive&&!isNext?30:0);
+    const known=beforeStart(mod.id)||isSkipped(mod.id), done=!!(ls.length&&pr.firm>=0.7)||known, hasActive=!!(active&&active.module===mod.id), isNext=!!(active&&mod.id===active.module+1), folded=!hasActive&&!isNext&&!fo_.has(mod.id);
+    const skippable=!known&&!premLocked({module:mod.id})&&pr.seen<0.8&&(hasActive||isNext);
+    y+=TOWN/2; stops.push({type:"town",mod,x:CX,y,reached,done,known,skippable,folded,foldable:!hasActive&&!isNext,nles:ls.length,firm:pr.firm}); y+=TOWN/2+(!hasActive&&!isNext?30:0)+(skippable?22:0);
     const items=[]; if(folded){} else if(ls.length){ ls.forEach(l=>{ items.push({l}); GRAMMAR.filter(g=>g.lessons[0]===l.id).forEach(g=>items.push({g,after:l})); }); } else (mod.planned||[]).forEach(t=>items.push({plan:t}));
     items.forEach(it=>{ const st=it.g?STEP*0.78:STEP; y+=st/2; stops.push({type:"node",x:Math.round(CX+AMP*Math.sin(k*1.1)),y,...it}); k++; y+=st/2; }); });
   const H=y+PADB;
@@ -802,7 +816,7 @@ function renderLessons(focusMod){
   stops.filter(s=>s.type==="town").forEach((s,i)=>{ const yy=s.y+6; hills+=i%2?`<path d="M14 ${yy} l16 -30 l16 30z" fill="var(--soft)"/><path d="M${W-58} ${yy} l12 -20 l12 20z" fill="var(--soft)"/>`:`<path d="M${W-46} ${yy} l16 -30 l16 30z" fill="var(--soft)"/><path d="M22 ${yy} l12 -20 l12 20z" fill="var(--soft)"/>`; });
   const fo=(x,y,w,h,html)=>`<foreignObject x="${x}" y="${y}" width="${w}" height="${h}"><div xmlns="http://www.w3.org/1999/xhtml" style="height:100%;display:flex;align-items:center">${html}</div></foreignObject>`;
   const node=(s,i)=>{
-    if(s.type==="town"){ const mod=s.mod; const cy=s.y-TOWN/2+6+22; return `<line x1="16" x2="${W-16}" y1="${cy}" y2="${cy}" stroke="${s.done?"var(--green)":s.reached?"var(--ink)":"var(--line2)"}" stroke-width="2" stroke-dasharray="${s.reached?"none":"3 7"}" stroke-linecap="round" opacity=".55"/>`+fo(CX-130,s.y-TOWN/2+6,260,TOWN-8+(s.foldable?36:0),`<div class="town ${s.done?"done":s.reached?"":"locked"}" data-town="${mod.id}" style="width:100%"><span>${s.done?ic("check",3):""}${esc(mod.town)}</span>${mod.level?`<span class="lvl">${mod.level}</span>`:""}<br><small>${mod.id} · ${esc(mod.eu)} · ${esc(L2(mod.es,mod.en))}</small>${s.foldable?`<a class="fold ${s.done?"":"dim"}" role="button" tabindex="0" data-fold="${mod.id}">${s.folded?`${ic("chevron-down",2.5)} ${s.nles} ${s.done?L2("lecciones firmes · ver","solid lessons · show","leçons acquises · voir"):premLocked({module:mod.id})?L2("lecciones · Premium","lessons · Premium","leçons · Premium"):L2("lecciones · ver","lessons · show","leçons · voir")}`:`${ic("chevron-up",2.5)} ${L2("plegar","collapse","replier")}`}</a>`:""}</div>`); }
+    if(s.type==="town"){ const mod=s.mod; const cy=s.y-TOWN/2+6+22; return `<line x1="16" x2="${W-16}" y1="${cy}" y2="${cy}" stroke="${s.done?"var(--green)":s.reached?"var(--ink)":"var(--line2)"}" stroke-width="2" stroke-dasharray="${s.reached?"none":"3 7"}" stroke-linecap="round" opacity=".55"/>`+fo(CX-130,s.y-TOWN/2+6,260,TOWN-8+(s.foldable?36:0)+(s.skippable?24:0),`<div class="town ${s.done?"done":s.reached?"":"locked"}" data-town="${mod.id}" style="width:100%"><span>${s.done?ic("check",3):""}${esc(mod.town)}</span>${mod.level?`<span class="lvl">${mod.level}</span>`:""}<br><small>${mod.id} · ${esc(mod.eu)} · ${esc(L2(mod.es,mod.en))}</small>${s.foldable?`<a class="fold ${s.done?"":"dim"}" role="button" tabindex="0" data-fold="${mod.id}">${s.folded?`${ic("chevron-down",2.5)} ${s.nles} ${s.known?L2("lecciones · ya lo sabías","lessons · already known","leçons · déjà acquises"):s.done?L2("lecciones firmes · ver","solid lessons · show","leçons acquises · voir"):premLocked({module:mod.id})?L2("lecciones · Premium","lessons · Premium","leçons · Premium"):L2("lecciones · ver","lessons · show","leçons · voir")}`:`${ic("chevron-up",2.5)} ${L2("plegar","collapse","replier")}`}</a>`:""}${s.skippable?`<a class="fold dim" role="button" tabindex="0" data-skip="${mod.id}">${L2("Ya sé esto · saltar","I know this · skip","Je connais · passer")}</a>`:isSkipped(mod.id)?`<a class="fold dim" role="button" tabindex="0" data-unskip="${mod.id}">${L2("Saltado · hacerlo","Skipped · do it","Passé · le faire")}</a>`:""}</div>`); }
     const right=s.x<=CX; const lx=right?s.x+32:s.x-32-LW; const lab=(cls,t,sub)=>fo(lx,s.y-30,LW,60,`<div class="plab ${cls} ${right?"":"r"}"><b>${esc(t)}</b><small>${sub}</small></div>`);
     if(s.g){ const g=s.g, open=ul.has(s.after.id)&&seenPct(s.after,m)>0, done=gramDone(g.id), n=g.drills.length, ok=done>=n; const sz=17;
       const box=`<rect x="${s.x-sz}" y="${s.y-sz}" width="${sz*2}" height="${sz*2}" rx="9" fill="${ok?"var(--green)":open?"var(--ochre)":"var(--soft)"}" transform="rotate(45 ${s.x} ${s.y})"/><g transform="translate(${s.x-10} ${s.y-10}) scale(.83)" style="color:${ok?"#fff":open?"#141414":"var(--muted)"}">${ic(ok?"check":"bulb",2.4).replace("<svg ",'<svg width="24" height="24" ')}</g>`;
@@ -825,6 +839,7 @@ function renderLessons(focusMod){
   const svg=app.querySelector(".path"); const yOf=st=>(svg.getBoundingClientRect().top-app.getBoundingClientRect().top+app.scrollTop)+st.y*(svg.getBoundingClientRect().width/W);
   const goStop=(st,frac,beh)=>app.scrollTo({top:Math.max(0,yOf(st)-app.clientHeight*frac),behavior:beh||"smooth"});
   app.querySelectorAll("[data-jump]").forEach(b=>{ b.onclick=()=>{ const st=stops.find(s=>s.type==="town"&&s.mod.id===+b.dataset.jump); if(st) goStop(st,0.12); }; });
+  app.querySelectorAll("[data-skip],[data-unskip]").forEach(a=>{ const go=async ev=>{ ev.stopPropagation(); const skip=!!a.dataset.skip, mid=+(a.dataset.skip||a.dataset.unskip); if(skip&&!confirm(L2("¿Saltar este módulo? Sus frases no entrarán en el repaso; puedes volver cuando quieras.","Skip this module? Its phrases won't be reviewed; you can come back any time.","Passer ce module ? Ses phrases ne seront pas révisées ; tu peux revenir quand tu veux."))) return; try{ const r=await api("skip",{module:mid,skip}); P.skipped=r.skipped; renderLessons(mid); }catch(e){ toast(e.message); } }; a.onclick=go; a.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(ev); } }; });
   app.querySelectorAll("[data-fold]").forEach(a=>{ const go=ev=>{ ev.stopPropagation(); foldToggle(+a.dataset.fold); }; a.onclick=go; a.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(ev); } }; });
   let hona=document.getElementById("hona"); if(!hona){ hona=document.createElement("button"); hona.id="hona"; hona.className="hona"; hona.type="button"; document.body.appendChild(hona); }
   hona.innerHTML=`${ic("arrow-down",2.5)} ${"Hona"}`; hona.onclick=()=>{ if(ai>=0) goStop(stops[ai],0.45); };

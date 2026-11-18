@@ -6141,6 +6141,11 @@ Object.assign(window.FR, {
   "Gestionar suscripción": "Gérer l'abonnement",
   "Pago recibido; se activará en unos segundos.": "Paiement reçu ; activation dans quelques secondes.",
   "Ver planes y códigos": "Offres et codes",
+  "¿Has estudiado euskera antes?": "As-tu déjà étudié le basque ?",
+  "Nunca · empiezo desde cero (Baiona)": "Jamais · je pars de zéro (Baiona)",
+  "Algo: sé saludar, presentarme, los números (empiezo en Hondarribia)": "Un peu : saluer, me présenter, les nombres (je commence à Hondarribia)",
+  "Tengo el A1 · empiezo el A2 (Durango)": "J'ai le A1 · je commence le A2 (Durango)",
+  "Tu primer módulo (TOWN) es gratis. Con Premium abres los 16 módulos (A1 y A2): 84 lecciones, 66 fichas de gramática, audio nativo y repaso espaciado sin límite.": "Ton premier module (TOWN) est gratuit. Avec Premium, tu ouvres les 16 modules (A1 et A2) : 84 leçons, 66 fiches de grammaire, audio natif et révision espacée sans limite.",
   "Hazte Premium": "Passer Premium",
   "Tu círculo, los retos con amigos y el ranking semanal son parte de Premium.": "Ton cercle, les défis entre amis et le classement hebdomadaire font partie de Premium.",
   "o usa un código": "ou utilise un code"
