@@ -283,7 +283,8 @@ async function inboundMail(req, res) {
 // ---------- premium (suscripción de Google Play vía RevenueCat, o código de regalo) ----------
 // Módulos gratuitos: los primeros FREE_MODULES (por defecto 1). El resto requiere premium activo.
 const FREE_MODULES = +process.env.FREE_MODULES || 1;
-const PLANS = { month: { months: 1, amount: 399 }, quarter: { months: 3, amount: 999 }, half: { months: 6, amount: 1699 } };
+const PLANS = { month: { months: 1, amount: 399 }, quarter: { months: 3, amount: 999 }, half: { months: 6, amount: 1699 }, life: { months: 0, amount: 4999 } }; // life = pago único (producto premium_lifetime en Play)
+const FOREVER = "2099-12-31";
 const LESSON_MODULE = (() => { try { const w = {}; new Function("window", fs.readFileSync(path.join(__dirname, "public", "lessons.js"), "utf8"))(w); return Object.fromEntries(w.LESSONS.map(l => [l.id, l.module])); } catch (e) { console.error("No se pudo leer lessons.js:", e.message); return {}; } })();
 const setting = (k, v) => v === undefined ? (db.prepare("SELECT v FROM settings WHERE k = ?").get(k) || {}).v : db.prepare("INSERT INTO settings (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").run(k, v);
 function premiumOf(user) {
@@ -322,7 +323,7 @@ const BILLING_ON = !!RC_PUBLIC_KEY;
 const ANDROID_PACKAGE = "eus.euskarapraktika.app", PLAY_PRODUCT = "premium";
 const rcUserId = (uid) => "ep_" + uid;
 const rcUid = (appUserId) => { const m = /^ep_(\d+)$/.exec(String(appUserId || "")); return m ? +m[1] : null; };
-const planOfProduct = (pid) => { const p = String(pid || "").toLowerCase(); for (const k of Object.keys(PLANS)) if (p.includes(k)) return k; return /year|annual/.test(p) ? "year" : null; };
+const planOfProduct = (pid) => { const p = String(pid || "").toLowerCase(); if (/life|betiko|forever/.test(p)) return "life"; for (const k of Object.keys(PLANS)) if (p.includes(k)) return k; return /year|annual/.test(p) ? "year" : null; };
 const appUrl = (req) => (process.env.APP_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
 // Guarda el estado de la suscripción. until = fecha (YYYY-MM-DD) hasta la que la entitlement está pagada (o null si nunca la tuvo).
 function applyEntitlement(userId, { until, product, store, cancels, billingIssue }) {
@@ -346,7 +347,7 @@ async function rcSync(userId) {
   const sub = (await r.json()).subscriber || {}; const ent = (sub.entitlements || {}).premium;
   if (!ent) { applyEntitlement(userId, { until: null }); return true; }
   const s = (sub.subscriptions || {})[ent.product_identifier] || {};
-  applyEntitlement(userId, { until: isoDay(ent.expires_date), product: ent.product_identifier, store: s.store || null, cancels: !!s.unsubscribe_detected_at, billingIssue: !!s.billing_issues_detected_at && isoDay(ent.expires_date) >= madridDay() });
+  applyEntitlement(userId, { until: ent.expires_date ? isoDay(ent.expires_date) : FOREVER, product: ent.product_identifier, store: s.store || null, cancels: !!s.unsubscribe_detected_at, billingIssue: !!s.billing_issues_detected_at && isoDay(ent.expires_date) >= madridDay() });
   return true;
 }
 app.get("/api/billing/config", (req, res) => {
@@ -390,7 +391,8 @@ app.post("/api/billing/revenuecat", async (req, res) => {
     try {
       if (!(await rcSync(uid))) {
         const gone = ["EXPIRATION"].includes(ev.type) || (ev.transferred_from || []).map(rcUid).includes(uid);
-        applyEntitlement(uid, { until: gone ? (msDay(ev.expiration_at_ms) || madridDay()) : msDay(ev.expiration_at_ms), product: ev.product_id, store: ev.store, cancels: ["CANCELLATION", "EXPIRATION"].includes(ev.type), billingIssue: ev.type === "BILLING_ISSUE" });
+        const life = planOfProduct(ev.product_id) === "life" && !gone;
+        applyEntitlement(uid, { until: life ? FOREVER : gone ? (msDay(ev.expiration_at_ms) || madridDay()) : msDay(ev.expiration_at_ms), product: ev.product_id, store: ev.store, cancels: ["CANCELLATION", "EXPIRATION"].includes(ev.type), billingIssue: ev.type === "BILLING_ISSUE" });
       }
       logEvent(uid, "billing_" + String(ev.type).toLowerCase(), { product: ev.product_id, store: ev.store, env: ev.environment });
     } catch (e) { console.error("RevenueCat webhook (" + uid + "):", e.message); }
