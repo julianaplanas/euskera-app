@@ -615,6 +615,13 @@ app.post("/api/admin/expenses", admin, (req, res) => {
   const r = db.prepare("INSERT INTO expenses (day, concept, amount, currency, recurring, note) VALUES (?, ?, ?, ?, ?, ?)").run(day, concept, amount, cur, rec, String(req.body.note || "").slice(0, 200));
   res.json({ id: r.lastInsertRowid });
 });
+app.post("/api/admin/expenses/update", admin, (req, res) => {
+  const x = db.prepare("SELECT * FROM expenses WHERE id = ?").get(+req.body.id); if (!x) return res.status(404).json({ error: "No existe." });
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(req.body.day || "") ? req.body.day : x.day; const concept = String(req.body.concept ?? x.concept).trim().slice(0, 120) || x.concept;
+  const amount = +req.body.amount > 0 ? +req.body.amount : x.amount; const cur = ["EUR", "USD"].includes(String(req.body.currency).toUpperCase()) ? String(req.body.currency).toUpperCase() : x.currency;
+  const rec = ["mensual", "anual"].includes(req.body.recurring) ? req.body.recurring : null; const note = req.body.note === undefined ? x.note : String(req.body.note).slice(0, 200);
+  db.prepare("UPDATE expenses SET day = ?, concept = ?, amount = ?, currency = ?, recurring = ?, note = ? WHERE id = ?").run(day, concept, amount, cur, rec, note, x.id); res.json({ ok: true });
+});
 app.post("/api/admin/expenses/delete", admin, (req, res) => { db.prepare("DELETE FROM expenses WHERE id = ?").run(+req.body.id); res.json({ ok: true }); });
 app.get("/api/admin/gifts", admin, (req, res) => res.json(db.prepare("SELECT * FROM gift_codes ORDER BY created_at DESC LIMIT 200").all()));
 app.post("/api/admin/grant", admin, (req, res) => {
