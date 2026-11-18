@@ -916,7 +916,7 @@ function renderLessons(focusMod){
   const onScroll=()=>{ if(ai<0){ hona.classList.remove("show"); return; } const d=yOf(stops[ai])-(app.scrollTop+app.clientHeight*0.45); const far=Math.abs(d)>app.clientHeight*0.9; hona.classList.toggle("show",far); if(far) hona.firstElementChild.style.transform=d<0?"rotate(180deg)":""; };
   app.addEventListener("scroll",onScroll,{passive:true}); honaOff=()=>{ app.removeEventListener("scroll",onScroll); hona.classList.remove("show"); };
   const tabsEl=document.getElementById("tabs"); if(tabsEl&&!tabsEl.dataset.honaWired){ tabsEl.dataset.honaWired="1"; tabsEl.addEventListener("click",()=>{ if(honaOff&&TAB!=="ikasgaiak"){ honaOff(); honaOff=null; } }); }
-  setTimeout(()=>{ if(focusMod){ const st=stops.find(s=>s.type==="town"&&s.mod.id===focusMod); if(st) goStop(st,0.12,"auto"); } else if(ai>=0) goStop(stops[ai],0.45); onScroll(); },200);
+  setTimeout(()=>{ if(focusMod){ const st=stops.find(s=>s.type==="town"&&s.mod.id===focusMod); if(st) goStop(st,0.12,"auto"); } else if(ai>=0){ const sc=app.querySelector(".season"); if(sc&&yOf(stops[ai])<app.clientHeight*1.1) app.scrollTo({top:0,behavior:"auto"}); else goStop(stops[ai],0.45); } onScroll(); },200); // con tarjeta de temporada y lección activa cerca del principio, se queda arriba
 }
 function renderGrammarList(){
   const m=imap();
