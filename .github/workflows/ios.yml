@@ -1,0 +1,29 @@
+# Comprueba que la app iOS (Capacitor) compila, sin firmar, en el simulador. Se lanza a mano desde Actions
+# ("Run workflow") o al cambiar mobile/ios. Cuando exista la cuenta de Apple se añadirá la firma y la subida a TestFlight.
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths: ["mobile/ios/**", ".github/workflows/ios.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: Dependencias
+        run: npm ci
+      - name: Sincronizar Capacitor
+        run: npx cap sync ios
+      - name: Compilar para el simulador (sin firma)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build | tail -40
