@@ -92,6 +92,8 @@ const app = express();
 app.set("trust proxy", 1); // Railway pone la IP real en X-Forwarded-For
 const compression = require("compression");
 app.use(compression({ threshold: 1024 })); // gzip/brotli (brotli calidad 4 por defecto: rápido y ~70 % menos bytes)
+// Correo entrante (kaixo@, revisor@…): Resend recibe el correo (registro MX) y avisa aquí; se reenvía íntegro a MAIL_FORWARD_TO.
+app.post("/api/mail/inbound", express.raw({ type: "*/*", limit: "1mb" }), (req, res) => inboundMail(req, res));
 app.use(express.json({ limit: "200kb" }));
 app.use(cookieParser());
 // Digital Asset Links: verifica que la app Android (TWA) pertenece a este sitio.
@@ -238,6 +240,42 @@ async function sendMail(to, subject, text, html) {
 }
 
 
+// ---------- correo entrante (Resend Inbound → reenvío a tu buzón) ----------
+//   RESEND_WEBHOOK_SECRET  secreto «whsec_…» del webhook email.received (firma Svix). MAIL_FORWARD_TO  dirección a la que reenviar.
+// Se descarga el mensaje y sus adjuntos por la API de Resend y se reenvía desde MAIL_FROM con «Responder a» = remitente original.
+const MAIL_FORWARD_TO = process.env.MAIL_FORWARD_TO || "";
+function svixVerify(req, secret) {
+  const id = req.get("svix-id"), ts = req.get("svix-timestamp"), sig = req.get("svix-signature"); if (!id || !ts || !sig) return false;
+  if (Math.abs(Date.now() / 1000 - +ts) > 300) return false;
+  const key = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
+  const want = crypto.createHmac("sha256", key).update(`${id}.${ts}.`).update(req.body).digest("base64");
+  return sig.split(" ").some(p => { const v = p.split(",")[1]; return v && v.length === want.length && crypto.timingSafeEqual(Buffer.from(v), Buffer.from(want)); });
+}
+const rsHeaders = () => ({ Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" });
+async function inboundMail(req, res) {
+  const secret = process.env.RESEND_WEBHOOK_SECRET;
+  if (!secret || !MAIL_ON || !MAIL_FORWARD_TO) return res.status(503).json({ error: "reenvío de correo sin configurar" });
+  if (!svixVerify(req, secret)) return res.status(401).json({ error: "firma inválida" });
+  let ev; try { ev = JSON.parse(req.body.toString("utf8")); } catch (e) { return res.status(400).end(); }
+  if (ev.type !== "email.received") return res.json({ ok: true, ignored: ev.type });
+  res.json({ ok: true }); // se responde ya; el reenvío sigue en segundo plano
+  try {
+    const id = ev.data.email_id;
+    const m = await (await fetch(`https://api.resend.com/emails/receiving/${id}`, { headers: rsHeaders() })).json();
+    const attachments = [];
+    if ((ev.data.attachments || []).length) {
+      const list = await (await fetch(`https://api.resend.com/emails/receiving/${id}/attachments`, { headers: rsHeaders() })).json();
+      for (const a of (list.data || [])) { try { const buf = Buffer.from(await (await fetch(a.download_url)).arrayBuffer()); if (buf.length <= 20e6) attachments.push({ filename: a.filename || "adjunto", content: buf.toString("base64"), content_type: a.content_type }); } catch (e) { console.error("adjunto:", e.message); } }
+    }
+    const to = (m.to || ev.data.to || []).join(", "), from = m.from || ev.data.from || "";
+    const esc_ = s => String(s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    const head = `De: ${from}\nPara: ${to}\n\n`, headHtml = `<p style="color:#666;font:13px sans-serif;border-bottom:1px solid #ddd;padding-bottom:8px">De: ${esc_(from)}<br>Para: ${esc_(to)}</p>`;
+    const body = { from: process.env.MAIL_FROM || "Euskara Praktika <onboarding@resend.dev>", to: [MAIL_FORWARD_TO], reply_to: from, subject: `[${(to.match(/[^<\s]+@/) || [""])[0].replace("@", "")}@] ${m.subject || ev.data.subject || "(sin asunto)"}`,
+      text: head + (m.text || ""), html: headHtml + (m.html || `<pre style="white-space:pre-wrap">${esc_(m.text)}</pre>`), attachments };
+    const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: rsHeaders(), body: JSON.stringify(body) });
+    if (!r.ok) console.error("reenvío de correo:", r.status, await r.text()); else console.log(`Correo reenviado: ${from} → ${to} (${attachments.length} adjuntos)`);
+  } catch (e) { console.error("correo entrante:", e.message); }
+}
 // ---------- premium (suscripción de Google Play vía RevenueCat, o código de regalo) ----------
 // Módulos gratuitos: los primeros FREE_MODULES (por defecto 1). El resto requiere premium activo.
 const FREE_MODULES = +process.env.FREE_MODULES || 1;
