@@ -283,7 +283,7 @@ async function inboundMail(req, res) {
 // ---------- premium (suscripción de Google Play vía RevenueCat, o código de regalo) ----------
 // Módulos gratuitos: los primeros FREE_MODULES (por defecto 1). El resto requiere premium activo.
 const FREE_MODULES = +process.env.FREE_MODULES || 1;
-const PLANS = { month: { months: 1, amount: 399 }, quarter: { months: 3, amount: 999 }, half: { months: 6, amount: 1699 }, life: { months: 0, amount: 4999 } }; // life = pago único (producto premium_lifetime en Play)
+const PLANS = { month: { months: 1, amount: 399 }, quarter: { months: 3, amount: 999 }, half: { months: 6, amount: 1999 }, life: { months: 0, amount: 4999 } }; // life = pago único (producto premium_lifetime en Play)
 const FOREVER = "2099-12-31";
 const LESSON_MODULE = (() => { try { const w = {}; new Function("window", fs.readFileSync(path.join(__dirname, "public", "lessons.js"), "utf8"))(w); return Object.fromEntries(w.LESSONS.map(l => [l.id, l.module])); } catch (e) { console.error("No se pudo leer lessons.js:", e.message); return {}; } })();
 const setting = (k, v) => v === undefined ? (db.prepare("SELECT v FROM settings WHERE k = ?").get(k) || {}).v : db.prepare("INSERT INTO settings (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").run(k, v);
@@ -795,7 +795,7 @@ app.get("/api/admin/metrics", admin, (req, res) => {
   // Premium: cuántos pagan, cuántos ven los planes y qué parte convierte; ingresos brutos mensuales estimados (antes de la comisión de Google).
   const paywall = map(db.prepare("SELECT day, COUNT(DISTINCT user_id) n FROM events WHERE name = 'paywall' AND day >= ? GROUP BY day").all(days[0]));
   const purchases = map(db.prepare("SELECT day, COUNT(*) n FROM events WHERE name = 'billing_initial_purchase' AND day >= ? GROUP BY day").all(days[0]));
-  const PLAN_EUR = { month: 3.99, quarter: 9.99 / 3, half: 16.99 / 6 };
+  const PLAN_EUR = { month: 3.99, quarter: 9.99 / 3, half: 19.99 / 6 };
   const paying = db.prepare("SELECT sub_plan, COUNT(*) n FROM users WHERE premium_until >= ? AND premium_src = 'revenuecat' GROUP BY sub_plan").all(today);
   const ev30 = (name) => n("SELECT COUNT(*) n FROM events WHERE name = ? AND day >= ?", name, days[0]);
   const paywallUsers30 = n("SELECT COUNT(DISTINCT user_id) n FROM events WHERE name = 'paywall' AND day >= ?", days[0]);
