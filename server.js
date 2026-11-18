@@ -261,7 +261,11 @@ async function inboundMail(req, res) {
   res.json({ ok: true }); // se responde ya; el reenvío sigue en segundo plano
   try {
     const id = ev.data.email_id;
-    const m = await (await fetch(`https://api.resend.com/emails/receiving/${id}`, { headers: rsHeaders() })).json();
+    const mr = await fetch(`https://api.resend.com/emails/receiving/${id}`, { headers: rsHeaders() });
+    let m = await mr.json().catch(() => ({})); let fail = "";
+    if (!mr.ok) { fail = `No se pudo recuperar el contenido del mensaje (Resend ${mr.status}: ${m.message || m.name || "?"}). Si dice 'restricted' o 'forbidden', la clave RESEND_API_KEY necesita permiso «Full access».`; console.error("correo entrante:", fail); m = {}; }
+    // Si el cuerpo viene como enlace (html_format/text_format distintos de inline), se descarga.
+    for (const k of ["html", "text"]) { const f = m[k + "_format"]; if (m[k] && f && f !== "inline" && /^https?:\/\//.test(m[k])) { try { m[k] = await (await fetch(m[k])).text(); } catch (e) { console.error("cuerpo " + k + ":", e.message); } } }
     const attachments = [];
     if ((ev.data.attachments || []).length) {
       const list = await (await fetch(`https://api.resend.com/emails/receiving/${id}/attachments`, { headers: rsHeaders() })).json();
@@ -271,7 +275,7 @@ async function inboundMail(req, res) {
     const esc_ = s => String(s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
     const head = `De: ${from}\nPara: ${to}\n\n`, headHtml = `<p style="color:#666;font:13px sans-serif;border-bottom:1px solid #ddd;padding-bottom:8px">De: ${esc_(from)}<br>Para: ${esc_(to)}</p>`;
     const body = { from: process.env.MAIL_FROM || "Euskara Praktika <onboarding@resend.dev>", to: [MAIL_FORWARD_TO], reply_to: from, subject: `[${(to.match(/[^<\s]+@/) || [""])[0].replace("@", "")}@] ${m.subject || ev.data.subject || "(sin asunto)"}`,
-      text: head + (m.text || ""), html: headHtml + (m.html || `<pre style="white-space:pre-wrap">${esc_(m.text)}</pre>`), attachments };
+      text: head + (m.text || (m.html ? "" : fail || "(mensaje sin texto)")), html: headHtml + (m.html || `<pre style="white-space:pre-wrap">${esc_(m.text || fail || "(mensaje sin texto)")}</pre>`), attachments };
     const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: rsHeaders(), body: JSON.stringify(body) });
     if (!r.ok) console.error("reenvío de correo:", r.status, await r.text()); else console.log(`Correo reenviado: ${from} → ${to} (${attachments.length} adjuntos)`);
   } catch (e) { console.error("correo entrante:", e.message); }
