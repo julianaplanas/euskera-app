@@ -419,7 +419,7 @@ function firmPct(l,m){ const its=lessonItems(l); return its.filter(x=>m[x.key]&&
 const premActive=()=>!!(P&&P.premium&&P.premium.active);
 // Gratis = P.freeModules módulos desde el módulo de inicio (P.startModule). Módulos anteriores al inicio o saltados («ya sé esto») no bloquean el camino.
 const freeWin=()=>{ const from=(P&&P.startModule)||1; return {from,to:from+((P&&P.freeModules)||1)-1}; };
-const seasonOpen=mod=>{ if(!mod||!mod.season) return true; const d=new Date(); const md=String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); const {from,to}=mod.season; return from<=to?(md>=from&&md<=to):(md>=from||md<=to); };
+const seasonOpen=mod=>{ if(!mod||!mod.season||(P&&P.seasonAll)) return true; const d=new Date(); const md=String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); const {from,to}=mod.season; return from<=to?(md>=from&&md<=to):(md>=from||md<=to); };
 const isSeasonMod=mid=>{ const m=MODULES.find(x=>x.id===mid); return !!(m&&m.season); };
 const MAIN_MODULES=MODULES.filter(m=>!m.season);
 const premLocked=l=>{ if(!P||premActive()) return false; const mod=MODULES.find(x=>x.id===l.module); if(mod&&(mod.free||mod.season)) return false; const w=freeWin(); return l.module<w.from||l.module>w.to; };

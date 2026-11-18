@@ -343,7 +343,7 @@ const LESSON_DATA = (() => { try { const w = {}; new Function("window", fs.readF
 const LESSON_MODULE = Object.fromEntries(LESSON_DATA.LESSONS.map(l => [l.id, l.module]));
 const MODULE_BY_ID = Object.fromEntries(LESSON_DATA.MODULES.map(m => [m.id, m]));
 // Módulos de temporada (p. ej. Gabonak): abiertos y gratis solo entre sus fechas (MM-DD, puede cruzar el año nuevo).
-const seasonOpen = (mod, day = madridDay()) => { if (!mod || !mod.season || process.env.SEASON_ALL === "1") return true; const md = day.slice(5), { from, to } = mod.season; return from <= to ? (md >= from && md <= to) : (md >= from || md <= to); };
+const seasonOpen = (mod, day = madridDay(), force = false) => { if (!mod || !mod.season || force || process.env.SEASON_ALL === "1") return true; const md = day.slice(5), { from, to } = mod.season; return from <= to ? (md >= from && md <= to) : (md >= from || md <= to); };
 const setting = (k, v) => v === undefined ? (db.prepare("SELECT v FROM settings WHERE k = ?").get(k) || {}).v : db.prepare("INSERT INTO settings (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").run(k, v);
 function premiumOf(user) {
   const today = madridDay();
@@ -353,7 +353,7 @@ function premiumOf(user) {
 // Gratis = FREE_MODULES módulos a partir del módulo por el que el usuario empezó (start_module); el resto, premium.
 const MODULE_COUNT = (() => { try { return Math.max(...LESSON_DATA.MODULES.filter(m => !m.season).map(m => m.id)); } catch (e) { return 16; } })();
 const freeWindow = (user) => { const from = Math.max(1, Math.min(MODULE_COUNT, user.start_module || 1)); return { from, to: from + FREE_MODULES - 1 }; };
-const lessonAllowed = (user, lessonId) => { const m = LESSON_MODULE[lessonId]; if (!m) return true; const mod = MODULE_BY_ID[m]; if (mod && mod.season) return seasonOpen(mod); if (mod && mod.free) return true; const w = freeWindow(user); return (m >= w.from && m <= w.to) || premiumOf(user).active; };
+const lessonAllowed = (user, lessonId) => { const m = LESSON_MODULE[lessonId]; if (!m) return true; const mod = MODULE_BY_ID[m]; if (mod && mod.season) return seasonOpen(mod, madridDay(), !!user._preview); if (mod && mod.free) return true; const w = freeWindow(user); return (m >= w.from && m <= w.to) || premiumOf(user).active; };
 function addPremiumDays(userId, days, src) {
   const u = db.prepare("SELECT premium_until FROM users WHERE id = ?").get(userId); const today = madridDay();
   const base = u && u.premium_until && u.premium_until > today ? new Date(u.premium_until + "T12:00:00Z") : new Date(today + "T12:00:00Z");
@@ -520,7 +520,8 @@ app.post("/api/auth/verify", (req, res) => {
   res.json({ ...profile(user), isNew });
 });
 app.post("/api/logout", (req, res) => { if (req.cookies.session) db.prepare("DELETE FROM sessions WHERE token = ?").run(req.cookies.session); res.clearCookie("session"); res.json({ ok: true }); });
-app.get("/api/me", auth, (req, res) => res.json(profile(req.user)));
+// En la vista previa web (cookie ep_app) o con SEASON_ALL=1, los módulos de temporada se ven siempre, para poder probarlos.
+app.get("/api/me", auth, (req, res) => res.json({ ...profile(req.user), seasonAll: process.env.SEASON_ALL === "1" || !!(req.cookies && req.cookies.ep_app === "1") }));
 app.post("/api/profile", auth, (req, res) => {
   const p = req.body || {};
   const clean = { gender: p.gender === "neska" || p.gender === "mutila" ? p.gender : null, age: Number.isInteger(p.age) && p.age > 0 && p.age < 120 ? p.age : null,
@@ -580,7 +581,7 @@ app.post("/api/items/introduce", auth, (req, res) => {
   const today = madridDay();
   const ins = db.prepare("INSERT OR IGNORE INTO items (user_id, key, eu, es, lesson_id, due) VALUES (?, ?, ?, ?, ?, ?)");
   const list = Array.isArray(req.body.items) ? req.body.items.slice(0, 200) : [];
-  const tx = db.transaction(() => { for (const it of list) if (it && it.key && it.eu && it.es && lessonAllowed(req.user, it.lesson_id)) ins.run(req.user.id, String(it.key).slice(0, 120), String(it.eu).slice(0, 200), String(it.es).slice(0, 200), it.lesson_id ? String(it.lesson_id) : null, today); });
+  const tx = db.transaction(() => { for (const it of list) if (it && it.key && it.eu && it.es && lessonAllowed(Object.assign(req.user, { _preview: !!(req.cookies && req.cookies.ep_app === "1") }), it.lesson_id)) ins.run(req.user.id, String(it.key).slice(0, 120), String(it.eu).slice(0, 200), String(it.es).slice(0, 200), it.lesson_id ? String(it.lesson_id) : null, today); });
   tx();
   res.json(itemStats(req.user.id));
 });
