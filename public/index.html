@@ -492,8 +492,8 @@ async function rcSyncUntilActive(expect){ for(let i=0;i<8;i++){ try{ P.premium=a
 const PLAY_SUBS=()=>`https://play.google.com/store/account/subscriptions?sku=${(RC_CFG&&RC_CFG.android&&RC_CFG.android.product)||"premium"}&package=eus.euskarapraktika.app`;
 function openPortal(){ window.open(PLAY_SUBS(),"_blank"); }
 function planBtn(k,m,price,perMonth){ return `<button class="plan ${k==="half"?"best":""}" data-plan="${k}"><span class="pl-t">${m.eu}<small>${m.n===1?T("cada mes"):T("cada N meses").replace("N",m.n)}</small></span><span class="pl-p"><b>${price}</b>${m.n>1&&perMonth?`<small>${perMonth} / ${T("mes")}</small>`:""}</span>${k==="half"?`<i>${T("Mejor precio")}</i>`:""}</button>`; }
-async function renderPlans(){
-  noTabs(); const free=P.freeModules||1, pr=P.premium||{}, native=!!RC();
+async function renderPlans(from){
+  noTabs(); if(!premActive()) api("event",{name:"paywall",meta:{from:from||"other"}}).catch(()=>{}); const free=P.freeModules||1, pr=P.premium||{}, native=!!RC();
   const staticPlans=Object.entries(PLAN_META).map(([k,m])=>{ const amt={month:399,quarter:999,half:1699}[k]; return planBtn(k,m,eur(amt),m.n>1?eur(Math.round(amt/m.n)):""); }).join("");
   app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1"><p class="eyebrow">Premium</p><h2>Bide osoa · ${T("todo el camino")}</h2></div></div>
    <div class="stack pad" style="flex:1;gap:12px">
@@ -579,7 +579,7 @@ function renderProfile(first=false,startFrom=null){
     </details>`}
    </div>
    <div class="bottom pad"><button class="btn red bi" id="save">Gorde<small>${T("Guardar")}</small></button></div>`;
-  const pb=document.getElementById("plans"); if(pb) pb.onclick=()=>renderPlans(); const pp=document.getElementById("portal"); if(pp) pp.onclick=openPortal;
+  const pb=document.getElementById("plans"); if(pb) pb.onclick=()=>renderPlans("profile"); const pp=document.getElementById("portal"); if(pp) pp.onclick=openPortal;
   const lo=document.getElementById("logout"); if(lo) lo.onclick=async()=>{ await api("logout",{}); P=null; renderLogin(); };
   const da=document.getElementById("delacc"); if(da) da.onclick=async()=>{ const email=document.getElementById("delmail").value; const m=document.getElementById("delmsg"); if(!email){ m.textContent=T("Escribe tu correo."); return; } if(!confirm(T("¿Borrar tu cuenta y todo tu progreso? No se puede deshacer."))) return; try{ await api("account/delete",{email}); P=null; try{ localStorage.clear(); }catch(e){} renderLogin(); }catch(e){ m.textContent=e.message||T("No se pudo borrar."); } };
   renderPushBox();
@@ -892,8 +892,8 @@ function renderLessons(focusMod){
   const pl=todayPlan();
   app.innerHTML=header()+`<div class="stack pad" style="padding-top:16px;gap:10px">${todayCard(pl)}<p class="eyebrow" data-es="${pathRange()}" style="margin-top:6px">Bidea</p><div class="towns" role="tablist" aria-label="${L2("Ir a un módulo","Go to a module","Aller à un module")}">${stops.filter(s=>s.type==="town").map(s=>`<button type="button" data-jump="${s.mod.id}" class="${active&&active.module===s.mod.id?"cur":""} ${s.done?"done":""} ${s.reached?"":"locked"}" aria-label="${esc(s.mod.town)}">${s.done?ic("check",3):s.reached?"":ic("lock",2.2)}${esc(s.mod.town)}${s.mod.level&&(s.mod.id===1||s.mod.id===9)?`<small>${s.mod.level}</small>`:""}</button>`).join("")}</div>
    <svg class="path" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-label="${L2("Camino de lecciones","Lesson path")}">${hills}<path d="${dOf(stops)}" fill="none" stroke="var(--line2)" stroke-width="3" stroke-dasharray="1 9" stroke-linecap="round"/><path d="${dOf(donePts)}" fill="none" stroke="var(--green)" stroke-width="3.5" stroke-linecap="round"/>${stops.map(node).join("")}</svg></div>`;
-  app.querySelectorAll("[data-g]").forEach(b=>{ const g=GRAMMAR.find(x=>x.id===b.dataset.g); const go=()=>{ if(b.classList.contains("locked")){ if(premLocked(lessonOf(g.lessons[0]))){ renderPlans(); return; } toast(L2("Empieza su lección para abrir esta ficha","Start its lesson to unlock this card")); return; } renderGrammar(g); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
-  app.querySelectorAll("[data-l]").forEach(b=>{ const go=()=>{ const l=lessonOf(b.dataset.l); if(premLocked(l)){ renderPlans(); return; } if(!ul.has(l.id)){ toast(L2("Termina la lección anterior para abrir esta","Finish the previous lesson to unlock this one")); return; } renderLesson(l); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
+  app.querySelectorAll("[data-g]").forEach(b=>{ const g=GRAMMAR.find(x=>x.id===b.dataset.g); const go=()=>{ if(b.classList.contains("locked")){ if(premLocked(lessonOf(g.lessons[0]))){ renderPlans("grammar"); return; } toast(L2("Empieza su lección para abrir esta ficha","Start its lesson to unlock this card")); return; } renderGrammar(g); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
+  app.querySelectorAll("[data-l]").forEach(b=>{ const go=()=>{ const l=lessonOf(b.dataset.l); if(premLocked(l)){ renderPlans("lesson"); return; } if(!ul.has(l.id)){ toast(L2("Termina la lección anterior para abrir esta","Finish the previous lesson to unlock this one")); return; } renderLesson(l); }; b.onclick=go; b.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; });
   wireToday(pl);
   const svg=app.querySelector(".path"); const yOf=st=>(svg.getBoundingClientRect().top-app.getBoundingClientRect().top+app.scrollTop)+st.y*(svg.getBoundingClientRect().width/W);
   const goStop=(st,frac,beh)=>app.scrollTo({top:Math.max(0,yOf(st)-app.clientHeight*frac),behavior:beh||"smooth"});
@@ -1011,7 +1011,7 @@ async function renderTeam(){
     app.innerHTML=header()+`<div class="stack pad" style="padding-top:18px;gap:12px"><p class="eyebrow">Taldea</p>
       <div class="card" style="display:flex;gap:14px;align-items:center"><div style="flex:none">${OLEN("wave",56)}</div><p style="margin:0">${T("Tu círculo, los retos con amigos y el ranking semanal son parte de Premium.")}</p></div>
       <button class="btn red" id="plans">${T("Hazte Premium")}<small>${T("o usa un código")}</small></button></div>`;
-    const pb=document.getElementById("plans"); if(pb) pb.onclick=()=>renderPlans(); return;
+    const pb=document.getElementById("plans"); if(pb) pb.onclick=()=>renderPlans("taldea"); return;
   }
   app.innerHTML=header()+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;
   let friends=[], chs=[], sd={users:[],rank:{}}, oc={n:0}; try{ [friends,chs,sd,oc]=await Promise.all([api("friends"),api("challenges"),api("stats"),api("challenges/open-count")]); }catch(e){}

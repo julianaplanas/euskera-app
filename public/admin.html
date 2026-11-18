@@ -80,7 +80,15 @@ code{background:var(--card);padding:1px 5px;border:1px solid var(--line)}
 <div class="row"><input id="q" placeholder="Buscar…"><button class="ghost" id="search">Buscar</button></div>
 <div class="wrap"><table id="t"></table></div>
 <p class="msg" id="m2"></p>
-<h2>Premium <small>códigos de regalo (profes, testers, euskal etxeak) y acceso directo por correo</small></h2>
+<h2>Premium <small>suscripciones, conversión y últimos 30 días</small></h2>
+<div class="tiles" id="ptiles"></div>
+<div class="cols" style="margin-top:12px">
+  <div><h3 class="sub" style="margin:6px 0">Vieron los planes por día <small>personas</small></h3><div class="chart" id="c-paywall"></div><div class="axis" id="a3"></div></div>
+  <div><h3 class="sub" style="margin:6px 0">Compras por día</h3><div class="chart" id="c-buy"></div><div class="axis" id="a4"></div></div>
+</div>
+<div class="funnel" id="pfunnel" style="margin-top:10px"></div>
+<p class="msg" id="pfrom"></p>
+<h2>Códigos <small>de regalo (profes, testers, euskal etxeak) y acceso directo por correo</small></h2>
 <div class="row"><input id="gdays" type="number" value="90" style="width:80px" title="días"><span class="sub">días ·</span><input id="guses" type="number" value="1" style="width:70px" title="usos"><span class="sub">usos ·</span><input id="gnote" placeholder="nota (p. ej. AEK Gasteiz)" style="flex:1"><button class="ghost" id="gmake">Crear código</button></div>
 <div class="row"><input id="gemail" type="email" placeholder="correo del usuario" style="flex:1"><input id="gedays" type="number" value="90" style="width:80px" title="días"><button class="ghost" id="ggrant">Dar Premium</button></div>
 <p class="msg" id="m3"></p>
@@ -110,6 +118,12 @@ async function load(){
     $("a1").innerHTML=$("a2").innerHTML=`<span>${m.days[0].slice(5)}</span><span>${m.days[29].slice(5)}</span>`;
     const F=m.funnel, steps=[["registered","Registrados"],["profile","Perfil completo"],["firstRound","Primera ronda"],["threeDays","3 días distintos"],["secondWeek","Siguen en 2ª semana"],["firm10","10 frases firmes"]];
     $("funnel").innerHTML=steps.map(([k,l])=>`<div><span>${l}</span><b>${F[k]}</b><i style="width:${F.registered?Math.round(F[k]/F.registered*100):0}%"></i><small class="sub">${F.registered?Math.round(F[k]/F.registered*100):0}%</small></div>`).join("");
+    const Pm=m.premium; const pct=(a,b)=>b?Math.round(a/b*100)+" %":"–";
+    $("ptiles").innerHTML=[["g",Pm.active,"premium activos"],["",Pm.paying,"de pago"],["",Pm.gift,"por código"],["",(Pm.mrr||0).toFixed(2).replace(".",",")+" €","ingresos/mes brutos"],["",Pm.cancelling,"no renuevan"],["",Pm.pastDue,"cobro fallido"],["",Pm.paywallToday,"vieron planes hoy"],["",Pm.paywallUsers30,"vieron planes 30 días"],["",Pm.purchases30,"compras 30 días"],["",Pm.renewals30,"renovaciones 30 días"],["",Pm.cancellations30,"cancelaciones 30 días"],["",Pm.expirations30,"caducadas 30 días"],["",Pm.gifts30,"códigos 30 días"],["",pct(Pm.purchases30,Pm.paywallUsers30),"conversión 30 días"]].map(([c,v,l])=>`<div class="tile ${c}"><b>${v}</b><span>${l}</span></div>`).join("")+`<div class="tile"><b style="font-size:16px;margin-top:6px">${m.billing?"✓":"✗"} Google Play · ${Object.entries(Pm.plans||{}).map(([k,v])=>`${k} ${v}`).join(" · ")||"sin planes"}</b><span>pagos</span></div>`;
+    bars($("c-paywall"),m.series.paywall); bars($("c-buy"),m.series.purchases,"b"); $("a3").innerHTML=$("a4").innerHTML=`<span>${m.days[0].slice(5)}</span><span>${m.days[29].slice(5)}</span>`;
+    const pf=[["Registrados",T.users],["Han visto los planes",Pm.everPaywall],["Han pagado alguna vez",Pm.everPaid],["Premium ahora (pago)",Pm.paying]];
+    $("pfunnel").innerHTML=pf.map(([l,v])=>`<div><span>${l}</span><b>${v}</b><i style="width:${T.users?Math.round(v/T.users*100):0}%"></i><small class="sub">${pct(v,T.users)}</small></div>`).join("");
+    const bf=Pm.byFrom||{}; $("pfrom").textContent="Desde dónde llegan a los planes: "+(Object.keys(bf).length?Object.entries(bf).map(([k,v])=>`${({lesson:"lección bloqueada",grammar:"ficha bloqueada",taldea:"Taldea",profile:"perfil",other:"otro"})[k]||k} ${v}`).join(" · "):"todavía nadie");
     const R=m.retention; $("ret").innerHTML=[["d1","D1"],["d7","D7"],["d30","D30"]].map(([k,l])=>`<div class="tile"><b>${R[k]?R[k].pct+"%":"–"}</b><span>${l}${R[k]?" · n="+R[k].n:""}</span></div>`).join("");
     $("towns").textContent=m.towns.length?m.towns.map(t=>`${t.town} (${t.n})`).join(" · "):"Sin datos todavía.";
     $("lessons").innerHTML=`<tr><th>Lección</th><th>Rondas</th><th>Personas</th><th>Acierto</th></tr>`+m.lessons.map(l=>`<tr><td>${esc(l.lesson_id)}</td><td class="n">${l.rounds}</td><td>${l.users}</td><td>${l.acc}%</td></tr>`).join("");

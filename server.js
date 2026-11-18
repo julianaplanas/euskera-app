@@ -370,6 +370,13 @@ app.post("/api/billing/redeem", auth, (req, res) => {
   logEvent(req.user.id, "gift_redeemed", { code, days: g.days });
   res.json({ ok: true, until, premium: premiumOf(db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id)) });
 });
+// Eventos de producto que registra la app (lista cerrada). «paywall»: el usuario ha llegado a la pantalla de planes.
+app.post("/api/event", auth, (req, res) => {
+  const name = String(req.body.name || ""); if (!["paywall"].includes(name)) return res.status(400).json({ error: "evento desconocido" });
+  const from = String((req.body.meta || {}).from || "").slice(0, 20);
+  if (!db.prepare("SELECT 1 FROM events WHERE user_id = ? AND name = ? AND day = ? LIMIT 1").get(req.user.id, name, madridDay())) logEvent(req.user.id, name, { from });
+  res.json({ ok: true });
+});
 // Webhook de RevenueCat (compra, renovación, cancelación, caducidad, problema de cobro, traspaso…).
 // Se verifica la cabecera Authorization; con clave secreta se reconsulta al suscriptor, si no se aplica lo que trae el aviso.
 app.post("/api/billing/revenuecat", async (req, res) => {
@@ -783,7 +790,27 @@ app.get("/api/admin/metrics", admin, (req, res) => {
   const lessons = db.prepare("SELECT lesson_id, COUNT(*) rounds, COUNT(DISTINCT user_id) users, ROUND(100.0*SUM(ok)/SUM(total)) acc FROM rounds WHERE lesson_id IS NOT NULL GROUP BY lesson_id ORDER BY rounds DESC").all();
   const hardest = db.prepare("SELECT eu, es, SUM(lapses) lapses, COUNT(*) users, ROUND(AVG(interval),1) avgInterval FROM items WHERE reps >= 2 GROUP BY key HAVING COUNT(*) >= 2 ORDER BY 1.0*SUM(lapses)/COUNT(*) DESC, lapses DESC LIMIT 20").all();
   const towns = db.prepare("SELECT lower(json_extract(profile,'$.town')) town, COUNT(*) n FROM users WHERE json_extract(profile,'$.town') != '' GROUP BY town ORDER BY n DESC LIMIT 12").all();
-  res.json({ today, days, series: { signups: days.map(d => signups[d] || 0), active: days.map(d => active[d] || 0), rounds: days.map(d => roundsPer[d] || 0), seen: days.map(d => seen[d] || 0) }, totals, funnel, retention, lessons, hardest, towns, mail: MAIL_ON, push: PUSH_ON, storage: storageInfo() });
+  // Premium: cuántos pagan, cuántos ven los planes y qué parte convierte; ingresos brutos mensuales estimados (antes de la comisión de Google).
+  const paywall = map(db.prepare("SELECT day, COUNT(DISTINCT user_id) n FROM events WHERE name = 'paywall' AND day >= ? GROUP BY day").all(days[0]));
+  const purchases = map(db.prepare("SELECT day, COUNT(*) n FROM events WHERE name = 'billing_initial_purchase' AND day >= ? GROUP BY day").all(days[0]));
+  const PLAN_EUR = { month: 3.99, quarter: 9.99 / 3, half: 16.99 / 6 };
+  const paying = db.prepare("SELECT sub_plan, COUNT(*) n FROM users WHERE premium_until >= ? AND premium_src = 'revenuecat' GROUP BY sub_plan").all(today);
+  const ev30 = (name) => n("SELECT COUNT(*) n FROM events WHERE name = ? AND day >= ?", name, days[0]);
+  const paywallUsers30 = n("SELECT COUNT(DISTINCT user_id) n FROM events WHERE name = 'paywall' AND day >= ?", days[0]);
+  const premium = {
+    active: n("SELECT COUNT(*) n FROM users WHERE premium_until >= ?", today),
+    paying: paying.reduce((a, r) => a + r.n, 0), gift: n("SELECT COUNT(*) n FROM users WHERE premium_until >= ? AND premium_src = 'gift'", today),
+    cancelling: n("SELECT COUNT(*) n FROM users WHERE premium_until >= ? AND premium_src = 'revenuecat' AND sub_cancel = 1", today),
+    pastDue: n("SELECT COUNT(*) n FROM users WHERE sub_status = 'past_due'"),
+    plans: Object.fromEntries(paying.map(r => [r.sub_plan || "?", r.n])),
+    mrr: Math.round(paying.reduce((a, r) => a + r.n * (PLAN_EUR[r.sub_plan] || 0), 0) * 100) / 100,
+    paywallToday: paywall[today] || 0, paywallUsers30,
+    purchases30: ev30("billing_initial_purchase"), renewals30: ev30("billing_renewal"), cancellations30: ev30("billing_cancellation"), expirations30: ev30("billing_expiration"), gifts30: ev30("gift_redeemed"),
+    everPaid: n("SELECT COUNT(DISTINCT user_id) n FROM events WHERE name = 'billing_initial_purchase'"),
+    everPaywall: n("SELECT COUNT(DISTINCT user_id) n FROM events WHERE name = 'paywall'"),
+    byFrom: Object.fromEntries(db.prepare("SELECT COALESCE(json_extract(meta, '$.from'), '?') k, COUNT(*) n FROM events WHERE name = 'paywall' GROUP BY k").all().map(r => [r.k, r.n])),
+  };
+  res.json({ today, days, series: { signups: days.map(d => signups[d] || 0), active: days.map(d => active[d] || 0), rounds: days.map(d => roundsPer[d] || 0), seen: days.map(d => seen[d] || 0), paywall: days.map(d => paywall[d] || 0), purchases: days.map(d => purchases[d] || 0) }, totals, funnel, retention, premium, lessons, hardest, towns, mail: MAIL_ON, push: PUSH_ON, billing: BILLING_ON, storage: storageInfo() });
 });
 
 // ---------- estadísticas (ranking global top 20 + tu círculo) ----------
