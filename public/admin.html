@@ -89,6 +89,9 @@ code{background:var(--card);padding:1px 5px;border:1px solid var(--line)}
 <div class="row"><input id="xday" type="date" style="width:150px"><input id="xconcept" placeholder="concepto" style="flex:1"><input id="xamount" type="number" step="0.01" placeholder="importe" style="width:100px"><select id="xcur"><option>EUR</option><option>USD</option></select><select id="xrec"><option value="">único</option><option value="mensual">mensual</option><option value="anual">anual</option></select><button class="ghost" id="xadd">Añadir</button></div>
 <p class="msg" id="m4"></p>
 <div class="wrap"><table id="expenses"></table></div>
+<h2>Copias de seguridad <small>automáticas cada día (04:00) en el volumen; se guardan las últimas · pulsa para descargar</small></h2>
+<div class="row"><button id="bkrun">Hacer copia ahora</button><span class="msg" id="m5"></span></div>
+<div class="wrap"><table id="backups"></table></div>
 </div>
 
 <script>
@@ -111,7 +114,7 @@ async function load(){
     $("towns").textContent=m.towns.length?m.towns.map(t=>`${t.town} (${t.n})`).join(" · "):"Sin datos todavía.";
     $("lessons").innerHTML=`<tr><th>Lección</th><th>Rondas</th><th>Personas</th><th>Acierto</th></tr>`+m.lessons.map(l=>`<tr><td>${esc(l.lesson_id)}</td><td class="n">${l.rounds}</td><td>${l.users}</td><td>${l.acc}%</td></tr>`).join("");
     $("hardest").innerHTML=`<tr><th>Frase</th><th>Fallos</th><th>Personas</th><th>Intervalo medio</th></tr>`+m.hardest.map(h=>`<tr><td title="${esc(h.es)}">${esc(h.eu)}</td><td class="n">${h.lapses}</td><td>${h.users}</td><td>${h.avgInterval} d</td></tr>`).join("");
-    await users(); gifts(); expenses();
+    await users(); gifts(); expenses(); backups();
   }catch(e){ $("m1").textContent=e.message; $("m1").className="msg err"; }
 }
 async function users(){
@@ -129,6 +132,8 @@ async function expenses(){ try{ const xs=await api("expenses"); const tot={}; fo
   document.querySelectorAll("[data-xsave]").forEach(b=>b.onclick=async()=>{ const tr=b.closest("tr"); const g=k=>tr.querySelector(`[data-f="${k}"]`).value; try{ await api("expenses/update",{id:+b.dataset.xsave,day:g("day"),concept:g("concept"),note:g("note"),amount:g("amount"),currency:g("currency"),recurring:g("recurring")}); $("m4").textContent="Guardado."; $("m4").className="msg ok"; expenses(); }catch(e){ $("m4").textContent=e.message; $("m4").className="msg err"; } });
   document.querySelectorAll("[data-xdel]").forEach(b=>b.onclick=async()=>{ if(!confirm("¿Borrar este gasto?")) return; await api("expenses/delete",{id:+b.dataset.xdel}); expenses(); }); }catch(e){} }
 $("xday").value=new Date().toISOString().slice(0,10);
+async function backups(){ try{ const b=await api("backups"); $("backups").innerHTML=`<tr><th>Archivo</th><th>Tamaño</th></tr>`+(b.files.length?b.files.map(f=>`<tr><td><a href="/api/admin/backups/${f.name}?key=${encodeURIComponent(key())}">${f.name}</a></td><td>${(f.bytes/1024).toFixed(0)} kB</td></tr>`).join(""):`<tr><td colspan="2" class="muted">Todavía no hay copias (la primera se hace sola al arrancar).</td></tr>`); $("m5").textContent=`${b.files.length} copias · se conservan ${b.keep} · carpeta ${b.dir}`; }catch(e){ $("m5").textContent=e.message; } }
+$("bkrun").onclick=async()=>{ $("bkrun").disabled=true; try{ await api("backups/run",{}); await backups(); }catch(e){ $("m5").textContent=e.message; } $("bkrun").disabled=false; };
 $("xadd").onclick=async()=>{ try{ await api("expenses",{day:$("xday").value,concept:$("xconcept").value,amount:$("xamount").value,currency:$("xcur").value,recurring:$("xrec").value}); $("xconcept").value=""; $("xamount").value=""; $("m4").textContent="Añadido."; $("m4").className="msg ok"; expenses(); }catch(e){ $("m4").textContent=e.message; $("m4").className="msg err"; } };
 $("search").onclick=users; $("q").onkeydown=e=>{ if(e.key==="Enter") users(); };
 $("backup").onclick=()=>{ const a=document.createElement("a"); a.href="/api/admin/backup?key="+encodeURIComponent(key()); a.click(); };

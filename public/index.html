@@ -423,7 +423,6 @@ const beforeStart=mid=>!!(P&&mid<((P.startModule)||1));
 const isSkipped=mid=>!!(P&&(P.skipped||[]).includes(mid));
 const modPassed=(mid,m)=>beforeStart(mid)||isSkipped(mid)||LESSONS.filter(l=>l.module===mid).every(l=>seenPct(l,m)>=0.8);
 // La app de Google Play no puede mostrar precios ni enlaces de compra (política de Play): se detecta por el referrer de la TWA.
-const inTWA=(()=>{ try{ if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()) return true; if(document.referrer.startsWith("android-app://")) sessionStorage.setItem("euskara.twa","1"); return sessionStorage.getItem("euskara.twa")==="1"; }catch(e){ return false; } })();
 function unlockedIds(){ const m=imap(); const out=new Set();
   for(let i=0;i<LESSONS.length;i++){ const l=LESSONS[i]; if(premLocked(l)) continue;
     if(beforeStart(l.module)||isSkipped(l.module)){ out.add(l.id); continue; } // territorio ya conocido: todo abierto
@@ -482,26 +481,43 @@ function renderCode(email,info={}){
 const PLAN_META={month:{eu:"Hilero",n:1},quarter:{eu:"3 hilean behin",n:3},half:{eu:"6 hilean behin",n:6}};
 const eur=c=>(c/100).toFixed(2).replace(".",",")+" €";
 function premiumLine(){ const pr=P.premium||{}; if(!pr.active) return T("Sin suscripción"); const d=new Date(pr.until+"T12:00:00").toLocaleDateString(LANG==="en"?"en-GB":LANG==="fr"?"fr-FR":"es-ES",{day:"numeric",month:"long",year:"numeric"}); if(pr.src==="gift") return `${T("Premium hasta el")} ${d}`; return pr.cancels?`${T("Premium hasta el")} ${d} · ${T("no se renueva")}`:`${T("Premium · se renueva el")} ${d}`; }
-function renderPlans(){
-  noTabs(); const B=P.billing, free=P.freeModules||1, pr=P.premium||{};
-  const plans=Object.entries(PLAN_META).map(([k,m])=>{ const amt={month:399,quarter:999,half:1699}[k]; const per=amt/m.n; return `<button class="plan ${k==="half"?"best":""}" data-plan="${k}"><span class="pl-t">${m.eu}<small>${m.n===1?T("cada mes"):T("cada N meses").replace("N",m.n)}</small></span><span class="pl-p"><b>${eur(amt)}</b>${m.n>1?`<small>${eur(Math.round(per))} / ${T("mes")}</small>`:""}</span>${k==="half"?`<i>${T("Mejor precio")}</i>`:""}</button>`; }).join("");
+// RevenueCat (suscripción de Google Play) dentro de la app nativa. En la web solo se muestran los precios.
+const RC=()=>(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Purchases)||null;
+let RC_USER=null, RC_CFG=null;
+async function rcInit(){ const rc=RC(); if(!rc||!P) return null; if(RC_USER===P.id) return rc; RC_CFG=await api("billing"); if(!RC_CFG.enabled) return null; const was=await rc.isConfigured().catch(()=>({isConfigured:false})); if(was.isConfigured) await rc.logIn({appUserID:RC_CFG.appUserId}); else await rc.configure({apiKey:RC_CFG.key,appUserID:RC_CFG.appUserId}); RC_USER=P.id; return rc; }
+const RC_PKG={MONTHLY:"month",THREE_MONTH:"quarter",SIX_MONTH:"half"};
+async function rcPackages(){ const rc=await rcInit(); if(!rc) return null; const o=await rc.getOfferings(); const cur=o&&o.current; if(!cur) return null; const out={}; for(const pk of cur.availablePackages){ const k=RC_PKG[pk.packageType]||(Object.keys(PLAN_META).find(x=>pk.identifier.toLowerCase().includes(x))); if(k) out[k]=pk; } return Object.keys(out).length?out:null; }
+// Tras comprar/restaurar: el servidor consulta a RevenueCat; si el aviso aún no ha llegado, se reintenta unos segundos.
+async function rcSyncUntilActive(expect){ for(let i=0;i<8;i++){ try{ P.premium=await api("billing/sync",{}); }catch(e){} if(!expect||premActive()) break; await new Promise(r=>setTimeout(r,1500)); } return premActive(); }
+const PLAY_SUBS=()=>`https://play.google.com/store/account/subscriptions?sku=${(RC_CFG&&RC_CFG.android&&RC_CFG.android.product)||"premium"}&package=eus.euskarapraktika.app`;
+function openPortal(){ window.open(PLAY_SUBS(),"_blank"); }
+function planBtn(k,m,price,perMonth){ return `<button class="plan ${k==="half"?"best":""}" data-plan="${k}"><span class="pl-t">${m.eu}<small>${m.n===1?T("cada mes"):T("cada N meses").replace("N",m.n)}</small></span><span class="pl-p"><b>${price}</b>${m.n>1&&perMonth?`<small>${perMonth} / ${T("mes")}</small>`:""}</span>${k==="half"?`<i>${T("Mejor precio")}</i>`:""}</button>`; }
+async function renderPlans(){
+  noTabs(); const free=P.freeModules||1, pr=P.premium||{}, native=!!RC();
+  const staticPlans=Object.entries(PLAN_META).map(([k,m])=>{ const amt={month:399,quarter:999,half:1699}[k]; return planBtn(k,m,eur(amt),m.n>1?eur(Math.round(amt/m.n)):""); }).join("");
   app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1"><p class="eyebrow">Premium</p><h2>Bide osoa · ${T("todo el camino")}</h2></div></div>
    <div class="stack pad" style="flex:1;gap:12px">
     <div class="card" style="display:flex;gap:14px;align-items:center"><div style="flex:none">${OLEN("wave",56)}</div><p style="margin:0">${T("Tu primer módulo (TOWN) es gratis. Con Premium abres los 16 módulos (A1 y A2): 84 lecciones, 66 fichas de gramática, audio nativo y repaso espaciado sin límite.").replace("TOWN",(MODULES.find(x=>x.id===freeWin().from)||MODULES[0]).town)}</p></div>
     ${pr.active?`<p class="card" style="background:var(--green);color:#fff;font-weight:600;display:flex;align-items:center;gap:10px;margin:0"><span style="flex:none;width:22px;height:22px;display:inline-flex">${ic("check",3)}</span><span>${premiumLine()}</span></p>`:""}
-    ${inTWA?`<p class="muted">${T("La suscripción se gestiona desde tu cuenta en la web.")}</p>`:B?`<div class="plans">${plans}</div><p class="hint">${T("Renovación automática; cancela cuando quieras desde tu perfil. IVA incluido. Pago seguro con Stripe.")}</p>`:`<p class="muted">${T("Los pagos se activarán muy pronto. Si tienes un código, úsalo aquí abajo.")}</p>`}
+    <div id="plansbox">${native?`<div class="plans" style="opacity:.5;pointer-events:none">${staticPlans}</div><p class="hint">${T("Conectando con Google Play…")}</p>`:`<div class="plans" style="opacity:.6;pointer-events:none">${staticPlans}</div><p class="hint">${T("Las suscripciones se contratan desde la app de Android.")}</p>`}</div>
     <p class="eyebrow" data-es="${T("¿Tienes un código?")}">Kodea baduzu?</p>
     <div class="row"><input class="ans" id="gift" placeholder="EP-XXXXXX" autocomplete="off" autocapitalize="characters" style="flex:1"><button class="btn ghost" id="giftgo" style="width:auto">${T("Canjear")}</button></div>
     <p class="hint" id="giftmsg"></p>
-    ${pr.customer&&!inTWA?`<button class="btn ghost" id="portal">${T("Gestionar suscripción")}</button>`:""}
+    ${native?`<div class="row">${pr.managed?`<button class="btn ghost" id="portal" style="flex:1">${T("Gestionar en Google Play")}</button>`:""}<button class="btn ghost" id="restore" style="flex:1">${T("Restaurar compras")}</button></div>`:""}
    </div>`;
   document.getElementById("back").onclick=()=>setTab("ikasgaiak");
-  app.querySelectorAll("[data-plan]").forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ const r=await api("billing/checkout",{plan:b.dataset.plan}); location.href=r.url; }catch(e){ toast(e.message); b.disabled=false; } });
   document.getElementById("giftgo").onclick=async()=>{ const msg=document.getElementById("giftmsg"); const code=document.getElementById("gift").value.trim(); if(!code) return; try{ const r=await api("billing/redeem",{code}); P.premium=r.premium; msg.textContent="✓ "+premiumLine(); toast("Zorionak! 🎉"); setTimeout(()=>setTab("ikasgaiak"),900); }catch(e){ msg.textContent=e.message; } };
   const po=document.getElementById("portal"); if(po) po.onclick=openPortal;
+  const rs=document.getElementById("restore"); if(rs) rs.onclick=async()=>{ rs.disabled=true; try{ const rc=await rcInit(); if(!rc) throw new Error(T("No se pudo conectar con Google Play. Inténtalo de nuevo.")); await rc.restorePurchases(); const ok=await rcSyncUntilActive(false); toast(ok?"Zorionak! Premium aktibatuta 🎉":T("No hay compras que restaurar.")); if(ok) setTab("ikasgaiak"); }catch(e){ toast(e.message||T("No se pudo conectar con Google Play. Inténtalo de nuevo.")); } rs.disabled=false; };
+  if(!native) return;
+  const box=document.getElementById("plansbox"); let pkgs=null;
+  try{ pkgs=await rcPackages(); }catch(e){ console.warn("RevenueCat",e); }
+  if(!box.isConnected) return;
+  if(!pkgs){ box.innerHTML=`<div class="plans" style="opacity:.5;pointer-events:none">${staticPlans}</div><p class="hint">${RC_CFG&&RC_CFG.enabled===false?T("Los pagos se activarán muy pronto. Si tienes un código, úsalo aquí abajo."):T("No se pudo conectar con Google Play. Inténtalo de nuevo.")}</p>`; return; }
+  box.innerHTML=`<div class="plans">${Object.entries(PLAN_META).filter(([k])=>pkgs[k]).map(([k,m])=>planBtn(k,m,pkgs[k].product.priceString,pkgs[k].product.pricePerMonthString||"")).join("")}</div><p class="hint">${T("Renovación automática a través de Google Play; cancela cuando quieras desde Google Play → Suscripciones.")}</p>`;
+  box.querySelectorAll("[data-plan]").forEach(b=>b.onclick=async()=>{ box.querySelectorAll("[data-plan]").forEach(x=>x.disabled=true); try{ const rc=await rcInit(); const r=await rc.purchasePackage({aPackage:pkgs[b.dataset.plan]}); const ent=r&&r.customerInfo&&r.customerInfo.entitlements&&r.customerInfo.entitlements.active; const ok=await rcSyncUntilActive(!!(ent&&ent.premium)); if(ok){ toast("Zorionak! Premium aktibatuta 🎉"); setTab("ikasgaiak"); return; } toast(T("Pago recibido; se activará en unos segundos.")); }catch(e){ if(!(e&&(e.userCancelled||e.code==="1"||/cancel/i.test(e.message||"")))) toast(e.message||T("No se pudo conectar con Google Play. Inténtalo de nuevo.")); } box.querySelectorAll("[data-plan]").forEach(x=>x.disabled=false); });
 }
-async function openPortal(){ try{ const r=await api("billing/portal",{}); location.href=r.url; }catch(e){ toast(e.message); } }
-async function billingReturn(){ const q=new URLSearchParams(location.search).get("billing"); if(!q) return; history.replaceState(null,"",location.pathname); try{ P.premium=await api("billing/sync",{}); }catch(e){} if(q==="ok"){ toast(P.premium&&P.premium.active?"Zorionak! Premium aktibatuta 🎉":T("Pago recibido; se activará en unos segundos.")); } }
+async function billingReturn(){ const q=new URLSearchParams(location.search).get("billing"); if(!q) return; history.replaceState(null,"",location.pathname); try{ P.premium=await api("billing/sync",{}); }catch(e){} }
 
 // ---------- prueba de nivel: 7 preguntas de dificultad creciente; se para al primer fallo ----------
 // Cada pregunta «abre» un punto de partida si se acierta: 3 (Hondarribia), 5 (Zarautz), 7 (Bilbo), 9 (Durango), 11 (Biasteri), 13 (Iruñea), 15 (Donibane Garazi).
@@ -552,7 +568,7 @@ function renderProfile(first=false,startFrom=null){
     <div class="opts" style="grid-template-columns:1fr 1fr"><button class="opt" data-sp="0" aria-pressed="${!SLOW}">🔊 Normala<br><small class="muted">${T("Normal")}</small></button><button class="opt" data-sp="1" aria-pressed="${SLOW}">🐢 Poliki<br><small class="muted">${T("Lento")}</small></button></div>
     <p class="hint">${VOICE?T("En cualquier altavoz, mantén pulsado para oírlo despacio aunque esté en normal."):T("🔇 El audio no está disponible ahora mismo; los dictados se omiten.")}</p>
     ${first?"":`<p class="eyebrow" data-es="Premium">Premium</p>
-    <div class="card stack" style="gap:8px"><p style="margin:0;font-weight:600">${premiumLine()}</p>${inTWA?"":`<div class="row">${P.premium&&P.premium.customer?`<button class="btn ghost" id="portal" style="flex:1">${T("Gestionar suscripción")}</button>`:""}<button class="btn ${P.premium&&P.premium.active?"ghost":"red"}" id="plans" style="flex:1">${P.premium&&P.premium.active?T("Ver planes y códigos"):T("Hazte Premium")}</button></div>`}</div>
+    <div class="card stack" style="gap:8px"><p style="margin:0;font-weight:600">${premiumLine()}</p><div class="row">${P.premium&&P.premium.managed&&RC()?`<button class="btn ghost" id="portal" style="flex:1">${T("Gestionar en Google Play")}</button>`:""}<button class="btn ${P.premium&&P.premium.active?"ghost":"red"}" id="plans" style="flex:1">${P.premium&&P.premium.active?T("Ver planes y códigos"):T("Hazte Premium")}</button></div></div>
     <p class="hint" style="text-align:center">${T("Sesión de")} <b>${esc(P.email||"")}</b></p><button class="link" id="logout" style="align-self:center">${T("Salir de la cuenta")}</button>
     <details class="card" style="margin-top:8px"><summary class="muted" style="cursor:pointer">Kontua ezabatu · ${T("Borrar mi cuenta")}</summary>
       <p class="hint" style="margin-top:10px">${T("Se borran tu cuenta, tu progreso, tus retos y tus avisos. No se puede deshacer. Escribe tu correo para confirmar.")}</p>
@@ -994,7 +1010,7 @@ async function renderTeam(){
   if(!premActive()){
     app.innerHTML=header()+`<div class="stack pad" style="padding-top:18px;gap:12px"><p class="eyebrow">Taldea</p>
       <div class="card" style="display:flex;gap:14px;align-items:center"><div style="flex:none">${OLEN("wave",56)}</div><p style="margin:0">${T("Tu círculo, los retos con amigos y el ranking semanal son parte de Premium.")}</p></div>
-      ${inTWA?`<p class="muted">${T("La suscripción se gestiona desde tu cuenta en la web.")}</p>`:`<button class="btn red" id="plans">${T("Hazte Premium")}<small>${T("o usa un código")}</small></button>`}</div>`;
+      <button class="btn red" id="plans">${T("Hazte Premium")}<small>${T("o usa un código")}</small></button></div>`;
     const pb=document.getElementById("plans"); if(pb) pb.onclick=()=>renderPlans(); return;
   }
   app.innerHTML=header()+`<div class="stack pad" style="padding-top:18px"><p class="muted">Kargatzen…</p></div>`;

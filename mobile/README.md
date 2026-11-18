@@ -20,5 +20,13 @@ de GitHub: sin ella no se pueden publicar actualizaciones).
 
 ## Dentro de la app
 
-`public/index.html` detecta `window.Capacitor` y, dentro de la app, no muestra precios ni botones de compra
-(política de Google Play): la suscripción se gestiona en la web hasta que se añadan las compras dentro de la app.
+`public/index.html` detecta `window.Capacitor` y usa los plugins nativos a través de `window.Capacitor.Plugins`:
+
+- **Avisos** (`@capacitor/push-notifications`): token FCM → `/api/push/subscribe` como `fcm:<token>`.
+- **Suscripción** (`@revenuecat/purchases-capacitor`): la pantalla de planes pide `/api/billing` (clave pública `goog_…`
+  y usuario `ep_<id>`), configura el SDK, lee la oferta `default` de RevenueCat (paquetes mensual / 3 meses / 6 meses
+  = base plans `month` / `quarter` / `half` del producto `premium` en Play) y compra con `purchasePackage`. Después llama a
+  `/api/billing/sync`; el servidor consulta a RevenueCat (`REVENUECAT_SECRET_KEY`) o espera el webhook `/api/billing/revenuecat`.
+  «Gestionar en Google Play» abre la página de suscripciones de Play; «Restaurar compras» llama a `restorePurchases`.
+
+Tras añadir un plugin: `npm install` en `mobile/` y `npx cap sync android` (actualiza `capacitor.build.gradle`).

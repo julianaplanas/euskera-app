@@ -65,7 +65,8 @@ db.exec(`
     console.log("Migración: tabla users antigua (PIN) apartada como users_old_pin.");
   }
   const want = { weak: "TEXT NOT NULL DEFAULT '[]'", profile: "TEXT NOT NULL DEFAULT '{}'", last_seen: "TEXT", lang: "TEXT NOT NULL DEFAULT 'es'", open_duel: "INTEGER NOT NULL DEFAULT 0",
-    start_module: "INTEGER NOT NULL DEFAULT 1", skipped: "TEXT NOT NULL DEFAULT '[]'", premium_until: "TEXT", premium_src: "TEXT", stripe_customer: "TEXT", stripe_sub: "TEXT", stripe_status: "TEXT", stripe_cancel: "INTEGER NOT NULL DEFAULT 0", stripe_plan: "TEXT" };
+    start_module: "INTEGER NOT NULL DEFAULT 1", skipped: "TEXT NOT NULL DEFAULT '[]'", premium_until: "TEXT", premium_src: "TEXT", stripe_customer: "TEXT", stripe_sub: "TEXT", stripe_status: "TEXT", stripe_cancel: "INTEGER NOT NULL DEFAULT 0", stripe_plan: "TEXT",
+    sub_status: "TEXT", sub_cancel: "INTEGER NOT NULL DEFAULT 0", sub_plan: "TEXT", sub_store: "TEXT", sub_product: "TEXT" }; // stripe_* ya no se usan (quedan vacías)
   db.exec(`CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS gift_codes (code TEXT PRIMARY KEY, days INTEGER NOT NULL, max_uses INTEGER NOT NULL DEFAULT 1, uses INTEGER NOT NULL DEFAULT 0, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
     CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, concept TEXT NOT NULL, amount REAL NOT NULL, currency TEXT NOT NULL DEFAULT 'EUR', recurring TEXT, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
@@ -91,7 +92,6 @@ const app = express();
 app.set("trust proxy", 1); // Railway pone la IP real en X-Forwarded-For
 const compression = require("compression");
 app.use(compression({ threshold: 1024 })); // gzip/brotli (brotli calidad 4 por defecto: rápido y ~70 % menos bytes)
-app.post("/api/billing/webhook", express.raw({ type: "application/json" }), (req, res) => stripeWebhook(req, res));
 app.use(express.json({ limit: "200kb" }));
 app.use(cookieParser());
 // Digital Asset Links: verifica que la app Android (TWA) pertenece a este sitio.
@@ -145,7 +145,7 @@ function profile(user) {
   const gram = {};
   for (const g of db.prepare("SELECT card_id, done FROM grammar WHERE user_id = ?").all(user.id)) gram[g.card_id] = g.done;
   const pending = db.prepare("SELECT COUNT(*) n FROM challenges WHERE to_id = ? AND status = 'open' AND to_result IS NULL").get(user.id).n;
-  return { id: user.id, name: user.name, email: user.email, lang: user.lang || "es", premium: premiumOf(user), freeModules: FREE_MODULES, startModule: freeWindow(user).from, skipped: J(user.skipped, []), billing: STRIPE_ON, openDuel: !!user.open_duel, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, gram, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
+  return { id: user.id, name: user.name, email: user.email, lang: user.lang || "es", premium: premiumOf(user), freeModules: FREE_MODULES, startModule: freeWindow(user).from, skipped: J(user.skipped, []), billing: BILLING_ON, openDuel: !!user.open_duel, xp: user.xp, streak, practicedToday: user.last_day === today, lessons, gram, weak: J(user.weak, []), profile: J(user.profile, {}), items: itemStats(user.id), pendingChallenges: pending, today };
 }
 
 // ---------- notificaciones push (web-push, sin servicio externo) ----------
@@ -238,7 +238,7 @@ async function sendMail(to, subject, text, html) {
 }
 
 
-// ---------- premium (suscripción vía Stripe, o código de regalo) ----------
+// ---------- premium (suscripción de Google Play vía RevenueCat, o código de regalo) ----------
 // Módulos gratuitos: los primeros FREE_MODULES (por defecto 1). El resto requiere premium activo.
 const FREE_MODULES = +process.env.FREE_MODULES || 1;
 const PLANS = { month: { months: 1, amount: 399 }, quarter: { months: 3, amount: 999 }, half: { months: 6, amount: 1699 } };
@@ -247,7 +247,7 @@ const setting = (k, v) => v === undefined ? (db.prepare("SELECT v FROM settings 
 function premiumOf(user) {
   const today = madridDay();
   const active = !!user.premium_until && user.premium_until >= today;
-  return { active, until: user.premium_until || null, src: user.premium_src || null, status: user.stripe_status || null, cancels: !!user.stripe_cancel, plan: user.stripe_plan || null, customer: !!user.stripe_customer };
+  return { active, until: user.premium_until || null, src: user.premium_src || null, status: user.sub_status || null, cancels: !!user.sub_cancel, plan: user.sub_plan || null, store: user.sub_store || null, managed: !!user.sub_product };
 }
 // Gratis = FREE_MODULES módulos a partir del módulo por el que el usuario empezó (start_module); el resto, premium.
 const MODULE_COUNT = (() => { try { return Math.max(...Object.values(LESSON_MODULE)); } catch (e) { return 16; } })();
@@ -268,80 +268,54 @@ function addPremiumDays(userId, days, src) {
   setting("grandfather_undone", new Date().toISOString()); console.log(`Premium de cortesía retirado a ${n} cuentas`);
 })();
 if (!db.prepare("SELECT COUNT(*) n FROM expenses").get().n) db.prepare("INSERT INTO expenses (day, concept, amount, currency, note) VALUES (?, ?, ?, ?, ?)").run("2026-11-17", "Google Play Console (cuenta de desarrollador, pago único)", 25, "USD", "");
-const STRIPE_ON = !!process.env.STRIPE_SECRET_KEY;
-const stripe = STRIPE_ON ? require("stripe")(process.env.STRIPE_SECRET_KEY) : null;
+// Pagos: suscripción de Google Play (más adelante App Store) gestionada por RevenueCat.
+//   REVENUECAT_PUBLIC_KEY   clave pública de la app Android (goog_…): la app la pide a /api/billing/config y configura el SDK.
+//   REVENUECAT_SECRET_KEY   clave secreta (sk_…): el servidor consulta al suscriptor por la API REST para activar Premium de forma fiable.
+//   REVENUECAT_WEBHOOK_SECRET  valor de la cabecera Authorization que RevenueCat manda en cada aviso a /api/billing/revenuecat.
+// El usuario de RevenueCat es «ep_<id>», así cada compra queda ligada a la cuenta (y a la entitlement «premium»).
+const RC_PUBLIC_KEY = process.env.REVENUECAT_PUBLIC_KEY || "";
+const RC_SECRET_KEY = process.env.REVENUECAT_SECRET_KEY || "";
+const RC_WEBHOOK_SECRET = process.env.REVENUECAT_WEBHOOK_SECRET || "";
+const BILLING_ON = !!RC_PUBLIC_KEY;
+const ANDROID_PACKAGE = "eus.euskarapraktika.app", PLAY_PRODUCT = "premium";
+const rcUserId = (uid) => "ep_" + uid;
+const rcUid = (appUserId) => { const m = /^ep_(\d+)$/.exec(String(appUserId || "")); return m ? +m[1] : null; };
+const planOfProduct = (pid) => { const p = String(pid || "").toLowerCase(); for (const k of Object.keys(PLANS)) if (p.includes(k)) return k; return /year|annual/.test(p) ? "year" : null; };
 const appUrl = (req) => (process.env.APP_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
-// Producto y precios: se crean una vez (lookup_key) y se recuerdan en settings.
-async function stripePrices() {
-  if (!STRIPE_ON) return null;
-  const cached = setting("stripe_prices"); if (cached) return JSON.parse(cached);
-  const out = {};
-  const existing = await stripe.prices.list({ lookup_keys: Object.keys(PLANS).map(k => "ep_" + k), active: true, limit: 10 });
-  for (const p of existing.data) out[p.lookup_key.slice(3)] = p.id;
-  if (Object.keys(out).length < Object.keys(PLANS).length) {
-    const prods = await stripe.products.search({ query: "name:'Euskara Praktika Premium'" });
-    const product = prods.data[0] || await stripe.products.create({ name: "Euskara Praktika Premium", description: "Acceso completo a todas las lecciones (A1 y A2), audio y repaso espaciado." });
-    for (const [k, pl] of Object.entries(PLANS)) if (!out[k]) {
-      const pr = await stripe.prices.create({ product: product.id, currency: "eur", unit_amount: pl.amount, tax_behavior: "inclusive", recurring: { interval: "month", interval_count: pl.months }, lookup_key: "ep_" + k, transfer_lookup_key: true });
-      out[k] = pr.id;
-    }
-  }
-  setting("stripe_prices", JSON.stringify(out)); return out;
+// Guarda el estado de la suscripción. until = fecha (YYYY-MM-DD) hasta la que la entitlement está pagada (o null si nunca la tuvo).
+function applyEntitlement(userId, { until, product, store, cancels, billingIssue }) {
+  const today = madridDay(); const active = !!until && until >= today;
+  const status = !until ? null : billingIssue ? "past_due" : active ? "active" : "expired";
+  const u = db.prepare("SELECT premium_until, premium_src FROM users WHERE id = ?").get(userId); if (!u) return;
+  // Un código de regalo que llegue más lejos no se acorta; una suscripción caducada solo retira el premium que ella misma dio.
+  let premiumUntil = u.premium_until, src = u.premium_src;
+  if (active && (!u.premium_until || until >= u.premium_until || u.premium_src === "revenuecat")) { premiumUntil = until; src = "revenuecat"; }
+  else if (!active && u.premium_src === "revenuecat") { premiumUntil = until || null; src = until ? "revenuecat" : null; }
+  db.prepare("UPDATE users SET premium_until = ?, premium_src = ?, sub_status = ?, sub_cancel = ?, sub_plan = ?, sub_store = ?, sub_product = ? WHERE id = ?")
+    .run(premiumUntil, src, status, cancels ? 1 : 0, planOfProduct(product), store || null, product || null, userId);
 }
-// Webhook: se registra por API la primera vez (el secreto se guarda en settings), salvo que venga STRIPE_WEBHOOK_SECRET.
-async function stripeWebhookSecret(req) {
-  if (process.env.STRIPE_WEBHOOK_SECRET) return process.env.STRIPE_WEBHOOK_SECRET;
-  const saved = setting("stripe_webhook"); if (saved) return JSON.parse(saved).secret;
-  const url = appUrl(req) + "/api/billing/webhook";
-  const ep = await stripe.webhookEndpoints.create({ url, enabled_events: ["checkout.session.completed", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid"] });
-  setting("stripe_webhook", JSON.stringify({ id: ep.id, url, secret: ep.secret })); console.log("Stripe: webhook registrado en " + url);
-  return ep.secret;
+const msDay = (ms) => ms ? new Date(+ms).toISOString().slice(0, 10) : null;
+const isoDay = (iso) => iso ? new Date(iso).toISOString().slice(0, 10) : null;
+// Consulta al suscriptor en RevenueCat (fuente de verdad) y aplica la entitlement «premium».
+async function rcSync(userId) {
+  if (!RC_SECRET_KEY) return false;
+  const r = await fetch("https://api.revenuecat.com/v1/subscribers/" + encodeURIComponent(rcUserId(userId)), { headers: { Authorization: "Bearer " + RC_SECRET_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error("RevenueCat " + r.status);
+  const sub = (await r.json()).subscriber || {}; const ent = (sub.entitlements || {}).premium;
+  if (!ent) { applyEntitlement(userId, { until: null }); return true; }
+  const s = (sub.subscriptions || {})[ent.product_identifier] || {};
+  applyEntitlement(userId, { until: isoDay(ent.expires_date), product: ent.product_identifier, store: s.store || null, cancels: !!s.unsubscribe_detected_at, billingIssue: !!s.billing_issues_detected_at && isoDay(ent.expires_date) >= madridDay() });
+  return true;
 }
-function applySubscription(userId, sub) {
-  const until = new Date(sub.current_period_end * 1000).toISOString().slice(0, 10);
-  const planKey = (() => { const it = sub.items && sub.items.data[0]; const lk = it && it.price && it.price.lookup_key; return lk ? lk.replace(/^ep_/, "") : null; })();
-  const live = ["active", "trialing", "past_due"].includes(sub.status);
-  db.prepare("UPDATE users SET premium_until = CASE WHEN ? THEN ? ELSE MIN(COALESCE(premium_until, ?), ?) END, premium_src = 'stripe', stripe_customer = ?, stripe_sub = ?, stripe_status = ?, stripe_cancel = ?, stripe_plan = ? WHERE id = ?")
-    .run(live ? 1 : 0, until, until, until, String(sub.customer), sub.id, sub.status, sub.cancel_at_period_end ? 1 : 0, planKey, userId);
-}
-async function syncStripeUser(user) {
-  if (!STRIPE_ON || !user.stripe_customer) return;
-  const subs = await stripe.subscriptions.list({ customer: user.stripe_customer, status: "all", limit: 5 });
-  const best = subs.data.sort((a, b) => b.current_period_end - a.current_period_end)[0];
-  if (best) applySubscription(user.id, best);
-}
-app.get("/api/billing", auth, async (req, res) => {
-  res.json({ enabled: STRIPE_ON, freeModules: FREE_MODULES, plans: Object.fromEntries(Object.entries(PLANS).map(([k, p]) => [k, { months: p.months, amount: p.amount }])), premium: premiumOf(req.user) });
+app.get("/api/billing/config", (req, res) => {
+  res.json({ enabled: BILLING_ON, key: RC_PUBLIC_KEY || null, freeModules: FREE_MODULES, plans: Object.fromEntries(Object.entries(PLANS).map(([k, p]) => [k, { months: p.months, amount: p.amount }])), android: { package: ANDROID_PACKAGE, product: PLAY_PRODUCT } });
 });
-app.post("/api/billing/checkout", auth, async (req, res) => {
-  if (!STRIPE_ON) return res.status(503).json({ error: "Los pagos aún no están activados." });
-  const plan = PLANS[req.body.plan] ? req.body.plan : null; if (!plan) return res.status(400).json({ error: "Plan desconocido." });
-  try {
-    await stripeWebhookSecret(req);
-    const prices = await stripePrices(); const base = appUrl(req);
-    const params = { mode: "subscription", line_items: [{ price: prices[plan], quantity: 1 }], client_reference_id: String(req.user.id), metadata: { user_id: String(req.user.id), plan },
-      success_url: base + "/?billing=ok", cancel_url: base + "/?billing=cancel", locale: req.user.lang === "en" ? "en" : req.user.lang === "fr" ? "fr" : "es", allow_promotion_codes: true,
-      subscription_data: { metadata: { user_id: String(req.user.id) } } };
-    if (req.user.stripe_customer) { params.customer = req.user.stripe_customer; params.customer_update = { address: "auto" }; } else params.customer_email = req.user.email;
-    if (process.env.STRIPE_TAX !== "0") params.automatic_tax = { enabled: true };
-    let session; try { session = await stripe.checkout.sessions.create(params); }
-    catch (e) { if (params.automatic_tax && /tax/i.test(e.message)) { console.error("Stripe Tax no disponible, se continúa sin él:", e.message); delete params.automatic_tax; delete params.customer_update; session = await stripe.checkout.sessions.create(params); } else throw e; }
-    logEvent(req.user.id, "checkout_start", { plan });
-    res.json({ url: session.url });
-  } catch (e) { console.error("Stripe checkout:", e.message); res.status(502).json({ error: "No se pudo iniciar el pago. Inténtalo de nuevo." }); }
+app.get("/api/billing", auth, (req, res) => {
+  res.json({ enabled: BILLING_ON, key: RC_PUBLIC_KEY || null, appUserId: rcUserId(req.user.id), freeModules: FREE_MODULES, plans: Object.fromEntries(Object.entries(PLANS).map(([k, p]) => [k, { months: p.months, amount: p.amount }])), premium: premiumOf(req.user) });
 });
-app.post("/api/billing/portal", auth, async (req, res) => {
-  if (!STRIPE_ON || !req.user.stripe_customer) return res.status(400).json({ error: "No hay suscripción que gestionar." });
-  try { const ps = await stripe.billingPortal.sessions.create({ customer: req.user.stripe_customer, return_url: appUrl(req) + "/?billing=back" }); res.json({ url: ps.url }); }
-  catch (e) { console.error("Stripe portal:", e.message); res.status(502).json({ error: "No se pudo abrir el portal. Inténtalo de nuevo." }); }
-});
+// Tras comprar o restaurar en la app: refresca desde RevenueCat (si hay clave secreta) y devuelve el estado.
 app.post("/api/billing/sync", auth, async (req, res) => {
-  try {
-    if (STRIPE_ON && !req.user.stripe_customer) { // vuelta del checkout antes de que llegue el webhook
-      const ss = await stripe.checkout.sessions.list({ limit: 20 }); const mine = ss.data.find(x => x.client_reference_id === String(req.user.id) && x.status === "complete" && x.subscription);
-      if (mine) { const sub = await stripe.subscriptions.retrieve(mine.subscription); applySubscription(req.user.id, sub); }
-    } else await syncStripeUser(req.user);
-  } catch (e) { console.error("Stripe sync:", e.message); }
+  try { if (await rcSync(req.user.id)) logEvent(req.user.id, "billing_sync", {}); } catch (e) { console.error("RevenueCat sync:", e.message); }
   res.json(premiumOf(db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id)));
 });
 app.post("/api/billing/redeem", auth, (req, res) => {
@@ -354,28 +328,26 @@ app.post("/api/billing/redeem", auth, (req, res) => {
   logEvent(req.user.id, "gift_redeemed", { code, days: g.days });
   res.json({ ok: true, until, premium: premiumOf(db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id)) });
 });
-// El webhook necesita el cuerpo sin parsear para verificar la firma: se monta antes de express.json (ver más abajo).
-async function stripeWebhook(req, res) {
-  if (!STRIPE_ON) return res.status(503).end();
-  let ev;
-  try { ev = stripe.webhooks.constructEvent(req.body, req.headers["stripe-signature"], await stripeWebhookSecret(req)); }
-  catch (e) { console.error("Stripe webhook firma:", e.message); return res.status(400).send("bad signature"); }
-  try {
-    const o = ev.data.object;
-    if (ev.type === "checkout.session.completed" && o.subscription) {
-      const uid = +(o.client_reference_id || (o.metadata && o.metadata.user_id)); const sub = await stripe.subscriptions.retrieve(o.subscription);
-      if (uid) { applySubscription(uid, sub); logEvent(uid, "checkout_done", { plan: o.metadata && o.metadata.plan }); }
-    } else if (ev.type.startsWith("customer.subscription.")) {
-      const uid = +(o.metadata && o.metadata.user_id) || (db.prepare("SELECT id FROM users WHERE stripe_customer = ?").get(String(o.customer)) || {}).id;
-      if (uid) applySubscription(uid, o);
-    } else if (ev.type === "invoice.paid" && o.subscription) {
-      const sub = await stripe.subscriptions.retrieve(o.subscription);
-      const uid = +(sub.metadata && sub.metadata.user_id) || (db.prepare("SELECT id FROM users WHERE stripe_customer = ?").get(String(sub.customer)) || {}).id;
-      if (uid) applySubscription(uid, sub);
-    }
-  } catch (e) { console.error("Stripe webhook:", e.message); }
-  res.json({ received: true });
-}
+// Webhook de RevenueCat (compra, renovación, cancelación, caducidad, problema de cobro, traspaso…).
+// Se verifica la cabecera Authorization; con clave secreta se reconsulta al suscriptor, si no se aplica lo que trae el aviso.
+app.post("/api/billing/revenuecat", async (req, res) => {
+  if (!RC_WEBHOOK_SECRET) return res.status(503).json({ error: "REVENUECAT_WEBHOOK_SECRET sin configurar" });
+  const h = String(req.headers.authorization || "");
+  if (h !== RC_WEBHOOK_SECRET && h !== "Bearer " + RC_WEBHOOK_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const ev = (req.body && req.body.event) || {}; if (!ev.type) return res.status(400).json({ error: "sin evento" });
+  const ids = new Set([ev.app_user_id, ev.original_app_user_id, ...(ev.aliases || []), ...(ev.transferred_to || []), ...(ev.transferred_from || [])].map(rcUid).filter(Boolean));
+  if (ev.type === "TEST") { console.log("RevenueCat: evento de prueba recibido"); return res.json({ ok: true, test: true }); }
+  for (const uid of ids) {
+    try {
+      if (!(await rcSync(uid))) {
+        const gone = ["EXPIRATION"].includes(ev.type) || (ev.transferred_from || []).map(rcUid).includes(uid);
+        applyEntitlement(uid, { until: gone ? (msDay(ev.expiration_at_ms) || madridDay()) : msDay(ev.expiration_at_ms), product: ev.product_id, store: ev.store, cancels: ["CANCELLATION", "EXPIRATION"].includes(ev.type), billingIssue: ev.type === "BILLING_ISSUE" });
+      }
+      logEvent(uid, "billing_" + String(ev.type).toLowerCase(), { product: ev.product_id, store: ev.store, env: ev.environment });
+    } catch (e) { console.error("RevenueCat webhook (" + uid + "):", e.message); }
+  }
+  res.json({ ok: true, users: [...ids] });
+});
 // ---------- cuentas: email + código de 6 cifras ----------
 const CODE_TTL_MS = 10 * 60 * 1000;
 const CODE_MAX_EMAIL_DAY = +process.env.CODE_MAX_EMAIL_DAY || 5, CODE_MAX_IP_DAY = +process.env.CODE_MAX_IP_DAY || 20, CODE_MAX_GLOBAL_DAY = +process.env.CODE_MAX_GLOBAL_DAY || 95;
@@ -629,8 +601,8 @@ app.get("/api/admin/users", admin, (req, res) => {
   res.json(rows.map(u => ({ id: u.id, name: u.name, email: u.email, xp: u.xp, streak: u.streak, last_day: u.last_day, last_seen: u.last_seen, created_at: u.created_at, profile: J(u.profile, {}), items: itemStats(u.id), premium: premiumOf(u) })));
 });
 function deleteUser(id) {
-  const u = db.prepare("SELECT stripe_sub, stripe_status FROM users WHERE id = ?").get(id);
-  if (STRIPE_ON && u && u.stripe_sub && !["canceled", "incomplete_expired"].includes(u.stripe_status)) stripe.subscriptions.cancel(u.stripe_sub).catch(e => console.error("Stripe: no se pudo cancelar la suscripción al borrar la cuenta:", e.message));
+  // La suscripción de Google Play sigue viva en Google (se cancela desde Play); aquí solo se borran los datos del suscriptor en RevenueCat.
+  if (RC_SECRET_KEY) fetch("https://api.revenuecat.com/v1/subscribers/" + encodeURIComponent(rcUserId(id)), { method: "DELETE", headers: { Authorization: "Bearer " + RC_SECRET_KEY } }).catch(e => console.error("RevenueCat: no se pudo borrar el suscriptor:", e.message));
   db.transaction(() => {
     for (const t of ["gift_redemptions"]) db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(id);
     for (const t of ["sessions", "progress", "grammar", "rounds", "items", "push_subs", "events"]) db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(id);
@@ -688,6 +660,31 @@ app.get("/api/admin/backup", admin, async (req, res) => {
   try { fs.rmSync(tmp, { force: true }); await db.backup(tmp); res.download(tmp, `euskara-${madridDay()}.db`, () => fs.rmSync(tmp, { force: true })); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
+// ---------- copias de seguridad automáticas ----------
+// Cada día (a partir de las 04:00, hora de Madrid) se guarda una copia comprimida de la base de datos en <volumen>/backups,
+// y se conservan las últimas BACKUP_KEEP (14 por defecto). También al arrancar si hoy aún no hay copia. Se descargan desde /admin.
+const BACKUP_DIR = path.join(path.dirname(DB_PATH), "backups"), BACKUP_KEEP = Math.max(1, +process.env.BACKUP_KEEP || 14);
+const zlib = require("zlib");
+async function runBackup(reason) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  const day = madridDay(), tmp = path.join(BACKUP_DIR, `.tmp-${day}.db`), out = path.join(BACKUP_DIR, `euskara-${day}.db.gz`);
+  fs.rmSync(tmp, { force: true }); await db.backup(tmp);
+  await new Promise((ok, ko) => fs.createReadStream(tmp).pipe(zlib.createGzip({ level: 6 })).pipe(fs.createWriteStream(out + ".part")).on("finish", ok).on("error", ko));
+  fs.renameSync(out + ".part", out); fs.rmSync(tmp, { force: true });
+  const all = listBackups(); for (const b of all.slice(BACKUP_KEEP)) fs.rmSync(path.join(BACKUP_DIR, b.name), { force: true });
+  setting("backup_last", day); console.log(`Copia de seguridad (${reason}): ${out} ${(fs.statSync(out).size / 1024).toFixed(0)} kB; se conservan ${Math.min(all.length, BACKUP_KEEP)}`);
+  return out;
+}
+function listBackups() { try { return fs.readdirSync(BACKUP_DIR).filter(f => /^euskara-\d{4}-\d{2}-\d{2}\.db\.gz$/.test(f)).sort().reverse().map(name => ({ name, bytes: fs.statSync(path.join(BACKUP_DIR, name)).size })); } catch (e) { return []; } }
+async function backupTick(reason) {
+  const hour = parseInt(new Date().toLocaleTimeString("en-GB", { timeZone: process.env.TZ_NAME || "Europe/Madrid", hour: "2-digit", hour12: false }));
+  if (setting("backup_last") === madridDay() || (hour < 4 && reason !== "arranque")) return;
+  try { await runBackup(reason); } catch (e) { console.error("Copia de seguridad:", e.message); }
+}
+if (process.env.BACKUPS !== "0") { setTimeout(() => backupTick("arranque"), 20000); setInterval(() => backupTick("diaria"), 30 * 60000); }
+app.get("/api/admin/backups", admin, (req, res) => res.json({ dir: BACKUP_DIR, keep: BACKUP_KEEP, last: setting("backup_last") || null, files: listBackups() }));
+app.post("/api/admin/backups/run", admin, async (req, res) => { try { const f = await runBackup("manual"); res.json({ ok: true, file: path.basename(f), files: listBackups() }); } catch (e) { res.status(500).json({ error: e.message }); } });
+app.get("/api/admin/backups/:name", admin, (req, res) => { const n = req.params.name; if (!/^euskara-\d{4}-\d{2}-\d{2}\.db\.gz$/.test(n)) return res.status(400).end(); res.download(path.join(BACKUP_DIR, n), n); });
 // Métricas de producto: altas, activos, retención, embudo, lecciones y frases difíciles.
 // ¿Está la base de datos en un volumen persistente? Se busca el punto de montaje más largo que contenga DB_PATH
 // (en Railway el volumen es un montaje aparte; el disco del contenedor es "/" u overlay y se pierde en cada deploy).

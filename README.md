@@ -12,7 +12,7 @@ App para practicar euskera entre clases (A1 y A2 completos): repaso espaciado fr
    - `RESEND_API_KEY` y `MAIL_FROM` (p. ej. `Euskara Praktika <kaixo@tudominio.eus>`) — envío de los códigos de acceso. Sin ellas la app funciona en modo pruebas y muestra el código en pantalla.
    - `GOOGLE_TTS_KEY` — voz en euskera (Google Cloud Text-to-Speech, `eu-ES-Standard-A`). Opcional: `TTS_PROVIDER`, `GOOGLE_VOICE`.
    - `VAPID_PUBLIC`, `VAPID_PRIVATE`, `VAPID_SUBJECT` — avisos push (`npx web-push generate-vapid-keys`).
-   - `STRIPE_SECRET_KEY` — activa Premium (suscripciones mensual/trimestral/semestral; producto, precios y webhook se crean solos por API). Opcionales: `STRIPE_WEBHOOK_SECRET` (si el webhook se crea a mano), `STRIPE_TAX=0` (desactiva Stripe Tax), `APP_URL` (URL pública, para las vueltas del checkout), `FREE_MODULES` (módulos gratis, por defecto 1).
+   - `REVENUECAT_PUBLIC_KEY` (clave `goog_…` de la app Android), `REVENUECAT_SECRET_KEY` (`sk_…`, para consultar al suscriptor) y `REVENUECAT_WEBHOOK_SECRET` (cabecera Authorization del webhook `/api/billing/revenuecat`) — Premium por suscripción de Google Play (base plans `month`/`quarter`/`half` del producto `premium`, entitlement `premium`). Opcionales: `APP_URL` (URL pública), `FREE_MODULES` (módulos gratis a partir del de inicio, por defecto 1).
    - `ANDROID_SHA256` (y opcional `ANDROID_PACKAGE`) — huellas de la app Android para `/.well-known/assetlinks.json`.
 3. Dominio propio en Settings → Domains (CNAME en el registrador).
 
