@@ -34,22 +34,29 @@ Tras añadir un plugin: `npm install` en `mobile/` y `npx cap sync android` (act
 
 ## iOS (preparado; falta la cuenta de Apple)
 
-El proyecto está en `mobile/ios` (Capacitor + SPM, mismo `appId` `eus.euskarapraktika.app`, iconos y splash generados,
-orientación vertical, avisos push enganchados en `AppDelegate.swift`, entitlement `aps-environment`). El flujo `.github/workflows/ios.yml`
-comprueba que compila en el simulador. Para publicar:
+El proyecto está en `mobile/ios` (Capacitor + SPM, mismo `appId` `eus.euskarapraktika.app`, iconos y splash generados, orientación vertical,
+avisos por Firebase enganchados en `AppDelegate.swift`, modo de fondo `remote-notification`, entitlement `aps-environment`).
+`.github/workflows/ios.yml` comprueba que compila en el simulador; `.github/workflows/ios-testflight.yml` archiva, firma y sube a TestFlight
+(a mano, con los secretos que se indican en el propio archivo).
 
-1. **Apple Developer Program** (99 $/año): developer.apple.com → Account → Enroll (persona física vale; verificación de identidad con DNI, 1-2 días).
-2. **Certificados y perfiles**: en Xcode (en un Mac) → abrir `mobile/ios/App/App.xcodeproj` → Signing & Capabilities → marcar
-   «Automatically manage signing» y elegir el Team. Añadir la capability **Push Notifications** (ya está el entitlement).
-3. **Push en iOS**: el servidor envía hoy por FCM (Android). Para iOS hay dos caminos: (a) añadir Firebase a la app iOS (plugin
-   `@capacitor-firebase/messaging`, `GoogleService-Info.plist`, clave APNs `.p8` subida a Firebase) y seguir mandando todo por FCM, o
-   (b) mandar a APNs directamente desde el servidor con la clave `.p8`. Recomendado (a): un solo canal de envío.
-4. **App Store Connect**: crear la app (mismo bundle id), ficha con los textos del doc de Play adaptados (Apple pide capturas de 6,7" y 6,5"),
-   política de privacidad `https://www.euskarapraktika.eus/privacy.html`, categoría Educación, clasificación 4+.
-5. **Compras**: App Store Connect → Suscripciones → grupo «Premium» con `month` / `quarter` / `half` (mismos precios; Apple fija su tabla
-   de precios por país) y producto no consumible `premium_lifetime`. Prueba gratuita de 7 días como oferta introductoria.
-   En RevenueCat: añadir la app iOS al mismo proyecto (clave `appl_…`), In-App Purchase Key (.p8) y Shared Secret, y mapear los productos
-   a la entitlement `premium` y a la oferta `default`. El servidor ya distingue la tienda (`sub_store`).
-   La app lee la clave pública por plataforma: habrá que servir `REVENUECAT_PUBLIC_KEY_IOS` desde `/api/billing` (pendiente, dos líneas).
+Avisos: en Android y en iOS se usa el mismo plugin, `@capacitor-firebase/messaging`, así el servidor manda todo por FCM (HTTP v1) con la
+misma cuenta de servicio. Para iOS hacen falta además: la app iOS dada de alta en Firebase (`GoogleService-Info.plist` en `ios/App/App`, añadido
+al target en Xcode) y la **clave APNs (.p8)** de Apple subida a Firebase → Configuración del proyecto → Cloud Messaging → Apple apps.
+
+Pasos para publicar:
+
+1. **Apple Developer Program** (99 $/año): developer.apple.com → Account → Enroll (persona física vale; verificación de identidad con DNI, 1-3 días).
+2. **Firebase**: añadir app iOS (bundle `eus.euskarapraktika.app`) → descargar `GoogleService-Info.plist`. En developer.apple.com → Keys → crear clave
+   con **Apple Push Notifications service (APNs)** → descargar el `.p8` → subirlo en Firebase (Cloud Messaging → Apple app configuration) con el Key ID y el Team ID.
+3. **Xcode (en el Mac)**: abrir `mobile/ios/App/App.xcodeproj`, arrastrar `GoogleService-Info.plist` a la carpeta `App` (copiar, target App),
+   Signing & Capabilities → «Automatically manage signing» + Team; capabilities **Push Notifications** y **Background Modes → Remote notifications**.
+   Product → Run en el iPhone conectado para probar.
+4. **App Store Connect**: crear la app (mismo bundle id), ficha con los textos del doc de Play adaptados (capturas de 6,7" y 6,5"),
+   política de privacidad `https://www.euskarapraktika.eus/privacy.html`, categoría Educación, 4+.
+5. **Compras**: App Store Connect → Suscripciones → grupo «Premium» con `month` / `quarter` / `half` (mismos precios; Apple fija su tabla por país),
+   oferta introductoria «7 días gratis» en cada uno, y producto no consumible `premium_lifetime`. Acuerdo de apps de pago firmado en «Acuerdos, impuestos y banca».
+   En RevenueCat: añadir la app iOS al mismo proyecto (clave `appl_…` → Railway `REVENUECAT_PUBLIC_KEY_IOS`), In-App Purchase Key (.p8) y
+   App-Specific Shared Secret, y mapear los productos a la entitlement `premium` y a la oferta `default`. El servidor ya distingue la tienda (`sub_store`).
 6. **Subir**: Xcode → Product → Archive → Distribute → App Store Connect → TestFlight (probadores internos sin revisión) → enviar a revisión.
-   Apple suele tardar 1-2 días y pide una cuenta de prueba: usar un correo con código y el código de regalo de revisor.
+   O con el flujo `iOS TestFlight` de GitHub Actions una vez puestos los secretos. Apple suele tardar 1-2 días y pide una cuenta de prueba:
+   un correo con código y el código de regalo de revisor.

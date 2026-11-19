@@ -15,5 +15,16 @@
   "ios": {
     "contentInset": "automatic",
     "backgroundColor": "#FFFFFF"
+  },
+  "experimental": {
+    "ios": {
+      "spm": {
+        "packageOptions": {
+          "@capacitor-firebase/messaging": {
+            "symlink": true
+          }
+        }
+      }
+    }
   }
 }

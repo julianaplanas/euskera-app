@@ -149,7 +149,7 @@ function auth(req, res, next) {
 function setSession(res, userId) {
   const token = crypto.randomBytes(32).toString("hex");
   db.prepare("INSERT INTO sessions (token, user_id) VALUES (?, ?)").run(token, userId);
-  res.cookie("session", token, { httpOnly: true, sameSite: "lax", secure: req.secure || IS_PROD, maxAge: 365 * 86400000 });
+  res.cookie("session", token, { httpOnly: true, sameSite: "lax", secure: !!(res.req && res.req.secure) || IS_PROD, maxAge: 365 * 86400000 });
 }
 function itemStats(userId) {
   const today = madridDay();
@@ -387,10 +387,12 @@ if (!db.prepare("SELECT COUNT(*) n FROM expenses").get().n) db.prepare("INSERT I
 //   REVENUECAT_SECRET_KEY   clave secreta (sk_…): el servidor consulta al suscriptor por la API REST para activar Premium de forma fiable.
 //   REVENUECAT_WEBHOOK_SECRET  valor de la cabecera Authorization que RevenueCat manda en cada aviso a /api/billing/revenuecat.
 // El usuario de RevenueCat es «ep_<id>», así cada compra queda ligada a la cuenta (y a la entitlement «premium»).
-const RC_PUBLIC_KEY = process.env.REVENUECAT_PUBLIC_KEY || "";
+const RC_PUBLIC_KEY = process.env.REVENUECAT_PUBLIC_KEY || ""; // Android (goog_…)
+const RC_PUBLIC_KEY_IOS = process.env.REVENUECAT_PUBLIC_KEY_IOS || ""; // iOS (appl_…)
+const rcKeyFor = (req) => (/iPhone|iPad|iPod/.test(req.get("user-agent") || "") && RC_PUBLIC_KEY_IOS) || RC_PUBLIC_KEY || RC_PUBLIC_KEY_IOS || null;
 const RC_SECRET_KEY = process.env.REVENUECAT_SECRET_KEY || "";
 const RC_WEBHOOK_SECRET = process.env.REVENUECAT_WEBHOOK_SECRET || "";
-const BILLING_ON = !!RC_PUBLIC_KEY;
+const BILLING_ON = !!(RC_PUBLIC_KEY || RC_PUBLIC_KEY_IOS);
 const ANDROID_PACKAGE = "eus.euskarapraktika.app", PLAY_PRODUCT = "premium";
 const rcUserId = (uid) => "ep_" + uid;
 const rcUid = (appUserId) => { const m = /^ep_(\d+)$/.exec(String(appUserId || "")); return m ? +m[1] : null; };
@@ -422,10 +424,10 @@ async function rcSync(userId) {
   return true;
 }
 app.get("/api/billing/config", (req, res) => {
-  res.json({ enabled: BILLING_ON, key: RC_PUBLIC_KEY || null, freeModules: FREE_MODULES, plans: Object.fromEntries(Object.entries(PLANS).map(([k, p]) => [k, { months: p.months, amount: p.amount }])), android: { package: ANDROID_PACKAGE, product: PLAY_PRODUCT } });
+  res.json({ enabled: BILLING_ON, key: rcKeyFor(req), keys: { android: RC_PUBLIC_KEY || null, ios: RC_PUBLIC_KEY_IOS || null }, freeModules: FREE_MODULES, plans: Object.fromEntries(Object.entries(PLANS).map(([k, p]) => [k, { months: p.months, amount: p.amount }])), android: { package: ANDROID_PACKAGE, product: PLAY_PRODUCT } });
 });
 app.get("/api/billing", auth, (req, res) => {
-  res.json({ enabled: BILLING_ON, key: RC_PUBLIC_KEY || null, appUserId: rcUserId(req.user.id), freeModules: FREE_MODULES, plans: Object.fromEntries(Object.entries(PLANS).map(([k, p]) => [k, { months: p.months, amount: p.amount }])), premium: premiumOf(req.user) });
+  res.json({ enabled: BILLING_ON, key: rcKeyFor(req), keys: { android: RC_PUBLIC_KEY || null, ios: RC_PUBLIC_KEY_IOS || null }, appUserId: rcUserId(req.user.id), freeModules: FREE_MODULES, plans: Object.fromEntries(Object.entries(PLANS).map(([k, p]) => [k, { months: p.months, amount: p.amount }])), premium: premiumOf(req.user) });
 });
 // Tras comprar o restaurar en la app: refresca desde RevenueCat (si hay clave secreta) y devuelve el estado.
 app.post("/api/billing/sync", auth, async (req, res) => {
