@@ -76,7 +76,13 @@ db.exec(`
   for (const [c, def] of Object.entries(want)) if (!cols().includes(c)) { db.exec(`ALTER TABLE users ADD COLUMN ${c} ${def}`); console.log("Migración: columna users." + c); }
 })();
 
-const SECRET = process.env.APP_SECRET || "dev-secret-change-me";
+const IS_PROD = !!(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID || process.env.NODE_ENV === "production");
+// APP_SECRET firma los códigos de acceso y los enlaces de baja. En producción es obligatoria; sin ella el servidor no arranca.
+// Si falta en producción se usa una aleatoria por arranque (los códigos en vuelo dejan de valer en cada despliegue) y se avisa en el log.
+if (IS_PROD && !process.env.APP_SECRET) console.error("AVISO: APP_SECRET no está en Railway → Variables; se usa una clave aleatoria temporal. Pon una de 32 caracteres.");
+else if (IS_PROD && process.env.APP_SECRET.length < 16) console.error("AVISO: APP_SECRET es corta; usa al menos 16 caracteres (mejor 32 aleatorios).");
+if (IS_PROD && (!process.env.ADMIN_KEY || process.env.ADMIN_KEY.length < 12)) console.error("AVISO: ADMIN_KEY falta o es corta (mínimo recomendado 20 caracteres aleatorios).");
+const SECRET = process.env.APP_SECRET || (IS_PROD ? crypto.randomBytes(32).toString("hex") : "dev-secret-change-me");
 const hashCode = (email, code) => crypto.createHmac("sha256", SECRET).update(email + ":" + code).digest("hex");
 const normEmail = (e) => String(e || "").trim().toLowerCase();
 const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) && e.length <= 120;
@@ -92,7 +98,14 @@ const J = (s, d) => { try { return JSON.parse(s); } catch (e) { return d; } };
 const app = express();
 app.set("trust proxy", 1); // Railway pone la IP real en X-Forwarded-For
 const compression = require("compression");
-app.use(compression({ threshold: 1024 })); // gzip/brotli (brotli calidad 4 por defecto: rápido y ~70 % menos bytes)
+app.use(compression({ threshold: 1024 }));
+// Cabeceras de seguridad básicas (sin dependencias): nada de iframes ajenos, sin adivinar tipos, HSTS cuando llega por https.
+app.use((req, res, next) => {
+  res.set("X-Content-Type-Options", "nosniff"); res.set("X-Frame-Options", "DENY"); res.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  if (req.secure) res.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  next();
+}); // gzip/brotli (brotli calidad 4 por defecto: rápido y ~70 % menos bytes)
 // Correo entrante (kaixo@, revisor@…): Resend recibe el correo (registro MX) y avisa aquí; se reenvía íntegro a MAIL_FORWARD_TO.
 app.post("/api/mail/inbound", express.raw({ type: "*/*", limit: "1mb" }), (req, res) => inboundMail(req, res));
 app.use(express.json({ limit: "200kb" }));
@@ -115,7 +128,7 @@ const isNativeApp = (req) => /EuskaraPraktikaApp/.test(req.get("user-agent") || 
 // Vista previa en el navegador (para probar sin móvil): /?app=1 deja una cookie de 90 días y a partir de ahí se sirve la app; /?app=0 la quita.
 app.use((req, res, next) => {
   if (!LANDING_HOSTS.includes(req.hostname) || isNativeApp(req)) return next();
-  if (req.query.app === "1") { res.cookie("ep_app", "1", { maxAge: 90 * 86400000, httpOnly: true, sameSite: "lax", secure: req.secure }); return res.redirect("/"); }
+  if (req.query.app === "1") { res.cookie("ep_app", "1", { maxAge: 90 * 86400000, httpOnly: true, sameSite: "lax", secure: req.secure || IS_PROD }); return res.redirect("/"); }
   if (req.query.app === "0") { res.clearCookie("ep_app"); return res.redirect("/"); }
   if (req.cookies && req.cookies.ep_app === "1") return next();
   if (req.path === "/" || req.path === "/index.html") return res.sendFile(path.join(__dirname, "public", "landing.html"));
@@ -136,7 +149,7 @@ function auth(req, res, next) {
 function setSession(res, userId) {
   const token = crypto.randomBytes(32).toString("hex");
   db.prepare("INSERT INTO sessions (token, user_id) VALUES (?, ?)").run(token, userId);
-  res.cookie("session", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 365 * 86400000 });
+  res.cookie("session", token, { httpOnly: true, sameSite: "lax", secure: req.secure || IS_PROD, maxAge: 365 * 86400000 });
 }
 function itemStats(userId) {
   const today = madridDay();
@@ -440,8 +453,8 @@ app.post("/api/event", auth, (req, res) => {
 // Se verifica la cabecera Authorization; con clave secreta se reconsulta al suscriptor, si no se aplica lo que trae el aviso.
 app.post("/api/billing/revenuecat", async (req, res) => {
   if (!RC_WEBHOOK_SECRET) return res.status(503).json({ error: "REVENUECAT_WEBHOOK_SECRET sin configurar" });
-  const h = String(req.headers.authorization || "");
-  if (h !== RC_WEBHOOK_SECRET && h !== "Bearer " + RC_WEBHOOK_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const h = String(req.headers.authorization || ""); const same = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  if (!same(h, RC_WEBHOOK_SECRET) && !same(h, "Bearer " + RC_WEBHOOK_SECRET)) return res.status(401).json({ error: "unauthorized" });
   const ev = (req.body && req.body.event) || {}; if (!ev.type) return res.status(400).json({ error: "sin evento" });
   const ids = new Set([ev.app_user_id, ev.original_app_user_id, ...(ev.aliases || []), ...(ev.transferred_to || []), ...(ev.transferred_from || [])].map(rcUid).filter(Boolean));
   if (ev.type === "TEST") { console.log("RevenueCat: evento de prueba recibido"); return res.json({ ok: true, test: true }); }
@@ -698,11 +711,15 @@ app.post("/api/challenges/:id/result", auth, premium, (req, res) => {
 // ---------- admin (ADMIN_KEY en Railway) ----------
 // Taldea (círculo, retos, ranking) es Premium.
 function premium(req, res, next) { if (!premiumOf(req.user).active) return res.status(402).json({ error: "Taldea es parte de Premium.", premium: true }); next(); }
+// Intentos fallidos de admin por IP: 20 por hora y después se bloquea esa IP una hora (contra fuerza bruta).
+const ADMIN_FAILS = new Map();
 function admin(req, res, next) {
   const key = process.env.ADMIN_KEY;
   if (!key) return res.status(503).json({ error: "ADMIN_KEY no configurada." });
-  const given = req.get("x-admin-key") || req.query.key || (req.body && req.body.key);
-  if (!given || given.length !== key.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(key))) return res.status(403).json({ error: "Clave incorrecta." });
+  const ip = req.ip || "?", now = Date.now(); const f = ADMIN_FAILS.get(ip) || { n: 0, t: now }; if (now - f.t > 3600000) { f.n = 0; f.t = now; }
+  if (f.n >= 20) return res.status(429).json({ error: "Demasiados intentos. Vuelve a probar en una hora." });
+  const given = String(req.get("x-admin-key") || req.query.key || (req.body && req.body.key) || "");
+  if (!given || given.length !== key.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(key))) { f.n++; f.t = f.t || now; ADMIN_FAILS.set(ip, f); if (f.n === 20) console.error(`Admin: IP ${ip} bloqueada una hora por intentos fallidos`); return res.status(403).json({ error: "Clave incorrecta." }); }
   next();
 }
 app.get("/api/admin/users", admin, (req, res) => {
