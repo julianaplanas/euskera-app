@@ -6257,3 +6257,22 @@ Object.assign(window.FR, {
   "gratis para todos hasta el 6 de enero": "gratuit pour tous jusqu'au 6 janvier",
   "Dos lecciones fuera del camino: Olentzero, la cena, las uvas y cómo felicitar las fiestas en euskera.": "Deux leçons hors du chemin : Olentzero, le dîner, les raisins et comment souhaiter de bonnes fêtes en basque.",
 });
+
+// Gabonak: frases simplificadas a A1
+Object.assign(window.FR, {
+  "Olentzero vive en la montaña.": "Olentzero vit dans la montagne.",
+  "En Nochebuena viene de la montaña.": "Le soir de Noël, il vient de la montagne.",
+  "Trae regalos.": "Il apporte des cadeaux.",
+  "Yo escribo una carta.": "Moi, j'écris une lettre.",
+  "En la calle cantamos una canción.": "Dans la rue, nous chantons une chanson.",
+  "Esta noche.": "Cette nuit.",
+  "¡Quiero un regalo!": "Je veux un cadeau !",
+  "¿Eres un niño bueno / una niña buena?": "Tu es un enfant sage ?",
+  "ditu = los trae (varios)": "ditu = il les apporte (plusieurs)",
+  "«Opariak» es plural, así que el verbo también: ekartzen ditu. Con una sola cosa sería ekartzen du. Igual que maite ditut / maite dut.": "« Opariak » est un pluriel, donc le verbe aussi : ekartzen ditu. Avec une seule chose, ce serait ekartzen du. Comme maite ditut / maite dut.",
+  "En la mesa hay bacalao.": "Sur la table, il y a de la morue.",
+  "También hay turrón.": "Il y a aussi du touron.",
+  "A medianoche comemos doce uvas.": "À minuit, nous mangeons douze raisins.",
+  "¿Qué haces en Nochevieja?": "Que fais-tu à la Saint-Sylvestre ?",
+  "Ceno con la familia y a medianoche como las uvas.": "Je dîne en famille et à minuit je mange les raisins.",
+});

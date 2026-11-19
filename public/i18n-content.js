@@ -5034,3 +5034,22 @@ Object.assign(window.EN, {
   "gratis para todos hasta el 6 de enero": "free for everyone until 6 January",
   "Dos lecciones fuera del camino: Olentzero, la cena, las uvas y cómo felicitar las fiestas en euskera.": "Two lessons off the road: Olentzero, the dinner, the grapes and how to wish people happy holidays in Basque.",
 });
+
+// Gabonak: frases simplificadas a A1
+Object.assign(window.EN, {
+  "Olentzero vive en la montaña.": "Olentzero lives in the mountains.",
+  "En Nochebuena viene de la montaña.": "On Christmas Eve he comes from the mountain.",
+  "Trae regalos.": "He brings presents.",
+  "Yo escribo una carta.": "I write a letter.",
+  "En la calle cantamos una canción.": "In the street we sing a song.",
+  "Esta noche.": "Tonight.",
+  "¡Quiero un regalo!": "I want a present!",
+  "¿Eres un niño bueno / una niña buena?": "Are you a good boy / girl?",
+  "ditu = los trae (varios)": "ditu = brings them (several)",
+  "«Opariak» es plural, así que el verbo también: ekartzen ditu. Con una sola cosa sería ekartzen du. Igual que maite ditut / maite dut.": "«Opariak» is plural, so the verb is too: ekartzen ditu. With one thing it would be ekartzen du. Same as maite ditut / maite dut.",
+  "En la mesa hay bacalao.": "There's cod on the table.",
+  "También hay turrón.": "There's turrón too.",
+  "A medianoche comemos doce uvas.": "At midnight we eat twelve grapes.",
+  "¿Qué haces en Nochevieja?": "What do you do on New Year's Eve?",
+  "Ceno con la familia y a medianoche como las uvas.": "I have dinner with the family and eat the grapes at midnight.",
+});
