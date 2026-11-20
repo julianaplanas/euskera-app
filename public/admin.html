@@ -33,6 +33,12 @@ td.n{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;font
 .fast{color:var(--red);font-weight:700}
 .fixrow td{white-space:normal}
 .was{text-decoration:line-through;color:var(--muted)}
+nav.tabs{display:flex;gap:4px;flex-wrap:wrap;margin:18px 0 14px;border-bottom:1px solid var(--line)}
+nav.tabs button{background:none;border:0;border-radius:0;padding:10px 14px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
+nav.tabs button:hover{color:#111}
+nav.tabs button.on{color:#111;border-bottom-color:var(--green)}
+.tab{display:none}.tab.on{display:block}
+.tab>h2:first-child{margin-top:0}
 .wrap{overflow-x:auto}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:10px}
 .tile{border:2px solid var(--ink);background:var(--card);padding:10px 12px}
@@ -62,6 +68,15 @@ code{background:var(--card);padding:1px 5px;border:1px solid var(--line)}
 <p class="msg" id="m1"></p>
 
 <div id="panel" hidden>
+<nav class="tabs" id="tabs">
+  <button data-tab="resumen" class="on">Resumen</button>
+  <button data-tab="contenido">Contenido</button>
+  <button data-tab="usuarios">Usuarios</button>
+  <button data-tab="dinero">Dinero</button>
+  <button data-tab="correctores">Correctores</button>
+  <button data-tab="sistema">Sistema</button>
+</nav>
+<section class="tab on" id="tab-resumen">
 <h2>Gaur <small>hoy y últimos 30 días</small></h2>
 <div class="tiles" id="tiles"></div>
 
@@ -76,15 +91,21 @@ code{background:var(--card);padding:1px 5px;border:1px solid var(--line)}
   <h2>Ciudades <small>según el perfil</small></h2><div id="towns" class="sub"></div></div>
 </div>
 
+</section>
+<section class="tab" id="tab-contenido">
 <div class="cols">
   <div><h2>Lecciones <small>rondas, personas y % de acierto</small></h2><div class="wrap"><table id="lessons"></table></div></div>
   <div><h2>Frases más difíciles <small>más fallos por persona (mín. 2 personas)</small></h2><div class="wrap"><table id="hardest"></table></div></div>
 </div>
 
+</section>
+<section class="tab" id="tab-usuarios">
 <h2>Usuarios <small>busca por nombre o correo · borrar elimina todo lo de esa persona</small></h2>
 <div class="row"><input id="q" placeholder="Buscar…"><button class="ghost" id="search">Buscar</button></div>
 <div class="wrap"><table id="t"></table></div>
 <p class="msg" id="m2"></p>
+</section>
+<section class="tab" id="tab-dinero">
 <h2>Premium <small>suscripciones, conversión y últimos 30 días</small></h2>
 <div class="tiles" id="ptiles"></div>
 <div class="cols" style="margin-top:12px">
@@ -102,11 +123,15 @@ code{background:var(--card);padding:1px 5px;border:1px solid var(--line)}
 <div class="row"><input id="xday" type="date" style="width:150px"><input id="xconcept" placeholder="concepto" style="flex:1"><input id="xamount" type="number" step="0.01" placeholder="importe" style="width:100px"><select id="xcur"><option>EUR</option><option>USD</option></select><select id="xrec"><option value="">único</option><option value="mensual">mensual</option><option value="anual">anual</option></select><button class="ghost" id="xadd">Añadir</button></div>
 <p class="msg" id="m4"></p>
 <div class="wrap"><table id="expenses"></table></div>
+</section>
+<section class="tab" id="tab-correctores">
 <h2>Correctores de euskera <small>cada ficha se revisa una sola vez · <a href="/correctores" target="_blank">/correctores</a></small></h2>
 <div class="row"><span class="msg" id="m6"></span></div>
 <div class="bar2"><i id="rvfill"></i></div>
 <div class="row" style="margin-top:4px">
-  <input id="rvname" placeholder="nombre del corrector" style="flex:1"><input id="rvmail" type="email" placeholder="correo (opcional)" style="flex:1"><button class="ghost" id="rvadd">Crear corrector</button>
+  <input id="rvname" placeholder="nombre del corrector" style="flex:1"><input id="rvmail" type="email" placeholder="correo (opcional)" style="flex:1">
+  <label class="sub" style="display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="rvfree" style="width:auto"> no cobra (para ti)</label>
+  <button class="ghost" id="rvadd">Crear corrector</button>
 </div>
 <p class="msg" id="rvcode"></p>
 <div class="wrap"><table id="rvtable"></table></div>
@@ -115,13 +140,18 @@ code{background:var(--card);padding:1px 5px;border:1px solid var(--line)}
   <button class="ghost" id="rvrateset">Guardar</button>
   <button class="ghost" id="rvexport">Descargar correcciones</button>
   <button class="ghost" id="rvunlock" title="Libera fichas que quedaron abiertas">Liberar bloqueos</button>
+  <button class="ghost" id="rvseed" title="Vuelve a leer lessons.js: añade las fichas nuevas y retira las que ya no existen">Actualizar fichas</button>
+  <button class="ghost" id="rvnudge" title="Avisa por correo a quien lleve días sin entrar o tenga fichas nuevas">Avisar por correo</button>
 </div>
 <h3 style="margin-top:18px;font-size:15px">Correcciones por aplicar</h3>
 <div class="wrap"><table id="rvfixes"></table></div>
 
+</section>
+<section class="tab" id="tab-sistema">
 <h2>Copias de seguridad <small>automáticas cada día (04:00) en el volumen; se guardan las últimas · pulsa para descargar</small></h2>
 <div class="row"><button id="bkrun">Hacer copia ahora</button><span class="msg" id="m5"></span></div>
 <div class="wrap"><table id="backups"></table></div>
+</section>
 </div>
 
 <script>
@@ -172,6 +202,12 @@ async function backups(){ try{ const b=await api("backups"); $("backups").innerH
 $("bkrun").onclick=async()=>{ $("bkrun").disabled=true; try{ await api("backups/run",{}); await backups(); }catch(e){ $("m5").textContent=e.message; } $("bkrun").disabled=false; };
 $("xadd").onclick=async()=>{ try{ await api("expenses",{day:$("xday").value,concept:$("xconcept").value,amount:$("xamount").value,currency:$("xcur").value,recurring:$("xrec").value}); $("xconcept").value=""; $("xamount").value=""; $("m4").textContent="Añadido."; $("m4").className="msg ok"; expenses(); }catch(e){ $("m4").textContent=e.message; $("m4").className="msg err"; } };
 $("search").onclick=users; $("q").onkeydown=e=>{ if(e.key==="Enter") users(); };
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.id==="tab-"+b.dataset.tab));
+  try{ localStorage.setItem("adminTab",b.dataset.tab); }catch(e){}
+});
+(()=>{ let t; try{ t=localStorage.getItem("adminTab"); }catch(e){} const b=t&&document.querySelector(`#tabs button[data-tab="${t}"]`); if(b) b.click(); })();
 $("backup").onclick=()=>{ const a=document.createElement("a"); a.href="/api/admin/backup?key="+encodeURIComponent(key()); a.click(); };
 
 /* ---------- correctores ---------- */
@@ -181,15 +217,16 @@ async function review(){
     const d=await api("review/stats");
     const pc=d.total?Math.round(d.done/d.total*100):0;
     $("rvfill").style.width=pc+"%";
-    $("m6").textContent=`${d.done.toLocaleString("es")} de ${d.total.toLocaleString("es")} fichas revisadas · ${pc}% · pagado hasta ahora ${eur(d.cost)} · si se revisa todo, ${eur(d.projected)}`;
+    $("m6").textContent=`${d.done.toLocaleString("es")} de ${d.total.toLocaleString("es")} fichas revisadas · ${pc}% · pagado hasta ahora ${eur(d.cost)} · si se revisa todo, ${eur(d.projected)}`+(d.gone?` · ${d.gone} retiradas`:"");
     $("m6").className="msg";
     $("rvrate").value=+(d.rate*100).toFixed(2);
     const mods=d.byModule.map(m=>`${m.module}: ${m.done}/${m.total}`).join("  ·  ");
-    const pay=r=>{ if(!r.onboarded) return '<span class="sub">sin datos</span>';
+    const pay=r=>{ if(!r.billable) return '<span class="sub">no cobra</span>';
+      if(!r.onboarded) return '<span class="sub">sin datos</span>';
       const how=r.pay_method==="iban"?"IBAN":"Bizum";
       return `${how}: <code>${esc(r.pay_ref||"")}</code><br><span class="sub">${esc(r.payee||"")}</span>`; };
     $("rvtable").innerHTML=`<tr><th>Corrector</th><th>Correo</th><th>Cobro</th><th>Fichas</th><th>Corr.</th><th>Rápidas</th><th>Ganado</th><th>Pagado</th><th>Pendiente</th><th></th></tr>`+
-      d.reviewers.map(r=>`<tr><td>${esc(r.name)}${r.active?"":' <span class="sub">· desactivado</span>'}</td><td>${esc(r.email||"–")}</td><td style="white-space:normal">${pay(r)}</td><td class="n">${r.n}</td><td class="n">${r.fixes}</td><td class="n ${r.fast?"fast":""}" title="respondidas en menos de ${d.fastMs} ms">${r.fast}</td><td class="n">${eur(r.euros)}</td><td class="n sub">${eur(r.paid)}</td><td class="n"><b>${eur(r.owed)}</b></td><td style="white-space:nowrap">${r.owed>0?`<button class="ghost sm" data-rvpay="${r.id}" data-owed="${r.owed}" data-name="${esc(r.name)}">Marcar pagado</button> `:""}<button class="ghost sm" data-rvtog="${r.id}">${r.active?"Desactivar":"Activar"}</button></td></tr>`).join("")+
+      d.reviewers.map(r=>`<tr><td>${esc(r.name)}${r.active?"":' <span class="sub">· desactivado</span>'}</td><td>${esc(r.email||"–")}</td><td style="white-space:normal">${pay(r)}</td><td class="n">${r.n}</td><td class="n">${r.fixes}</td><td class="n ${r.fast?"fast":""}" title="respondidas en menos de ${d.fastMs} ms">${r.fast}</td><td class="n">${r.billable?eur(r.euros):"–"}</td><td class="n sub">${r.billable?eur(r.paid):"–"}</td><td class="n"><b>${r.billable?eur(r.owed):"–"}</b></td><td style="white-space:nowrap">${r.owed>0?`<button class="ghost sm" data-rvpay="${r.id}" data-owed="${r.owed}" data-name="${esc(r.name)}">Marcar pagado</button> `:""}<button class="ghost sm" data-rvtog="${r.id}">${r.active?"Desactivar":"Activar"}</button></td></tr>`).join("")+
       `<tr><td colspan="10" class="sub" style="white-space:normal">Por módulo — ${mods}</td></tr>`;
     document.querySelectorAll("[data-rvtog]").forEach(b=>b.onclick=async()=>{ await api("review/reviewers/toggle",{id:+b.dataset.rvtog}); review(); });
     document.querySelectorAll("[data-rvpay]").forEach(b=>b.onclick=async()=>{
@@ -208,11 +245,13 @@ async function review(){
 }
 $("rvadd").onclick=async()=>{
   const name=$("rvname").value.trim(); if(!name) return;
-  try{ const r=await api("review/reviewers",{name,email:$("rvmail").value.trim()});
-    $("rvcode").innerHTML=`Código de <b>${esc(r.name)}</b>: <code>${esc(r.code)}</code> — cópialo ahora, no se vuelve a mostrar. Entra en <b>/correctores</b>.`;
-    $("rvcode").className="msg ok"; $("rvname").value=""; $("rvmail").value=""; review();
+  try{ const r=await api("review/reviewers",{name,email:$("rvmail").value.trim(),billable:!$("rvfree").checked});
+    $("rvcode").innerHTML=`Código de <b>${esc(r.name)}</b>: <code>${esc(r.code)}</code> — cópialo ahora, no se vuelve a mostrar. Entra en <b>/correctores</b>.`+(r.billable?"":" <span class=\"sub\">· no cobra y no pide datos de pago</span>");
+    $("rvcode").className="msg ok"; $("rvname").value=""; $("rvmail").value=""; $("rvfree").checked=false; review();
   }catch(e){ $("rvcode").textContent=e.message; $("rvcode").className="msg err"; }
 };
+$("rvseed").onclick=async()=>{ try{ const r=await api("review/reseed",{}); $("m6").textContent=`${r.total} fichas vivas · ${r.pending} por revisar · ${r.gone} retiradas`; $("m6").className="msg ok"; setTimeout(review,1500); }catch(e){ $("m6").textContent=e.message; $("m6").className="msg err"; } };
+$("rvnudge").onclick=async()=>{ $("rvnudge").disabled=true; try{ const r=await api("review/nudge",{}); $("m6").textContent=r.sent?`${r.sent} aviso(s) enviado(s).`:"Nadie necesita aviso ahora mismo."; $("m6").className="msg ok"; }catch(e){ $("m6").textContent=e.message; $("m6").className="msg err"; } $("rvnudge").disabled=false; };
 $("rvrateset").onclick=async()=>{ await api("review/rate",{cents:+$("rvrate").value}); review(); };
 $("rvunlock").onclick=async()=>{ const r=await api("review/unlock",{}); $("m6").textContent=`${r.freed} fichas liberadas.`; review(); };
 $("rvexport").onclick=()=>{ const a=document.createElement("a"); a.href="/api/admin/review/export?key="+encodeURIComponent(key()); a.click(); };

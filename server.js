@@ -990,7 +990,7 @@ app.get("/api/tts", async (req, res) => {
 
 // Correctores de euskera (/correctores). Se desactiva con REVIEW=0.
 if (process.env.REVIEW !== "0") {
-  try { require("./review.js")({ app, db, admin, LESSON_DATA, setting }); }
+  try { require("./review.js")({ app, db, admin, LESSON_DATA, setting, sendMail, mailHtml, SECRET, APP_PUBLIC, MAIL_ON }); }
   catch (e) { console.error("Correctores: no se pudo montar:", e.message); }
 }
 

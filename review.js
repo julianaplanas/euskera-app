@@ -9,7 +9,7 @@ const sha = s => crypto.createHash("sha256").update(String(s)).digest("hex");
 const norm = s => String(s == null ? "" : s).trim().replace(/\s+/g, " ");
 const key = (eu, es) => sha(norm(eu).toLowerCase() + "|" + norm(es).toLowerCase()).slice(0, 16);
 
-module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) {
+module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, sendMail, mailHtml, SECRET, APP_PUBLIC, MAIL_ON }) {
   db.exec(`
   CREATE TABLE IF NOT EXISTS review_items (
     id TEXT PRIMARY KEY,
@@ -22,6 +22,7 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
     extra TEXT,
     seen INTEGER NOT NULL DEFAULT 1,
     ord INTEGER NOT NULL DEFAULT 0,
+    present INTEGER NOT NULL DEFAULT 1,
     status TEXT NOT NULL DEFAULT 'pending',
     locked_by INTEGER,
     locked_until INTEGER,
@@ -54,16 +55,32 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
   CREATE TABLE IF NOT EXISTS reviewer_payments (id INTEGER PRIMARY KEY AUTOINCREMENT, reviewer_id INTEGER NOT NULL, cents INTEGER NOT NULL, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
   `);
 
+  {
+    const icols = db.prepare("PRAGMA table_info(review_items)").all().map(c => c.name);
+    if (!icols.includes("present")) { db.exec("ALTER TABLE review_items ADD COLUMN present INTEGER NOT NULL DEFAULT 1"); console.log("Correctores: columna review_items.present"); }
+  }
   // Datos de cobro del corrector: se piden la primera vez que entra.
   {
     const cols = db.prepare("PRAGMA table_info(reviewers)").all().map(c => c.name);
-    const want = { payee: "TEXT", pay_method: "TEXT", pay_ref: "TEXT", onboarded: "INTEGER NOT NULL DEFAULT 0" };
+    const want = { payee: "TEXT", pay_method: "TEXT", pay_ref: "TEXT", onboarded: "INTEGER NOT NULL DEFAULT 0",
+      billable: "INTEGER NOT NULL DEFAULT 1", mail_opt: "INTEGER NOT NULL DEFAULT 1", last_review: "TEXT", mail_last: "TEXT" };
     for (const [c, def] of Object.entries(want)) if (!cols.includes(c)) { db.exec(`ALTER TABLE reviewers ADD COLUMN ${c} ${def}`); console.log("Correctores: columna reviewers." + c); }
   }
 
   // ---------- siembra: construye las fichas desde lessons.js (idempotente) ----------
+  // Se relee lessons.js en cada siembra, para que «Actualizar fichas» recoja los cambios sin reiniciar.
+  function freshData() {
+    try {
+      const fs = require("fs"), path = require("path");
+      const w = {};
+      new Function("window", fs.readFileSync(path.join(__dirname, "public", "lessons.js"), "utf8"))(w);
+      if (w.LESSONS && w.LESSONS.length) return w;
+    } catch (e) { console.error("Correctores: no se pudo releer lessons.js:", e.message); }
+    return LESSON_DATA;
+  }
+
   function buildItems() {
-    const { MODULES = [], LESSONS = [], GRAMMAR = [], TRANSFORMS = {} } = LESSON_DATA;
+    const { MODULES = [], LESSONS = [], GRAMMAR = [], TRANSFORMS = {} } = freshData();
     let lastLevel = "";
     const mod = {};
     for (const m of MODULES) {
@@ -113,16 +130,23 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
     return [...out.values()];
   }
 
+  // Siembra: las fichas que ya no están en lessons.js se marcan present = 0 y salen de la bolsa
+  // (p. ej. una frase corregida: la vieja desaparece y la nueva entra como ficha nueva).
   function seed() {
     const items = buildItems();
-    const ins = db.prepare(`INSERT INTO review_items (id, kind, eu, es, ctx, module, level, extra, seen, ord)
-      VALUES (@id, @kind, @eu, @es, @ctx, @module, @level, @extra, @seen, @ord)
-      ON CONFLICT(id) DO UPDATE SET seen = excluded.seen, ctx = excluded.ctx, module = excluded.module, level = excluded.level, extra = excluded.extra`);
-    const before = db.prepare("SELECT COUNT(*) c FROM review_items").get().c;
-    db.transaction(() => items.forEach(i => ins.run(i)))();
-    const after = db.prepare("SELECT COUNT(*) c FROM review_items").get().c;
-    if (after !== before) console.log(`Correctores: ${after} fichas (${after - before} nuevas)`);
-    return { total: after, added: after - before };
+    const ins = db.prepare(`INSERT INTO review_items (id, kind, eu, es, ctx, module, level, extra, seen, ord, present)
+      VALUES (@id, @kind, @eu, @es, @ctx, @module, @level, @extra, @seen, @ord, 1)
+      ON CONFLICT(id) DO UPDATE SET seen = excluded.seen, ctx = excluded.ctx, module = excluded.module, level = excluded.level, extra = excluded.extra, present = 1`);
+    const before = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1").get().c;
+    db.transaction(() => {
+      db.prepare("UPDATE review_items SET present = 0").run();
+      items.forEach(i => ins.run(i));
+    })();
+    const after = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1").get().c;
+    const gone = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 0").get().c;
+    const added = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1 AND status = 'pending'").get().c;
+    if (after !== before) console.log(`Correctores: ${after} fichas vivas (antes ${before}), ${gone} retiradas`);
+    return { total: after, pending: added, gone, diff: after - before };
   }
   seed();
 
@@ -145,11 +169,14 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
   const validPhone = s => /^\+?\d{9,15}$/.test(cleanPhone(s));
   const validEmail = s => /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(String(s || "").trim());
 
+  // El corrector marcado como no facturable (el tuyo, para revisar) no acumula dinero.
   function earned(id) {
     const n = db.prepare("SELECT COUNT(*) n FROM review_verdicts WHERE reviewer_id = ?").get(id).n || 0;
+    const r = db.prepare("SELECT billable FROM reviewers WHERE id = ?").get(id) || { billable: 1 };
+    if (!r.billable) return { n, billable: 0, gross: 0, paid: 0, owed: 0 };
     const paid = db.prepare("SELECT COALESCE(SUM(cents),0) c FROM reviewer_payments WHERE reviewer_id = ?").get(id).c || 0;
     const gross = Math.round(n * rate() * 100);
-    return { n, gross: gross / 100, paid: paid / 100, owed: (gross - paid) / 100 };
+    return { n, billable: 1, gross: gross / 100, paid: paid / 100, owed: (gross - paid) / 100 };
   }
 
   // ---------- auth de corrector ----------
@@ -185,13 +212,14 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
   // ---------- progreso ----------
   function myStats(id) {
     const v = db.prepare("SELECT COUNT(*) n, SUM(CASE WHEN verdict='fix' THEN 1 ELSE 0 END) fixes FROM review_verdicts WHERE reviewer_id = ?").get(id);
-    const t = db.prepare("SELECT COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items").get();
+    const t = db.prepare("SELECT COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items WHERE present = 1").get();
     const n = v.n || 0, e = earned(id);
-    return { done: n, fixes: v.fixes || 0, points: n, euros: e.gross, paid: e.paid, owed: e.owed, rate: rate(), total: t.total || 0, totalDone: t.done || 0 };
+    return { done: n, fixes: v.fixes || 0, points: n, euros: e.gross, paid: e.paid, owed: e.owed, billable: !!e.billable, rate: rate(), total: t.total || 0, totalDone: t.done || 0 };
   }
 
   const pickSql = (byModule) => `SELECT * FROM review_items
-    WHERE status = 'pending' AND (locked_until IS NULL OR locked_until < @now)
+    WHERE status = 'pending' AND present = 1
+      AND (locked_until IS NULL OR locked_until < @now OR locked_by = @rev)
       AND id NOT IN (SELECT item_id FROM review_skips WHERE reviewer_id = @rev)
       ${byModule ? "AND module = @module" : ""}
     ORDER BY ord LIMIT 1`;
@@ -211,11 +239,11 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
 
   app.get("/api/review/me", reviewer, (req, res) => {
     const mods = db.prepare(`SELECT module, COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done
-      FROM review_items WHERE module IS NOT NULL GROUP BY module ORDER BY module`).all();
+      FROM review_items WHERE module IS NOT NULL AND present = 1 GROUP BY module ORDER BY module`).all();
     const r = req.reviewer;
     res.json({
       name: r.name, ...myStats(r.id), modules: mods,
-      onboarded: !!r.onboarded,
+      onboarded: !r.billable || !!r.onboarded,
       profile: { email: r.email || "", payee: r.payee || "", pay_method: r.pay_method || "bizum", pay_ref: r.pay_ref || "" },
     });
   });
@@ -237,13 +265,13 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
   });
 
   app.get("/api/review/next", reviewer, (req, res) => {
-    if (!req.reviewer.onboarded) return res.json({ needsProfile: true, stats: myStats(req.reviewer.id) });
+    if (req.reviewer.billable && !req.reviewer.onboarded) return res.json({ needsProfile: true, stats: myStats(req.reviewer.id) });
     const m = req.query.module ? +req.query.module : 0;
     res.json({ item: nextItem(req.reviewer.id, m), stats: myStats(req.reviewer.id) });
   });
 
   app.post("/api/review/verdict", reviewer, (req, res) => {
-    if (!req.reviewer.onboarded) return res.status(403).json({ error: "Osatu zure kobratzeko datuak. · Completa tus datos de cobro." });
+    if (req.reviewer.billable && !req.reviewer.onboarded) return res.status(403).json({ error: "Osatu zure kobratzeko datuak. · Completa tus datos de cobro." });
     const b = req.body || {};
     const id = String(b.id || "");
     const verdict = b.verdict === "fix" ? "fix" : "ok";
@@ -259,6 +287,7 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
         VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(item_id) DO NOTHING`)
         .run(id, req.reviewer.id, verdict, String(b.fix_eu || "").trim() || null, String(b.fix_es || "").trim() || null, String(b.note || "").trim() || null, Math.max(0, +b.ms || 0));
       db.prepare("UPDATE review_items SET status = 'done', locked_by = NULL, locked_until = NULL WHERE id = ?").run(id);
+      db.prepare("UPDATE reviewers SET last_review = datetime('now') WHERE id = ?").run(req.reviewer.id);
     })();
     res.json({ item: nextItem(req.reviewer.id, +b.module || 0), stats: myStats(req.reviewer.id) });
   });
@@ -274,10 +303,12 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
 
   // ---------- admin ----------
   app.get("/api/admin/review/stats", admin, (req, res) => {
-    const t = db.prepare("SELECT COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items").get();
-    const byKind = db.prepare("SELECT kind, COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items GROUP BY kind ORDER BY kind").all();
-    const byModule = db.prepare("SELECT module, COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items WHERE module IS NOT NULL GROUP BY module ORDER BY module").all();
-    const revs = db.prepare(`SELECT r.id, r.name, r.email, r.active, r.created_at, r.payee, r.pay_method, r.pay_ref, r.onboarded,
+    const t = db.prepare("SELECT COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items WHERE present = 1").get();
+    const byKind = db.prepare("SELECT kind, COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items WHERE present = 1 GROUP BY kind ORDER BY kind").all();
+    const byModule = db.prepare("SELECT module, COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items WHERE module IS NOT NULL AND present = 1 GROUP BY module ORDER BY module").all();
+    const gone = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 0").get().c;
+    const billableDone = db.prepare("SELECT COUNT(*) c FROM review_verdicts v JOIN reviewers r ON r.id = v.reviewer_id WHERE r.billable = 1").get().c;
+    const revs = db.prepare(`SELECT r.id, r.name, r.email, r.active, r.created_at, r.payee, r.pay_method, r.pay_ref, r.onboarded, r.billable, r.mail_opt, r.last_review,
         COUNT(v.item_id) n,
         SUM(CASE WHEN v.verdict='fix' THEN 1 ELSE 0 END) fixes,
         SUM(CASE WHEN v.ms > 0 AND v.ms < ? THEN 1 ELSE 0 END) fast
@@ -285,9 +316,9 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
       GROUP BY r.id ORDER BY n DESC, r.id`).all(FAST_MS);
     const r = rate();
     res.json({
-      total: t.total || 0, done: t.done || 0, rate: r, fastMs: FAST_MS,
-      cost: +((t.done || 0) * r).toFixed(2),
-      projected: +((t.total || 0) * r).toFixed(2),
+      total: t.total || 0, done: t.done || 0, rate: r, fastMs: FAST_MS, gone,
+      cost: +(billableDone * r).toFixed(2),
+      projected: +((billableDone + Math.max(0, (t.total || 0) - (t.done || 0))) * r).toFixed(2),
       byKind, byModule,
       reviewers: revs.map(x => {
         const e = earned(x.id);
@@ -324,9 +355,10 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
     const name = String((req.body && req.body.name) || "").trim();
     if (!name) return res.status(400).json({ error: "Falta el nombre." });
     const code = crypto.randomBytes(9).toString("base64url");
-    const r = db.prepare("INSERT INTO reviewers (name, email, code_hash, note) VALUES (?, ?, ?, ?)")
-      .run(name, String((req.body && req.body.email) || "").trim() || null, sha(code), String((req.body && req.body.note) || "").trim() || null);
-    res.json({ ok: true, id: r.lastInsertRowid, name, code }); // el código se muestra una sola vez
+    const billable = req.body && req.body.billable === false ? 0 : 1; // el corrector tuyo (billable:false) no cobra ni pide datos de pago
+    const r = db.prepare("INSERT INTO reviewers (name, email, code_hash, note, billable, onboarded) VALUES (?, ?, ?, ?, ?, ?)")
+      .run(name, String((req.body && req.body.email) || "").trim() || null, sha(code), String((req.body && req.body.note) || "").trim() || null, billable, billable ? 0 : 1);
+    res.json({ ok: true, id: r.lastInsertRowid, name, code, billable }); // el código se muestra una sola vez
   });
 
   app.post("/api/admin/review/reviewers/toggle", admin, (req, res) => {
@@ -367,6 +399,71 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting }) 
   app.post("/api/admin/review/unlock", admin, (req, res) => {
     const r = db.prepare("UPDATE review_items SET locked_by = NULL, locked_until = NULL WHERE status = 'pending' AND locked_until IS NOT NULL").run();
     res.json({ ok: true, freed: r.changes });
+  });
+
+  // ---------- avisos por correo ----------
+  // Dos motivos: han entrado fichas nuevas desde su última corrección, o llevan días sin entrar y queda trabajo.
+  const INACTIVE_DAYS = 7, QUIET_DAYS = 7, NEW_QUIET_DAYS = 2;
+  const revToken = id => require("crypto").createHmac("sha256", SECRET).update("rev-unsub:" + id).digest("hex").slice(0, 32);
+  const revUnsubUrl = id => `${APP_PUBLIC()}/api/review/unsub?r=${id}&t=${revToken(id)}`;
+  const daysSince = iso => iso ? (Date.now() - Date.parse(iso + "Z")) / 86400000 : Infinity;
+
+  app.get("/api/review/unsub", (req, res) => {
+    const id = +req.query.r;
+    if (!id || req.query.t !== revToken(id)) return res.status(400).send("Esteka baliogabea.");
+    db.prepare("UPDATE reviewers SET mail_opt = 0 WHERE id = ?").run(id);
+    res.type("html").send(`<meta charset="utf-8"><div style="font:17px/1.6 system-ui;max-width:420px;margin:18vh auto;text-align:center;color:#161412">Ez dizugu gehiago idatziko.<br><span style="color:#6B675F">No te volveremos a escribir.</span></div>`);
+  });
+
+  async function reviewNudges() {
+    if (!MAIL_ON) return 0;
+    const pending = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1 AND status = 'pending'").get().c;
+    if (!pending) return 0;
+    const revs = db.prepare("SELECT * FROM reviewers WHERE active = 1 AND mail_opt = 1 AND email IS NOT NULL AND billable = 1").all();
+    let sent = 0;
+    for (const r of revs) {
+      const quiet = daysSince(r.mail_last);
+      const idle = daysSince(r.last_review);
+      const fresh = r.last_review
+        ? db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1 AND status = 'pending' AND created_at > ?").get(r.last_review).c
+        : 0;
+      const reason = fresh > 0 && quiet >= NEW_QUIET_DAYS ? "new"
+        : idle >= INACTIVE_DAYS && quiet >= QUIET_DAYS ? "idle" : null;
+      if (!reason) continue;
+      const money = (pending * rate()).toFixed(2).replace(".", ",");
+      const title = reason === "new" ? "Fitxa berriak daude" : "Fitxak zain dituzu";
+      const sub = reason === "new"
+        ? `${fresh} fitxa berri gehitu dira. · Se han añadido ${fresh} fichas nuevas.`
+        : `${pending} fitxa daude zain. · Quedan ${pending} fichas por revisar.`;
+      const paras = [
+        `Kaixo, ${r.name}!`,
+        reason === "new"
+          ? `Euskara Praktikan ${fresh} fitxa berri sartu dira zuzentzeko. Guztira ${pending} daude zain.`
+          : `Azkenekoz sartu zinenetik denbora pasa da eta oraindik ${pending} fitxa daude zain.`,
+        `Guztira ${money} € dira. Ez duzu dena batera egin behar: nahi dituzunak egin eta utzi.`,
+      ];
+      try {
+        await sendMail(r.email, title + " · Euskara Praktika",
+          paras.join("\n\n") + `\n\n${APP_PUBLIC()}/correctores`,
+          mailHtml({ title, sub, paras, cta: { url: `${APP_PUBLIC()}/correctores`, label: "Zuzentzen hasi" },
+            unsub: { text: "Ez baduzu abisurik nahi,", label: "kendu abisuak", url: revUnsubUrl(r.id) } }));
+        db.prepare("UPDATE reviewers SET mail_last = datetime('now') WHERE id = ?").run(r.id);
+        sent++;
+      } catch (e) { console.error("Correctores: fallo al avisar a", r.email, e.message); }
+    }
+    if (sent) console.log(`Correctores: ${sent} avisos enviados`);
+    return sent;
+  }
+
+  if (MAIL_ON && process.env.REVIEW_NUDGES !== "0") {
+    setInterval(() => {
+      const d = new Date();
+      const h = parseInt(d.toLocaleTimeString("en-GB", { timeZone: process.env.TZ_NAME || "Europe/Madrid", hour: "2-digit", hour12: false }));
+      if (h === 18 && d.getMinutes() === 20) reviewNudges().catch(e => console.error(e));
+    }, 60 * 1000);
+  }
+  app.post("/api/admin/review/nudge", admin, async (req, res) => {
+    try { res.json({ sent: await reviewNudges() }); } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
   console.log("Correctores: /correctores activo");
