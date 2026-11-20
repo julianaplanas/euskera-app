@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="eu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Zuzentzaileak · Euskara Praktika</title>
+<link rel="icon" href="/icon-192.png">
+<style>
+  :root{
+    --cream:#FFF9EC; --ink:#161412; --muted:#6B675F; --light:#A9A298;
+    --green:#1A7A45; --greend:#15733A; --greens:#D7EBDD;
+    --red:#C1281E; --ochre:#EFC23A; --ochres:#FBEBB8; --rule:#E8E2D4;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--cream);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+       padding:0 16px calc(28px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+  .wrap{max-width:660px;margin:0 auto}
+  h1{font-size:26px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px}
+  button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:14px 18px;font-weight:600}
+  input,textarea{font:inherit;width:100%;padding:12px 14px;border:1px solid var(--rule);border-radius:12px;background:#fff;color:var(--ink)}
+  textarea{min-height:76px;resize:vertical}
+  .hide{display:none!important}
+
+  /* login */
+  #login{max-width:380px;margin:16vh auto 0;text-align:center}
+  #login .mark{font-weight:800;color:var(--red);letter-spacing:.08em;text-transform:uppercase;font-size:13px;margin-bottom:10px}
+  #login h1{margin-bottom:6px}
+  #login form{margin-top:22px;display:flex;flex-direction:column;gap:10px}
+  #login button{background:var(--green);color:#fff}
+
+  /* top */
+  header{padding:18px 0 12px;display:flex;align-items:center;gap:12px}
+  header .who{font-weight:700}
+  header .grow{flex:1}
+  .chip{background:var(--greens);color:var(--greend);font-weight:700;font-size:13px;padding:6px 11px;border-radius:999px}
+  .bar{height:8px;background:#EFE8D8;border-radius:999px;overflow:hidden;margin:4px 0 2px}
+  .bar i{display:block;height:100%;background:var(--green);border-radius:999px;transition:width .3s}
+  .meta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+
+  /* card */
+  .card{background:#fff;border:1px solid var(--rule);border-radius:20px;padding:24px 22px;margin-top:18px}
+  .ctx{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px}
+  .kind{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--greend);background:var(--greens);padding:5px 10px;border-radius:7px}
+  .where{font-size:13px;color:var(--light)}
+  .eu{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.25}
+  .es{font-size:19px;color:var(--muted);margin-top:10px}
+  .note{font-size:14px;color:var(--light);margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
+
+  .acts{display:flex;gap:10px;margin-top:20px}
+  .acts button{flex:1}
+  .ok{background:var(--green);color:#fff}
+  .fix{background:var(--ochre);color:var(--ink)}
+  .skip{background:transparent;color:var(--muted);border:1px solid var(--rule);flex:0 0 auto;padding:14px 16px}
+  .k{opacity:.6;font-weight:400;font-size:13px}
+
+  #fixbox{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+  #fixbox label{font-size:13px;font-weight:700;color:var(--muted)}
+  #fixbox .row{display:flex;gap:10px}
+  #send{background:var(--green);color:#fff;flex:1}
+  #cancel{background:transparent;color:var(--muted);border:1px solid var(--rule)}
+
+  .done{text-align:center;padding:48px 20px}
+  .done .big{font-size:40px;font-weight:800;color:var(--green);letter-spacing:-.03em}
+  .err{color:var(--red);font-size:14px;margin-top:10px;min-height:20px}
+  footer{margin-top:26px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--light)}
+  footer button{background:none;color:var(--light);padding:6px 0;font-weight:400;text-decoration:underline}
+  select{font:inherit;border:1px solid var(--rule);border-radius:10px;padding:8px 10px;background:#fff;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ---------- LOGIN ---------- -->
+<div id="login" class="wrap">
+  <div class="mark">Euskara Praktika</div>
+  <h1>Zuzentzaileak</h1>
+  <p class="sub">Sartu zure kodea. · Introduce tu código.</p>
+  <form id="lf">
+    <input id="code" type="password" placeholder="Kodea" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+    <button type="submit">Sartu</button>
+  </form>
+  <div class="err" id="lerr"></div>
+</div>
+
+<!-- ---------- APP ---------- -->
+<div id="app" class="wrap hide">
+  <header>
+    <div>
+      <div class="who" id="who">—</div>
+      <div class="sub" id="mine">0 fitxa</div>
+    </div>
+    <div class="grow"></div>
+    <span class="chip" id="money">0,00 €</span>
+  </header>
+
+  <div class="bar"><i id="barfill" style="width:0%"></i></div>
+  <div class="meta"><span id="prog">0 / 0</span><span id="pct">0%</span></div>
+
+  <div style="margin-top:14px">
+    <select id="modsel"><option value="0">Modulu guztiak · todos los módulos</option></select>
+  </div>
+
+  <div id="onboard" class="card hide">
+    <h2 style="font-size:20px;letter-spacing:-.02em">Kobratzeko datuak</h2>
+    <p class="sub" style="margin-top:6px">Lana amaitzean ordaintzeko behar ditugu. · Los necesitamos para pagarte cuando termines.</p>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:18px">
+      <div><label class="sub" for="oemail">Helbide elektronikoa · correo</label><input id="oemail" type="email" autocomplete="email" placeholder="zu@adibidea.eus"></div>
+      <div><label class="sub" for="opayee">Titularra · titular de la cuenta</label><input id="opayee" placeholder="Izen-abizenak"></div>
+      <div>
+        <label class="sub" for="omethod">Nola · cómo</label>
+        <select id="omethod" style="width:100%;padding:12px 14px;border:1px solid var(--rule);border-radius:12px;background:#fff">
+          <option value="bizum">Bizum</option>
+          <option value="iban">IBAN (transferentzia)</option>
+        </select>
+      </div>
+      <div><label class="sub" id="oreflab" for="oref">Telefonoa · teléfono</label><input id="oref" autocomplete="off" spellcheck="false" placeholder="6XX XXX XXX"></div>
+      <button id="osave" style="background:var(--green);color:#fff;margin-top:4px">Gorde eta hasi</button>
+    </div>
+    <div class="err" id="oerr"></div>
+  </div>
+
+  <div id="card" class="card hide">
+    <div class="ctx">
+      <span class="kind" id="kind">—</span>
+      <span class="where" id="where"></span>
+    </div>
+    <div class="eu" id="eu"></div>
+    <div class="es" id="es"></div>
+    <div class="note hide" id="extra"></div>
+
+    <div class="acts" id="acts">
+      <button class="ok" id="bok">Ondo <span class="k">1</span></button>
+      <button class="fix" id="bfix">Zuzendu <span class="k">2</span></button>
+      <button class="skip" id="bskip" title="Ez dakit">Ez dakit <span class="k">3</span></button>
+    </div>
+
+    <div id="fixbox" class="hide">
+      <div>
+        <label for="feu">Zuzenketa (euskaraz)</label>
+        <textarea id="feu" placeholder="Nola egon beharko luke…"></textarea>
+      </div>
+      <div>
+        <label for="fes">Itzulpena (gaztelaniaz) — aukerakoa</label>
+        <input id="fes" placeholder="Solo si la traducción también falla">
+      </div>
+      <div>
+        <label for="fnote">Oharra — aukerakoa</label>
+        <input id="fnote" placeholder="Zergatik / por qué">
+      </div>
+      <div class="row">
+        <button id="send">Bidali</button>
+        <button id="cancel">Utzi</button>
+      </div>
+    </div>
+    <div class="err" id="cerr"></div>
+  </div>
+
+  <div id="empty" class="done hide">
+    <div class="big">Eskerrik asko!</div>
+    <p class="sub" style="margin-top:10px">Ez dago fitxa gehiago zain.<br>No quedan fichas pendientes.</p>
+  </div>
+
+  <footer>
+    <span id="rateinfo"></span>
+    <span><button id="editpay">Nire datuak</button> &nbsp; <button id="out">Irten</button></span>
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const KINDS = {
+  hiztegia:"Hiztegia", esaldia:"Esaldia", elkarrizketa:"Elkarrizketa",
+  azalpena:"Azalpena", gramatika:"Gramatika", eraldaketa:"Eraldaketa"
+};
+let item = null, shownAt = 0, sending = false;
+
+const api = async (url, opts) => {
+  const r = await fetch(url, Object.assign({ headers:{ "Content-Type":"application/json" } }, opts||{}));
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(j.error || "Errorea");
+  return j;
+};
+const eur = n => n.toFixed(2).replace(".", ",") + " €";
+
+/* ---------- login ---------- */
+$("lf").onsubmit = async e => {
+  e.preventDefault(); $("lerr").textContent = "";
+  try { await api("/api/review/login", { method:"POST", body: JSON.stringify({ code: $("code").value }) }); start(); }
+  catch (err) { $("lerr").textContent = err.message; }
+};
+$("out").onclick = async () => { await api("/api/review/logout", { method:"POST" }); location.reload(); };
+
+/* ---------- stats ---------- */
+const num = n => Number(n).toLocaleString("es-ES");
+function paint(s){
+  if (s.name) $("who").textContent = s.name;
+  $("mine").textContent = num(s.done) + " fitxa · " + num(s.fixes) + " zuzenketa";
+  $("money").textContent = eur(s.euros);
+  const pc = s.total ? Math.round(s.totalDone / s.total * 100) : 0;
+  $("barfill").style.width = pc + "%";
+  $("prog").textContent = num(s.totalDone) + " / " + num(s.total);
+  $("pct").textContent = pc + "%";
+  $("rateinfo").textContent = "Fitxa bakoitzeko " + (s.rate * 100).toLocaleString("es-ES", { maximumFractionDigits: 2 }) + " zentimo";
+}
+
+/* ---------- datos de cobro ---------- */
+function refLabel(){
+  const iban = $("omethod").value === "iban";
+  $("oreflab").textContent = iban ? "IBAN" : "Telefonoa · teléfono";
+  $("oref").placeholder = iban ? "ES00 0000 0000 0000 0000 0000" : "6XX XXX XXX";
+}
+$("omethod").onchange = refLabel;
+
+function showOnboard(p){
+  $("card").classList.add("hide"); $("empty").classList.add("hide");
+  $("onboard").classList.remove("hide");
+  $("oemail").value = p.email || ""; $("opayee").value = p.payee || "";
+  $("omethod").value = p.pay_method || "bizum"; $("oref").value = p.pay_ref || "";
+  refLabel();
+}
+$("osave").onclick = async () => {
+  $("oerr").textContent = "";
+  $("osave").disabled = true;
+  try {
+    await api("/api/review/profile", { method:"POST", body: JSON.stringify({
+      email: $("oemail").value, payee: $("opayee").value,
+      pay_method: $("omethod").value, pay_ref: $("oref").value
+    })});
+    $("onboard").classList.add("hide");
+    await load();
+  } catch (e) { $("oerr").textContent = e.message; }
+  finally { $("osave").disabled = false; }
+};
+$("editpay").onclick = async () => { const me = await api("/api/review/me"); showOnboard(me.profile || {}); };
+
+async function start(){
+  $("login").classList.add("hide");
+  $("app").classList.remove("hide");
+  const me = await api("/api/review/me");
+  paint(me);
+  if (me.modules && me.modules.length && $("modsel").options.length === 1) {
+    me.modules.forEach(m => {
+      const left = m.total - m.done;
+      const o = document.createElement("option");
+      o.value = m.module;
+      o.textContent = `${m.module}. modulua — ${left} zain`;
+      if (!left) o.disabled = true;
+      $("modsel").appendChild(o);
+    });
+  }
+  if (!me.onboarded) return showOnboard(me.profile || {});
+  load();
+}
+$("modsel").onchange = load;
+
+/* ---------- fichas ---------- */
+function show(it){
+  item = it;
+  closeFix();
+  if (!it) { $("card").classList.add("hide"); $("empty").classList.remove("hide"); return; }
+  $("empty").classList.add("hide"); $("card").classList.remove("hide");
+  $("kind").textContent = KINDS[it.kind] || it.kind;
+  $("where").textContent = [it.module ? it.module + ". modulua" : "", it.ctx || ""].filter(Boolean).join("  ·  ");
+  $("eu").textContent = it.eu;
+  $("es").textContent = it.es || "";
+  const x = it.extra || {};
+  const bits = [];
+  if (it.kind === "eraldaketa" && x.from) bits.push("Jatorrizkoa: " + x.from + (x.instr ? "  ·  " + x.instr : ""));
+  if (it.kind === "azalpena") bits.push("Gaztelaniazko azalpena da; barruko euskara begiratu. · Es una explicación en castellano: revisa el euskera que contiene.");
+  if (x.pattern) bits.push("Egitura: " + x.pattern);
+  if (x.summary) bits.push(x.summary);
+  if (x.who) bits.push("Elkarrizketan: " + x.who);
+  if (it.seen > 1) bits.push(it.seen + " aldiz agertzen da · aparece " + it.seen + " veces");
+  $("extra").innerHTML = bits.map(b => "<div>" + b.replace(/</g,"&lt;") + "</div>").join("");
+  $("extra").classList.toggle("hide", !bits.length);
+  shownAt = Date.now();
+}
+
+async function load(){
+  const m = $("modsel").value;
+  const r = await api("/api/review/next?module=" + encodeURIComponent(m));
+  paint(r.stats);
+  if (r.needsProfile) { const me = await api("/api/review/me"); return showOnboard(me.profile || {}); }
+  $("onboard").classList.add("hide");
+  show(r.item);
+}
+
+function openFix(){ $("acts").classList.add("hide"); $("fixbox").classList.remove("hide"); $("feu").value = item ? item.eu : ""; $("feu").focus(); }
+function closeFix(){ $("fixbox").classList.add("hide"); $("acts").classList.remove("hide"); $("feu").value=""; $("fes").value=""; $("fnote").value=""; $("cerr").textContent=""; }
+
+async function send(verdict, extra){
+  if (!item || sending) return;
+  sending = true;
+  try {
+    const r = await api("/api/review/verdict", { method:"POST", body: JSON.stringify(Object.assign({
+      id: item.id, verdict, ms: Date.now() - shownAt, module: +$("modsel").value || 0
+    }, extra || {})) });
+    paint(r.stats); show(r.item);
+  } catch (e) { $("cerr").textContent = e.message; }
+  finally { sending = false; }
+}
+
+$("bok").onclick = () => send("ok");
+$("bfix").onclick = openFix;
+$("cancel").onclick = closeFix;
+$("send").onclick = () => send("fix", { fix_eu: $("feu").value, fix_es: $("fes").value, note: $("fnote").value });
+$("bskip").onclick = async () => {
+  if (!item || sending) return;
+  sending = true;
+  try {
+    const r = await api("/api/review/skip", { method:"POST", body: JSON.stringify({ id: item.id, module: +$("modsel").value || 0 }) });
+    paint(r.stats); show(r.item);
+  } finally { sending = false; }
+};
+
+document.addEventListener("keydown", e => {
+  if ($("app").classList.contains("hide")) return;
+  const typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+  if (typing) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); $("send").click(); }
+    if (e.key === "Escape") closeFix();
+    return;
+  }
+  if (e.key === "1") $("bok").click();
+  if (e.key === "2") $("bfix").click();
+  if (e.key === "3") $("bskip").click();
+});
+
+/* ¿sesión abierta? */
+fetch("/api/review/me").then(r => { if (r.ok) start(); });
+</script>
+</body>
+</html>

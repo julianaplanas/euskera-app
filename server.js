@@ -988,4 +988,10 @@ app.get("/api/tts", async (req, res) => {
   } catch (e) { ttsBroken = true; console.error("TTS error:", e && (e.message || JSON.stringify(e))); res.status(503).json({ error: "Audio no disponible ahora mismo." }); }
 });
 
+// Correctores de euskera (/correctores). Se desactiva con REVIEW=0.
+if (process.env.REVIEW !== "0") {
+  try { require("./review.js")({ app, db, admin, LESSON_DATA, setting }); }
+  catch (e) { console.error("Correctores: no se pudo montar:", e.message); }
+}
+
 app.listen(PORT, () => console.log(`Euskara praktika en http://localhost:${PORT} (db: ${DB_PATH})`));
