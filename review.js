@@ -9,7 +9,7 @@ const sha = s => crypto.createHash("sha256").update(String(s)).digest("hex");
 const norm = s => String(s == null ? "" : s).trim().replace(/\s+/g, " ");
 const key = (eu, es) => sha(norm(eu).toLowerCase() + "|" + norm(es).toLowerCase()).slice(0, 16);
 
-module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, sendMail, mailHtml, SECRET, APP_PUBLIC, MAIL_ON }) {
+module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, sendMail, mailHtml, SECRET, APP_PUBLIC, MAIL_ON, IS_PROD }) {
   db.exec(`
   CREATE TABLE IF NOT EXISTS review_items (
     id TEXT PRIMARY KEY,
@@ -203,7 +203,7 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
     if (!r) { f.n++; LOGIN_FAILS.set(ip, f); return res.status(403).json({ error: "Kode baliogabea." }); }
     const token = crypto.randomBytes(32).toString("hex");
     db.prepare("INSERT INTO reviewer_sessions (token, reviewer_id) VALUES (?, ?)").run(token, r.id);
-    res.cookie("rev", token, { httpOnly: true, sameSite: "lax", secure: !!(res.req && res.req.secure) || process.env.NODE_ENV === "production", maxAge: 180 * 86400000 });
+    res.cookie("rev", token, { httpOnly: true, sameSite: "lax", secure: !!(res.req && res.req.secure) || IS_PROD, maxAge: 180 * 86400000 });
     res.json({ ok: true, name: r.name });
   });
   app.post("/api/review/logout", (req, res) => {
