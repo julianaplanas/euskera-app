@@ -63,8 +63,11 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
   {
     const cols = db.prepare("PRAGMA table_info(reviewers)").all().map(c => c.name);
     const want = { payee: "TEXT", pay_method: "TEXT", pay_ref: "TEXT", onboarded: "INTEGER NOT NULL DEFAULT 0",
-      billable: "INTEGER NOT NULL DEFAULT 1", mail_opt: "INTEGER NOT NULL DEFAULT 1", last_review: "TEXT", mail_last: "TEXT" };
+      billable: "INTEGER NOT NULL DEFAULT 1", tester: "INTEGER NOT NULL DEFAULT 0",
+      mail_opt: "INTEGER NOT NULL DEFAULT 1", last_review: "TEXT", mail_last: "TEXT" };
     for (const [c, def] of Object.entries(want)) if (!cols.includes(c)) { db.exec(`ALTER TABLE reviewers ADD COLUMN ${c} ${def}`); console.log("Correctores: columna reviewers." + c); }
+    // Antes había «no cobra» (billable = 0); ahora eso es un tester, que sí cobra en pantalla pero no cuenta.
+    db.exec("UPDATE reviewers SET tester = 1, billable = 1 WHERE billable = 0");
   }
 
   // ---------- siembra: construye las fichas desde lessons.js (idempotente) ----------
@@ -169,14 +172,13 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
   const validPhone = s => /^\+?\d{9,15}$/.test(cleanPhone(s));
   const validEmail = s => /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(String(s || "").trim());
 
-  // El corrector marcado como no facturable (el tuyo, para revisar) no acumula dinero.
+  // Todos ven su dinero en pantalla, testers incluidos (para poder probar el flujo entero).
+  // Lo que cambia es que el trabajo de un tester no cuenta en el coste real ni en la proyección.
   function earned(id) {
     const n = db.prepare("SELECT COUNT(*) n FROM review_verdicts WHERE reviewer_id = ?").get(id).n || 0;
-    const r = db.prepare("SELECT billable FROM reviewers WHERE id = ?").get(id) || { billable: 1 };
-    if (!r.billable) return { n, billable: 0, gross: 0, paid: 0, owed: 0 };
     const paid = db.prepare("SELECT COALESCE(SUM(cents),0) c FROM reviewer_payments WHERE reviewer_id = ?").get(id).c || 0;
     const gross = Math.round(n * rate() * 100);
-    return { n, billable: 1, gross: gross / 100, paid: paid / 100, owed: (gross - paid) / 100 };
+    return { n, gross: gross / 100, paid: paid / 100, owed: (gross - paid) / 100 };
   }
 
   // ---------- auth de corrector ----------
@@ -214,7 +216,7 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
     const v = db.prepare("SELECT COUNT(*) n, SUM(CASE WHEN verdict='fix' THEN 1 ELSE 0 END) fixes FROM review_verdicts WHERE reviewer_id = ?").get(id);
     const t = db.prepare("SELECT COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items WHERE present = 1").get();
     const n = v.n || 0, e = earned(id);
-    return { done: n, fixes: v.fixes || 0, points: n, euros: e.gross, paid: e.paid, owed: e.owed, billable: !!e.billable, rate: rate(), total: t.total || 0, totalDone: t.done || 0 };
+    return { done: n, fixes: v.fixes || 0, points: n, euros: e.gross, paid: e.paid, owed: e.owed, rate: rate(), total: t.total || 0, totalDone: t.done || 0 };
   }
 
   const pickSql = (byModule) => `SELECT * FROM review_items
@@ -243,7 +245,7 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
     const r = req.reviewer;
     res.json({
       name: r.name, ...myStats(r.id), modules: mods,
-      onboarded: !r.billable || !!r.onboarded,
+      onboarded: !!r.onboarded,
       profile: { email: r.email || "", payee: r.payee || "", pay_method: r.pay_method || "bizum", pay_ref: r.pay_ref || "" },
     });
   });
@@ -265,13 +267,13 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
   });
 
   app.get("/api/review/next", reviewer, (req, res) => {
-    if (req.reviewer.billable && !req.reviewer.onboarded) return res.json({ needsProfile: true, stats: myStats(req.reviewer.id) });
+    if (!req.reviewer.onboarded) return res.json({ needsProfile: true, stats: myStats(req.reviewer.id) });
     const m = req.query.module ? +req.query.module : 0;
     res.json({ item: nextItem(req.reviewer.id, m), stats: myStats(req.reviewer.id) });
   });
 
   app.post("/api/review/verdict", reviewer, (req, res) => {
-    if (req.reviewer.billable && !req.reviewer.onboarded) return res.status(403).json({ error: "Osatu zure kobratzeko datuak. · Completa tus datos de cobro." });
+    if (!req.reviewer.onboarded) return res.status(403).json({ error: "Osatu zure kobratzeko datuak. · Completa tus datos de cobro." });
     const b = req.body || {};
     const id = String(b.id || "");
     const verdict = b.verdict === "fix" ? "fix" : "ok";
@@ -307,8 +309,8 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
     const byKind = db.prepare("SELECT kind, COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items WHERE present = 1 GROUP BY kind ORDER BY kind").all();
     const byModule = db.prepare("SELECT module, COUNT(*) total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) done FROM review_items WHERE module IS NOT NULL AND present = 1 GROUP BY module ORDER BY module").all();
     const gone = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 0").get().c;
-    const billableDone = db.prepare("SELECT COUNT(*) c FROM review_verdicts v JOIN reviewers r ON r.id = v.reviewer_id WHERE r.billable = 1").get().c;
-    const revs = db.prepare(`SELECT r.id, r.name, r.email, r.active, r.created_at, r.payee, r.pay_method, r.pay_ref, r.onboarded, r.billable, r.mail_opt, r.last_review,
+    const billableDone = db.prepare("SELECT COUNT(*) c FROM review_verdicts v JOIN reviewers r ON r.id = v.reviewer_id WHERE r.tester = 0").get().c;
+    const revs = db.prepare(`SELECT r.id, r.name, r.email, r.active, r.created_at, r.payee, r.pay_method, r.pay_ref, r.onboarded, r.tester, r.mail_opt, r.last_review,
         COUNT(v.item_id) n,
         SUM(CASE WHEN v.verdict='fix' THEN 1 ELSE 0 END) fixes,
         SUM(CASE WHEN v.ms > 0 AND v.ms < ? THEN 1 ELSE 0 END) fast
@@ -347,6 +349,25 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
     res.json({ ok: true, ...earned(id) });
   });
 
+  // Borrar las pruebas de un tester: sus respuestas vuelven a la bolsa como si no hubieran pasado.
+  app.post("/api/admin/review/reset", admin, (req, res) => {
+    const id = +(req.body && req.body.id);
+    const r = db.prepare("SELECT id, tester FROM reviewers WHERE id = ?").get(id);
+    if (!r) return res.status(404).json({ error: "No existe." });
+    if (!r.tester) return res.status(400).json({ error: "Solo se pueden borrar las pruebas de un tester." });
+    let freed = 0;
+    db.transaction(() => {
+      const ids = db.prepare("SELECT item_id FROM review_verdicts WHERE reviewer_id = ?").all(id).map(x => x.item_id);
+      const back = db.prepare("UPDATE review_items SET status = 'pending', locked_by = NULL, locked_until = NULL WHERE id = ?");
+      ids.forEach(i => { back.run(i); freed++; });
+      db.prepare("DELETE FROM review_verdicts WHERE reviewer_id = ?").run(id);
+      db.prepare("DELETE FROM review_skips WHERE reviewer_id = ?").run(id);
+      db.prepare("DELETE FROM reviewer_payments WHERE reviewer_id = ?").run(id);
+      db.prepare("UPDATE reviewers SET last_review = NULL, mail_last = NULL WHERE id = ?").run(id);
+    })();
+    res.json({ ok: true, freed });
+  });
+
   app.get("/api/admin/review/payments", admin, (req, res) => res.json(
     db.prepare(`SELECT p.*, r.name FROM reviewer_payments p JOIN reviewers r ON r.id = p.reviewer_id ORDER BY p.created_at DESC LIMIT 200`).all()
   ));
@@ -355,10 +376,10 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
     const name = String((req.body && req.body.name) || "").trim();
     if (!name) return res.status(400).json({ error: "Falta el nombre." });
     const code = crypto.randomBytes(9).toString("base64url");
-    const billable = req.body && req.body.billable === false ? 0 : 1; // el corrector tuyo (billable:false) no cobra ni pide datos de pago
-    const r = db.prepare("INSERT INTO reviewers (name, email, code_hash, note, billable, onboarded) VALUES (?, ?, ?, ?, ?, ?)")
-      .run(name, String((req.body && req.body.email) || "").trim() || null, sha(code), String((req.body && req.body.note) || "").trim() || null, billable, billable ? 0 : 1);
-    res.json({ ok: true, id: r.lastInsertRowid, name, code, billable }); // el código se muestra una sola vez
+    const tester = req.body && req.body.tester ? 1 : 0; // el tester pasa por el mismo flujo, pero no cuenta y se puede borrar
+    const r = db.prepare("INSERT INTO reviewers (name, email, code_hash, note, tester) VALUES (?, ?, ?, ?, ?)")
+      .run(name, String((req.body && req.body.email) || "").trim() || null, sha(code), String((req.body && req.body.note) || "").trim() || null, tester);
+    res.json({ ok: true, id: r.lastInsertRowid, name, code, tester }); // el código se muestra una sola vez
   });
 
   app.post("/api/admin/review/reviewers/toggle", admin, (req, res) => {
@@ -419,7 +440,7 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
     if (!MAIL_ON) return 0;
     const pending = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1 AND status = 'pending'").get().c;
     if (!pending) return 0;
-    const revs = db.prepare("SELECT * FROM reviewers WHERE active = 1 AND mail_opt = 1 AND email IS NOT NULL AND billable = 1").all();
+    const revs = db.prepare("SELECT * FROM reviewers WHERE active = 1 AND mail_opt = 1 AND email IS NOT NULL AND tester = 0").all();
     let sent = 0;
     for (const r of revs) {
       const quiet = daysSince(r.mail_last);

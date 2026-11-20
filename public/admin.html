@@ -130,7 +130,7 @@ code{background:var(--card);padding:1px 5px;border:1px solid var(--line)}
 <div class="bar2"><i id="rvfill"></i></div>
 <div class="row" style="margin-top:4px">
   <input id="rvname" placeholder="nombre del corrector" style="flex:1"><input id="rvmail" type="email" placeholder="correo (opcional)" style="flex:1">
-  <label class="sub" style="display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="rvfree" style="width:auto"> no cobra (para ti)</label>
+  <label class="sub" style="display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="rvfree" style="width:auto"> es tester</label>
   <button class="ghost" id="rvadd">Crear corrector</button>
 </div>
 <p class="msg" id="rvcode"></p>
@@ -221,14 +221,18 @@ async function review(){
     $("m6").className="msg";
     $("rvrate").value=+(d.rate*100).toFixed(2);
     const mods=d.byModule.map(m=>`${m.module}: ${m.done}/${m.total}`).join("  ·  ");
-    const pay=r=>{ if(!r.billable) return '<span class="sub">no cobra</span>';
-      if(!r.onboarded) return '<span class="sub">sin datos</span>';
+    const pay=r=>{ if(!r.onboarded) return '<span class="sub">sin datos</span>';
       const how=r.pay_method==="iban"?"IBAN":"Bizum";
       return `${how}: <code>${esc(r.pay_ref||"")}</code><br><span class="sub">${esc(r.payee||"")}</span>`; };
     $("rvtable").innerHTML=`<tr><th>Corrector</th><th>Correo</th><th>Cobro</th><th>Fichas</th><th>Corr.</th><th>Rápidas</th><th>Ganado</th><th>Pagado</th><th>Pendiente</th><th></th></tr>`+
-      d.reviewers.map(r=>`<tr><td>${esc(r.name)}${r.active?"":' <span class="sub">· desactivado</span>'}</td><td>${esc(r.email||"–")}</td><td style="white-space:normal">${pay(r)}</td><td class="n">${r.n}</td><td class="n">${r.fixes}</td><td class="n ${r.fast?"fast":""}" title="respondidas en menos de ${d.fastMs} ms">${r.fast}</td><td class="n">${r.billable?eur(r.euros):"–"}</td><td class="n sub">${r.billable?eur(r.paid):"–"}</td><td class="n"><b>${r.billable?eur(r.owed):"–"}</b></td><td style="white-space:nowrap">${r.owed>0?`<button class="ghost sm" data-rvpay="${r.id}" data-owed="${r.owed}" data-name="${esc(r.name)}">Marcar pagado</button> `:""}<button class="ghost sm" data-rvtog="${r.id}">${r.active?"Desactivar":"Activar"}</button></td></tr>`).join("")+
+      d.reviewers.map(r=>`<tr><td>${esc(r.name)}${r.tester?' <span class="sub">· tester</span>':""}${r.active?"":' <span class="sub">· desactivado</span>'}</td><td>${esc(r.email||"–")}</td><td style="white-space:normal">${pay(r)}</td><td class="n">${r.n}</td><td class="n">${r.fixes}</td><td class="n ${r.fast?"fast":""}" title="respondidas en menos de ${d.fastMs} ms">${r.fast}</td><td class="n">${eur(r.euros)}</td><td class="n sub">${eur(r.paid)}</td><td class="n"><b>${eur(r.owed)}</b></td><td style="white-space:nowrap">${r.owed>0?`<button class="ghost sm" data-rvpay="${r.id}" data-owed="${r.owed}" data-name="${esc(r.name)}">Marcar pagado</button> `:""}${r.tester?`<button class="ghost sm" data-rvreset="${r.id}" data-name="${esc(r.name)}">Borrar pruebas</button> `:""}<button class="ghost sm" data-rvtog="${r.id}">${r.active?"Desactivar":"Activar"}</button></td></tr>`).join("")+
       `<tr><td colspan="10" class="sub" style="white-space:normal">Por módulo — ${mods}</td></tr>`;
     document.querySelectorAll("[data-rvtog]").forEach(b=>b.onclick=async()=>{ await api("review/reviewers/toggle",{id:+b.dataset.rvtog}); review(); });
+    document.querySelectorAll("[data-rvreset]").forEach(b=>b.onclick=async()=>{
+      if(!confirm(`¿Borrar todas las pruebas de ${b.dataset.name}? Sus fichas vuelven a la bolsa.`)) return;
+      try{ const r=await api("review/reset",{id:+b.dataset.rvreset}); $("m6").textContent=`${r.freed} fichas devueltas a la bolsa.`; $("m6").className="msg ok"; review(); }
+      catch(e){ $("m6").textContent=e.message; $("m6").className="msg err"; }
+    });
     document.querySelectorAll("[data-rvpay]").forEach(b=>b.onclick=async()=>{
       const owed=b.dataset.owed;
       const v=prompt(`¿Cuánto le has pagado a ${b.dataset.name}? (€)`, owed);
@@ -245,8 +249,8 @@ async function review(){
 }
 $("rvadd").onclick=async()=>{
   const name=$("rvname").value.trim(); if(!name) return;
-  try{ const r=await api("review/reviewers",{name,email:$("rvmail").value.trim(),billable:!$("rvfree").checked});
-    $("rvcode").innerHTML=`Código de <b>${esc(r.name)}</b>: <code>${esc(r.code)}</code> — cópialo ahora, no se vuelve a mostrar. Entra en <b>/correctores</b>.`+(r.billable?"":" <span class=\"sub\">· no cobra y no pide datos de pago</span>");
+  try{ const r=await api("review/reviewers",{name,email:$("rvmail").value.trim(),tester:$("rvfree").checked});
+    $("rvcode").innerHTML=`Código de <b>${esc(r.name)}</b>: <code>${esc(r.code)}</code> — cópialo ahora, no se vuelve a mostrar. Entra en <b>/correctores</b>.`+(r.tester?" <span class=\"sub\">· tester: pasa por el mismo flujo, pero no cuenta en el coste y puedes borrar sus pruebas</span>":"");
     $("rvcode").className="msg ok"; $("rvname").value=""; $("rvmail").value=""; $("rvfree").checked=false; review();
   }catch(e){ $("rvcode").textContent=e.message; $("rvcode").className="msg err"; }
 };
