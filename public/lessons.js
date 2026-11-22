@@ -1230,3 +1230,78 @@ window.TRANSFORMS = {
   "zurekin euskaraz hitz egin dezaket?": [{"i":"Dilo con «me gustaría»","to":"Zurekin euskaraz hitz egin nahiko nuke.","es":"Me gustaría hablar euskera contigo."}],
   "irakasleak esan dit ondo egin dudala.": [{"i":"Ahora nos lo ha dicho a nosotros","to":"Irakasleak esan digu ondo egin dugula.","es":"El profesor nos ha dicho que lo hemos hecho bien."}]
 };
+
+// Descomposición de palabras compuestas. SOLO casos transparentes: se dejan fuera a propósito
+// las etimologías discutidas (ostegun, ostiral, larunbat, igande, los nombres de los meses…).
+// p: las piezas [euskera, castellano] · lit: lo que dice la palabra literalmente.
+window.PARTS = {
+  // casa y lugares
+  "logela": { p: [["lo", "sueño"], ["gela", "habitación"]], lit: "la habitación del sueño" },
+  "sukaldea": { p: [["su", "fuego"], ["alde", "lado"]], lit: "el lado del fuego" },
+  "egongela": { p: [["egon", "estar"], ["gela", "habitación"]], lit: "la habitación de estar" },
+  "bainugela": { p: [["bainu", "baño"], ["gela", "habitación"]], lit: "la habitación del baño" },
+  "apalategia": { p: [["apal", "estante"], ["-tegi", "lugar de"]], lit: "el lugar de los estantes" },
+  "liburutegia": { p: [["liburu", "libro"], ["-tegi", "lugar de"]], lit: "el lugar de los libros" },
+  "okindegia": { p: [["okin", "panadero/a"], ["-tegi", "lugar de"]], lit: "el lugar del panadero" },
+  "jatetxea": { p: [["jate", "comer"], ["etxe", "casa"]], lit: "la casa de comer" },
+  "udaletxea": { p: [["udal", "municipio"], ["etxe", "casa"]], lit: "la casa del municipio" },
+  "gaztetxea": { p: [["gazte", "joven"], ["etxe", "casa"]], lit: "la casa de los jóvenes" },
+  "sagardotegia": { p: [["sagardo", "sidra"], ["-tegi", "lugar de"]], lit: "el lugar de la sidra" },
+  "lantegia": { p: [["lan", "trabajo"], ["-tegi", "lugar de"]], lit: "el lugar del trabajo" },
+  "hondartza": { p: [["hondar", "arena"], ["-tza", "abundancia de"]], lit: "donde hay arena" },
+  "geltokia": { p: [["geldi", "parado"], ["toki", "sitio"]], lit: "el sitio donde se para" },
+  "iparraldea": { p: [["ipar", "norte"], ["alde", "zona"]], lit: "la zona del norte" },
+  "hegoaldea": { p: [["hego", "sur"], ["alde", "zona"]], lit: "la zona del sur" },
+  "hiriburua": { p: [["hiri", "ciudad"], ["buru", "cabeza"]], lit: "la ciudad cabeza" },
+  // comida y dinero
+  "kafesnea": { p: [["kafe", "café"], ["esne", "leche"]], lit: "café con leche" },
+  "sagardoa": { p: [["sagar", "manzana"], ["ardo", "vino"]], lit: "el vino de manzana" },
+  "eskudirua": { p: [["esku", "mano"], ["diru", "dinero"]], lit: "el dinero en mano" },
+  "hamaiketakoa": { p: [["hamaika", "once"], ["-etako", "lo de las"]], lit: "lo de las once" },
+  // personas
+  "bikotekidea": { p: [["bikote", "pareja"], ["kide", "miembro"]], lit: "el miembro de la pareja" },
+  "auzokidea": { p: [["auzo", "barrio"], ["kide", "miembro"]], lit: "el del mismo barrio" },
+  "lankidea": { p: [["lan", "trabajo"], ["kide", "miembro"]], lit: "el del mismo trabajo" },
+  "ikaskidea": { p: [["ikasi", "estudiar"], ["kide", "miembro"]], lit: "el que estudia contigo" },
+  "langilea": { p: [["lan", "trabajo"], ["-gile", "que hace"]], lit: "el que hace el trabajo" },
+  "langabea": { p: [["lan", "trabajo"], ["gabe", "sin"]], lit: "sin trabajo" },
+  "sukaldaria": { p: [["sukalde", "cocina"], ["-ari", "oficio"]], lit: "el de la cocina" },
+  "dendaria": { p: [["denda", "tienda"], ["-ari", "oficio"]], lit: "el de la tienda" },
+  "zerbitzaria": { p: [["zerbitzu", "servicio"], ["-ari", "oficio"]], lit: "el del servicio" },
+  "mutil-laguna": { p: [["mutil", "chico"], ["lagun", "amigo"]], lit: "el amigo chico" },
+  "neska-laguna": { p: [["neska", "chica"], ["lagun", "amiga"]], lit: "la amiga chica" },
+  "seme-alabak": { p: [["seme", "hijo"], ["alaba", "hija"]], lit: "hijos e hijas" },
+  "aiton-amonak": { p: [["aitona", "abuelo"], ["amona", "abuela"]], lit: "abuelos y abuelas" },
+  "osaba-izebak": { p: [["osaba", "tío"], ["izeba", "tía"]], lit: "tíos y tías" },
+  "anai-arrebak": { p: [["anaia", "hermano"], ["arreba", "hermana"]], lit: "hermanos y hermanas" },
+  "neba-arrebak": { p: [["neba", "hermano"], ["arreba", "hermana"]], lit: "hermanos y hermanas" },
+  // cómo es alguien
+  "ilehoria": { p: [["ile", "pelo"], ["hori", "amarillo"]], lit: "de pelo amarillo" },
+  "ilebeltza": { p: [["ile", "pelo"], ["beltz", "negro"]], lit: "de pelo negro" },
+  "ilegorria": { p: [["ile", "pelo"], ["gorri", "rojo"]], lit: "de pelo rojo" },
+  "betaurrekoak": { p: [["begi", "ojo"], ["aurre", "delante"], ["-ko", "de"]], lit: "los de delante de los ojos" },
+  "indartsua": { p: [["indar", "fuerza"], ["-tsu", "lleno de"]], lit: "lleno de fuerza" },
+  "zaratatsua": { p: [["zarata", "ruido"], ["-tsu", "lleno de"]], lit: "lleno de ruido" },
+  // tiempo
+  "astelehena": { p: [["aste", "semana"], ["lehen", "primero"]], lit: "el primero de la semana" },
+  "asteartea": { p: [["aste", "semana"], ["arte", "entre"]], lit: "el de en medio de la semana" },
+  "asteazkena": { p: [["aste", "semana"], ["azken", "último"]], lit: "el último de la semana" },
+  "asteburua": { p: [["aste", "semana"], ["buru", "cabeza, extremo"]], lit: "el extremo de la semana" },
+  "hilabetea": { p: [["hil", "luna"], ["bete", "llena"]], lit: "la luna llena" },
+  "urtebetetzea": { p: [["urte", "año"], ["betetze", "cumplirse"]], lit: "el cumplirse de un año" },
+  "herenegun": { p: [["heren", "tercero"], ["egun", "día"]], lit: "el tercer día (contando hacia atrás)" },
+  "udaberria": { p: [["uda", "verano"], ["berri", "nuevo"]], lit: "el verano nuevo" },
+  "udazkena": { p: [["uda", "verano"], ["azken", "último"]], lit: "los últimos días del verano" },
+  "egunero": { p: [["egun", "día"], ["-ero", "cada"]], lit: "cada día" },
+  "astero": { p: [["aste", "semana"], ["-ero", "cada"]], lit: "cada semana" },
+  "hilero": { p: [["hil", "mes"], ["-ero", "cada"]], lit: "cada mes" },
+  "goizero": { p: [["goiz", "mañana"], ["-ero", "cada"]], lit: "cada mañana" },
+  // ocio y casa
+  "saskibaloia": { p: [["saski", "cesta"], ["baloi", "balón"]], lit: "el balón a la cesta" },
+  "igeriketa": { p: [["igeri", "nadar"], ["-keta", "actividad"]], lit: "la actividad de nadar" },
+  "zaletasuna": { p: [["zale", "aficionado"], ["-tasun", "cualidad"]], lit: "la cualidad de ser aficionado" },
+  "hozkailua": { p: [["hotz", "frío"], ["-kailu", "aparato"]], lit: "el aparato del frío" },
+  "hotzeria": { p: [["hotz", "frío"], ["-eria", "conjunto"]], lit: "la cosa del frío" },
+  "telefono-zenbakia": { p: [["telefono", "teléfono"], ["zenbaki", "número"]], lit: "el número de teléfono" },
+  "elkarrekin": { p: [["elkar", "uno con otro"], ["-ekin", "con"]], lit: "unos con otros" },
+};

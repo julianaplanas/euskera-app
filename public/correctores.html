@@ -266,13 +266,17 @@ function show(it){
   $("es").textContent = it.es || "";
   const x = it.extra || {};
   const bits = [];
+  if (x.parts) {
+    const piezas = x.parts.p.map(q => `<b>${q[0]}</b> <span style="color:var(--light)">(${q[1]})</span>`).join(" + ");
+    bits.push(`<span style="color:var(--greend);font-weight:700">Osaera · composición:</span> ${piezas} → <i>${x.parts.lit}</i>`);
+  }
   if (it.kind === "eraldaketa" && x.from) bits.push("Jatorrizkoa: " + x.from + (x.instr ? "  ·  " + x.instr : ""));
   if (it.kind === "azalpena") bits.push("Gaztelaniazko azalpena da; barruko euskara begiratu. · Es una explicación en castellano: revisa el euskera que contiene.");
   if (x.pattern) bits.push("Egitura: " + x.pattern);
   if (x.summary) bits.push(x.summary);
   if (x.who) bits.push("Elkarrizketan: " + x.who);
   if (it.seen > 1) bits.push(it.seen + " aldiz agertzen da · aparece " + it.seen + " veces");
-  $("extra").innerHTML = bits.map(b => "<div>" + b.replace(/</g,"&lt;") + "</div>").join("");
+  $("extra").innerHTML = bits.map(b => "<div>" + (b.indexOf("<b>") >= 0 ? b : b.replace(/</g, "&lt;")) + "</div>").join("");
   $("extra").classList.toggle("hide", !bits.length);
   shownAt = Date.now();
 }

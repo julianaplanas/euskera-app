@@ -58,6 +58,7 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
   {
     const icols = db.prepare("PRAGMA table_info(review_items)").all().map(c => c.name);
     if (!icols.includes("present")) { db.exec("ALTER TABLE review_items ADD COLUMN present INTEGER NOT NULL DEFAULT 1"); console.log("Correctores: columna review_items.present"); }
+    if (!icols.includes("parts_hash")) { db.exec("ALTER TABLE review_items ADD COLUMN parts_hash TEXT"); console.log("Correctores: columna review_items.parts_hash"); }
   }
   // Datos de cobro del corrector: se piden la primera vez que entra.
   {
@@ -83,7 +84,8 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
   }
 
   function buildItems() {
-    const { MODULES = [], LESSONS = [], GRAMMAR = [], TRANSFORMS = {} } = freshData();
+    const { MODULES = [], LESSONS = [], GRAMMAR = [], TRANSFORMS = {}, PARTS = {} } = freshData();
+    const partsOf = eu => PARTS[norm(eu).toLowerCase()] || null;
     let lastLevel = "";
     const mod = {};
     for (const m of MODULES) {
@@ -100,7 +102,12 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
       const prev = out.get(id);
       if (prev) { prev.seen++; return; }
       const M = mod[m] || {};
-      out.set(id, { id, kind, eu, es, ctx, module: m || null, level: M.level || "", extra: extra ? JSON.stringify(extra) : null, seen: 1, ord: (m || 99) * 100000 + (n++) });
+      const parts = partsOf(eu);
+      if (parts) extra = Object.assign({}, extra, { parts });
+      out.set(id, { id, kind, eu, es, ctx, module: m || null, level: M.level || "",
+        extra: extra ? JSON.stringify(extra) : null,
+        parts_hash: parts ? sha(JSON.stringify(parts)).slice(0, 12) : null,
+        seen: 1, ord: (m || 99) * 100000 + (n++) });
     };
 
     for (const L of LESSONS) {
@@ -137,19 +144,25 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
   // (p. ej. una frase corregida: la vieja desaparece y la nueva entra como ficha nueva).
   function seed() {
     const items = buildItems();
-    const ins = db.prepare(`INSERT INTO review_items (id, kind, eu, es, ctx, module, level, extra, seen, ord, present)
-      VALUES (@id, @kind, @eu, @es, @ctx, @module, @level, @extra, @seen, @ord, 1)
-      ON CONFLICT(id) DO UPDATE SET seen = excluded.seen, ctx = excluded.ctx, module = excluded.module, level = excluded.level, extra = excluded.extra, present = 1`);
+    const ins = db.prepare(`INSERT INTO review_items (id, kind, eu, es, ctx, module, level, extra, seen, ord, present, parts_hash)
+      VALUES (@id, @kind, @eu, @es, @ctx, @module, @level, @extra, @seen, @ord, 1, @parts_hash)
+      ON CONFLICT(id) DO UPDATE SET seen = excluded.seen, ctx = excluded.ctx, module = excluded.module, level = excluded.level,
+        extra = excluded.extra, present = 1, parts_hash = excluded.parts_hash`);
+    // Una ficha ya revisada a la que se le añade (o se le cambia) la descomposición vuelve a la bolsa:
+    // es la MISMA ficha, pero ahora tiene algo nuevo que mirar. No se crea una ficha aparte.
+    const reopen = db.prepare(`UPDATE review_items SET status = 'pending', locked_by = NULL, locked_until = NULL
+      WHERE id = ? AND status = 'done' AND IFNULL(parts_hash,'') <> IFNULL(?,'')`);
     const before = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1").get().c;
+    let reopened = 0;
     db.transaction(() => {
       db.prepare("UPDATE review_items SET present = 0").run();
-      items.forEach(i => ins.run(i));
+      items.forEach(i => { reopened += reopen.run(i.id, i.parts_hash).changes; ins.run(i); });
     })();
     const after = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1").get().c;
     const gone = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 0").get().c;
     const added = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1 AND status = 'pending'").get().c;
     if (after !== before) console.log(`Correctores: ${after} fichas vivas (antes ${before}), ${gone} retiradas`);
-    return { total: after, pending: added, gone, diff: after - before };
+    return { total: after, pending: added, gone, reopened, diff: after - before };
   }
   seed();
 
