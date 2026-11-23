@@ -134,6 +134,9 @@ app.use((req, res, next) => {
   if (req.path === "/" || req.path === "/index.html") return res.sendFile(path.join(__dirname, "public", "landing.html"));
   next();
 });
+// Enlace corto para compartir la llamada a zuzentzaileak: lleva a su sección de la web.
+app.get(["/zuzentzaileak", "/correctores-info"], (req, res) =>
+  res.redirect(302, (LANDING_HOSTS.includes(req.hostname) ? "/" : "/landing.html") + "#zuzentzaileak"));
 app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"] }));
 
 function auth(req, res, next) {
