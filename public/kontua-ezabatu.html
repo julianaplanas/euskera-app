@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Borrar tu cuenta · Euskara Praktika</title>
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FFFFFF;--card:#F6F5F1;--ink:#161412;--muted:#6B675F;--line:rgba(22,20,18,.22);--red:#C1281E;--green:#1A7A45}
+  body{font-family:"Inter",system-ui,sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:24px 20px 60px;line-height:1.55;font-size:15px}
+  main{max-width:680px;margin:0 auto}
+  h1{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:2rem;margin:0 0 4px}
+  h2{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:1.15rem;margin:28px 0 6px}
+  .sub{color:var(--muted);font-size:.95rem;margin:0 0 18px}
+  .langs{display:flex;gap:8px;margin:0 0 24px}
+  .langs button{font:inherit;font-weight:600;font-size:13px;padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  .langs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  section[hidden]{display:none}
+  ul{padding-left:20px} li{margin:6px 0}
+  ol.steps{padding-left:0;list-style:none;counter-reset:s;margin:14px 0 0}
+  ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-top:1px solid var(--line)}
+  ol.steps li:first-child{border-top:0}
+  ol.steps li::before{content:counter(s);position:absolute;left:0;top:9px;width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .warn{background:#FBEBB8;border-radius:12px;padding:14px 16px;margin-top:18px}
+  .warn b{color:#8A6A00}
+  a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)} a:hover{text-decoration-color:var(--ink)}
+  .back{display:inline-block;margin-bottom:18px;font-size:14px;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">‹ Euskara Praktika</a>
+  <div class="langs">
+    <button data-l="es" aria-pressed="true">ES</button>
+    <button data-l="en" aria-pressed="false">EN</button>
+    <button data-l="fr" aria-pressed="false">FR</button>
+  </div>
+
+  <!-- ================= ES ================= -->
+  <section data-l="es">
+    <h1>Borrar tu cuenta de Euskara Praktika</h1>
+    <p class="sub">Puedes borrar tu cuenta y tus datos desde la propia app, cuando quieras.</p>
+
+    <h2>Cómo hacerlo</h2>
+    <ol class="steps">
+      <li>Abre <strong>Euskara Praktika</strong>.</li>
+      <li>Entra en <strong>Nire profila</strong> (tu perfil).</li>
+      <li>Abre <strong>Kontua ezabatu</strong> (borrar mi cuenta).</li>
+      <li>Escribe tu correo y confirma. La cuenta se borra en ese momento.</li>
+    </ol>
+    <p style="margin-top:16px">Si no puedes entrar en la app, escribe a <a href="mailto:kaixo@euskarapraktika.eus?subject=Kontua%20ezabatu">kaixo@euskarapraktika.eus</a> desde el correo con el que te registraste y la borramos en un plazo máximo de 7 días.</p>
+
+    <div class="warn"><b>Antes de borrar:</b> si tienes una suscripción activa, cancélala primero en <strong>Google Play → Pagos y suscripciones → Suscripciones</strong>. Borrar la cuenta aquí no cancela el cobro de Google Play.</div>
+
+    <h2>Qué se borra</h2>
+    <p>Todo esto se elimina de inmediato y no se puede recuperar:</p>
+    <ul>
+      <li>Tu usuario: nombre y correo electrónico.</li>
+      <li>Tu perfil: edad, sexo, pueblo, lugar de origen y número de hermanos y hermanas.</li>
+      <li>Tu progreso: lecciones, frases aprendidas, repasos pendientes y fichas de gramática.</li>
+      <li>Tus amistades, tus retos y tus resultados.</li>
+      <li>Tus sesiones abiertas y el identificador de avisos de tu móvil.</li>
+      <li>Tus datos de suscriptor en RevenueCat, el servicio que gestiona las compras.</li>
+    </ul>
+
+    <h2>Qué se conserva, y cuánto tiempo</h2>
+    <ul>
+      <li><strong>Copias de seguridad:</strong> hacemos una copia diaria de la base de datos y guardamos las últimas 14. Tus datos desaparecen también de las copias como máximo <strong>14 días</strong> después del borrado.</li>
+      <li><strong>Códigos de acceso:</strong> el código de un solo uso que se envía al entrar, y la dirección IP desde la que se pidió, se borran solos a los <strong>7 días</strong>.</li>
+      <li><strong>Correos ya enviados:</strong> los mensajes que te enviamos siguen en tu buzón. Eso está en tu correo, no en nuestros servidores.</li>
+    </ul>
+  </section>
+
+  <!-- ================= EN ================= -->
+  <section data-l="en" hidden>
+    <h1>Delete your Euskara Praktika account</h1>
+    <p class="sub">You can delete your account and your data from inside the app, whenever you want.</p>
+
+    <h2>How to do it</h2>
+    <ol class="steps">
+      <li>Open <strong>Euskara Praktika</strong>.</li>
+      <li>Go to <strong>Nire profila</strong> (your profile).</li>
+      <li>Open <strong>Kontua ezabatu</strong> (delete my account).</li>
+      <li>Type your email and confirm. The account is deleted straight away.</li>
+    </ol>
+    <p style="margin-top:16px">If you can't sign in, email <a href="mailto:kaixo@euskarapraktika.eus?subject=Kontua%20ezabatu">kaixo@euskarapraktika.eus</a> from the address you registered with and we will delete it within 7 days.</p>
+
+    <div class="warn"><b>Before you delete:</b> if you have an active subscription, cancel it first in <strong>Google Play → Payments and subscriptions → Subscriptions</strong>. Deleting your account here does not stop Google Play from charging you.</div>
+
+    <h2>What is deleted</h2>
+    <p>All of this is removed immediately and cannot be recovered:</p>
+    <ul>
+      <li>Your user: name and email address.</li>
+      <li>Your profile: age, gender, town, place of origin and number of brothers and sisters.</li>
+      <li>Your progress: lessons, phrases learned, pending reviews and grammar cards.</li>
+      <li>Your friends, your challenges and their results.</li>
+      <li>Your open sessions and your device's push notification token.</li>
+      <li>Your subscriber record at RevenueCat, the service that handles purchases.</li>
+    </ul>
+
+    <h2>What is kept, and for how long</h2>
+    <ul>
+      <li><strong>Backups:</strong> we back up the database daily and keep the last 14. Your data also disappears from the backups at most <strong>14 days</strong> after deletion.</li>
+      <li><strong>Sign-in codes:</strong> the one-time code sent when you sign in, and the IP address it was requested from, are deleted automatically after <strong>7 days</strong>.</li>
+      <li><strong>Emails already sent:</strong> messages we already sent you stay in your inbox. That is in your mailbox, not on our servers.</li>
+    </ul>
+  </section>
+
+  <!-- ================= FR ================= -->
+  <section data-l="fr" hidden>
+    <h1>Supprimer ton compte Euskara Praktika</h1>
+    <p class="sub">Tu peux supprimer ton compte et tes données depuis l'application, quand tu veux.</p>
+
+    <h2>Comment faire</h2>
+    <ol class="steps">
+      <li>Ouvre <strong>Euskara Praktika</strong>.</li>
+      <li>Va dans <strong>Nire profila</strong> (ton profil).</li>
+      <li>Ouvre <strong>Kontua ezabatu</strong> (supprimer mon compte).</li>
+      <li>Écris ton e-mail et confirme. Le compte est supprimé immédiatement.</li>
+    </ol>
+    <p style="margin-top:16px">Si tu ne peux pas te connecter, écris à <a href="mailto:kaixo@euskarapraktika.eus?subject=Kontua%20ezabatu">kaixo@euskarapraktika.eus</a> depuis l'adresse avec laquelle tu t'es inscrit·e et nous le supprimons sous 7 jours.</p>
+
+    <div class="warn"><b>Avant de supprimer :</b> si tu as un abonnement actif, annule-le d'abord dans <strong>Google Play → Paiements et abonnements → Abonnements</strong>. Supprimer ton compte ici n'arrête pas les prélèvements de Google Play.</div>
+
+    <h2>Ce qui est supprimé</h2>
+    <p>Tout ceci est effacé immédiatement et ne peut pas être récupéré :</p>
+    <ul>
+      <li>Ton utilisateur : nom et adresse e-mail.</li>
+      <li>Ton profil : âge, sexe, village, lieu d'origine et nombre de frères et sœurs.</li>
+      <li>Ta progression : leçons, phrases apprises, révisions en attente et fiches de grammaire.</li>
+      <li>Tes amis, tes défis et leurs résultats.</li>
+      <li>Tes sessions ouvertes et l'identifiant de notifications de ton téléphone.</li>
+      <li>Tes données d'abonné chez RevenueCat, le service qui gère les achats.</li>
+    </ul>
+
+    <h2>Ce qui est conservé, et combien de temps</h2>
+    <ul>
+      <li><strong>Sauvegardes :</strong> nous sauvegardons la base de données chaque jour et gardons les 14 dernières. Tes données disparaissent aussi des sauvegardes au plus tard <strong>14 jours</strong> après la suppression.</li>
+      <li><strong>Codes de connexion :</strong> le code à usage unique envoyé à la connexion, et l'adresse IP depuis laquelle il a été demandé, sont supprimés automatiquement au bout de <strong>7 jours</strong>.</li>
+      <li><strong>E-mails déjà envoyés :</strong> les messages que nous t'avons envoyés restent dans ta boîte. C'est chez toi, pas sur nos serveurs.</li>
+    </ul>
+  </section>
+</main>
+<script>
+  const pick=l=>{ document.querySelectorAll("section[data-l]").forEach(s=>s.hidden=s.dataset.l!==l); document.querySelectorAll(".langs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===l)); document.documentElement.lang=l; try{ localStorage.setItem("euskara.lang",l); }catch(e){} };
+  document.querySelectorAll(".langs button").forEach(b=>b.onclick=()=>pick(b.dataset.l));
+  let l="es"; try{ const q=new URLSearchParams(location.search).get("lang"); l=q||localStorage.getItem("euskara.lang")||"es"; }catch(e){}
+  if(!["es","en","fr"].includes(l)) l="es"; pick(l);
+</script>
+</body>
+</html>
