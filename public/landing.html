@@ -140,6 +140,25 @@ footer .sp{flex:1}
   </div>
 </div></section>
 
+<section id="zuzentzaileak"><div class="wrap">
+  <p class="eu">Zuzentzaileak</p><h2>Aplikazioko euskara zuzentzen lagundu nahi duzu?</h2>
+  <div class="two">
+    <div>
+      <p>Euskara Praktikako hitz, esaldi eta azalpen guztiak euskaraz dakien norbaitek begiratzea nahi dugu, inork haiekin ikasi aurretik. 4.003 fitxa dira.</p>
+      <p style="margin-top:12px">Kode pertsonal batekin sartzen zara. Aldi bakoitzean fitxa bat agertzen da: hitza edo esaldia, bere itzulpena eta zein ikasgaitatik datorren. Ondo dagoen esan behar duzu, edo zuzenketa idatzi. Bost egin eta utzi dezakezu, edo arratsalde osoa eman.</p>
+      <p style="margin-top:12px">Fitxa bakoitzeko 2,5 zentimo ordaintzen dira, berdin «ondo dago» esanda edo zuzenduta. Dena berrikusiz gero, 100 bat euro dira. Bizum bidez edo transferentziaz ordaintzen da, amaitzean.</p>
+      <p style="margin-top:12px">Interesa duzu? Idatzi iguzu: esan zure euskara maila eta zenbat denbora duzun, eta kodea bidaliko dizugu.</p>
+      <a class="btn" href="mailto:kaixo@euskarapraktika.eus?subject=Euskara%20Praktika%20·%20zuzentzailea">kaixo@euskarapraktika.eus</a>
+    </div>
+    <div class="card"><h3>Nola dabilen</h3><ul>
+      <li>Fitxa bakoitza behin bakarrik berrikusten da: inork ez du beste baten lana errepikatzen.</li>
+      <li>Berdin ordaintzen da «ondo dago» eta zuzenketa, inork zuzenketarik asmatzeko arrazoirik izan ez dezan.</li>
+      <li>Fitxa batek zalantza ematen badizu, «Ez dakit» sakatu eta beste norbaitengana joango da.</li>
+      <li>Ez dago ezer amaitu beharrik: nahi dituzunak egin eta nahi duzunean utzi.</li>
+    </ul></div>
+  </div>
+</div></section>
+
 <footer><div class="wrap">
   <span>© <span id="year"></span> Euskara Praktika · <span data-t="made">Hecho en Donostia</span></span>
   <span class="sp"></span>
@@ -158,6 +177,7 @@ const I18N={
   t_l1:"\"Is it free?\" The first module and the daily review are; the rest, by subscription from the app (7-day trial).",  in_h:"What's inside",in1:"84 lessons with phrases, dialogues and explanations in your language (Spanish, English or French)",in2:"66 grammar cards with transformation drills",in3:"Audio for every phrase, normal and slow",in4:"Phrases about you: your name, your town, your family",in5:"Challenges with friends and a weekly ranking",
   who_h:"Who it's for",who_p:"For people taking classes who don't want it all to evaporate between lessons. For people living abroad who don't want to lose it. For anyone starting from zero who needs a hand through the first «kaixo».",
   t_h:"Teachers, euskaltegis and Basque centres",t_p1:"Euskara Praktika doesn't replace the class: it's what happens between classes. Students practise for five minutes a day what they saw with you, and arrive at the next session with the phrases solid.",t_p2:"If you'd like to try it with your group, write to us: we'll give your students full-access codes and tell you how it fits your syllabus.",t_h2:"What your students will ask",t_l2:"\"Which Basque?\" Batua, with everyday vocabulary and the towns along the road.",t_l3:"\"What if I already know some?\" The level test puts them in the right module.",
+
   made:"Made in Donostia",privacy:"Privacy",contact:"Contact",delete:"To delete your account: in the app, Nire profila → Kontua ezabatu."},
  fr:{doan:"module 1 gratuit",h1:"Pratique le basque cinq minutes par jour.",lead:"De vraies phrases, une révision qui revient juste avant que tu n'oublies, et de l'audio pour que ça sonne comme ça sonne. Un chemin de Baiona à Maule, à travers les sept territoires.",get:"Disponible sur",soon:"Bientôt",
   shots_h:"À quoi ça ressemble",shot1:"Le chemin : 16 villes, 84 leçons",shot2:"Tu écris, tu ne choisis pas",shot3:"La grammaire quand tu en as besoin",
@@ -167,6 +187,7 @@ const I18N={
   t_l1:"« C'est gratuit ? » Le premier module et la révision quotidienne, oui ; le reste, par abonnement depuis l'appli (7 jours d'essai).",  in_h:"Ce qu'il y a dedans",in1:"84 leçons avec phrases, dialogues et explications dans ta langue (espagnol, anglais ou français)",in2:"66 fiches de grammaire avec exercices de transformation",in3:"L'audio de chaque phrase, normal et lent",in4:"Des phrases sur toi : ton prénom, ta ville, ta famille",in5:"Des défis entre amis et un classement hebdomadaire",
   who_h:"Pour qui",who_p:"Pour ceux qui suivent des cours et ne veulent pas que tout s'évapore entre deux séances. Pour ceux qui vivent loin et ne veulent pas perdre leur basque. Pour ceux qui partent de zéro et ont besoin qu'on les accompagne jusqu'au premier « kaixo ».",
   t_h:"Enseignants, euskaltegis et maisons basques",t_p1:"Euskara Praktika ne remplace pas le cours : c'est ce qui se passe entre deux cours. L'élève pratique cinq minutes par jour ce qu'il a vu avec toi, et arrive à la séance suivante avec les phrases acquises.",t_p2:"Si tu veux l'essayer avec ton groupe, écris-nous : nous donnons à tes élèves des codes d'accès complet et nous t'expliquons comment ça s'intègre à ton programme.",t_h2:"Ce que tes élèves vont demander",t_l2:"« Quel basque ? » Le batua, avec le vocabulaire du quotidien et les villes du chemin.",t_l3:"« Et si je connais déjà un peu ? » Le test de niveau les place dans le bon module.",
+  
   made:"Fait à Donostia",privacy:"Confidentialité",contact:"Contact",delete:"Pour supprimer ton compte : dans l'appli, Nire profila → Kontua ezabatu."}
 };
 const ES={}; document.querySelectorAll("[data-t]").forEach(el=>ES[el.dataset.t]=el.textContent);
