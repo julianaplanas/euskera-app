@@ -483,6 +483,16 @@ app.post("/api/auth/request", async (req, res) => {
   if (!validEmail(email)) return res.status(400).json({ error: "Escribe un correo válido." });
   const now = Date.now(), day = now - 86400 * 1000, ip = req.ip || "";
   db.prepare("DELETE FROM login_codes WHERE created_at < ?").run(now - 7 * 86400 * 1000);
+  // Cuenta de revisión (Google Play / App Store): el revisor no puede recibir el código por correo.
+  // Solo existe si REVIEW_EMAIL y REVIEW_CODE (6 cifras) están puestas; quítalas cuando aprueben la app.
+  const REVIEW_EMAIL = normEmail(process.env.REVIEW_EMAIL || ""), REVIEW_CODE = String(process.env.REVIEW_CODE || "");
+  if (REVIEW_EMAIL && /^\d{6}$/.test(REVIEW_CODE) && email === REVIEW_EMAIL) {
+    db.prepare("UPDATE login_codes SET used = 1 WHERE email = ? AND used = 0").run(email);
+    db.prepare("INSERT INTO login_codes (email, code_hash, expires_at, created_at, ip) VALUES (?, ?, ?, ?, ?)")
+      .run(email, hashCode(email, REVIEW_CODE), now + 7 * 86400 * 1000, now, ip);
+    console.log("Login de revisión usado para", email);
+    return res.json({ ok: true, sent: true, exists: !!db.prepare("SELECT 1 FROM users WHERE email = ?").get(email) });
+  }
   // Tres topes diarios para proteger la cuota de correo (Resend: 100/día en el plan gratuito):
   // por correo (un usuario real pide un código solo al entrar en un dispositivo nuevo), por IP (bots) y global.
   const cnt = (sql, ...a) => db.prepare(sql).get(...a).n;
