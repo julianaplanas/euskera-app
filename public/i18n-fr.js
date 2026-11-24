@@ -6279,3 +6279,20 @@ Object.assign(window.FR, {
   "¿Qué haces en Nochevieja?": "Que fais-tu à la Saint-Sylvestre ?",
   "Ceno con la familia y a medianoche como las uvas.": "Je dîne en famille et à minuit je mange les raisins.",
 });
+
+// ---------- Décomposition des mots (window.PARTS) ----------
+Object.assign(window.FR, {
+  "abundancia de": "abondance de", "actividad": "activité", "aficionado": "amateur", "amarillo": "jaune",
+  "amiga": "amie", "amigo": "ami", "aparato": "appareil", "arena": "sable", "balón": "ballon",
+  "baño": "bain", "cabeza, extremo": "tête, bout", "cada": "chaque", "cesta": "panier", "chica": "fille",
+  "chico": "garçon", "comer": "manger", "con": "avec", "conjunto": "ensemble", "cualidad": "qualité",
+  "cumplirse": "accomplissement", "de": "de", "delante": "devant", "día": "jour", "entre": "entre",
+  "estante": "étagère", "estar": "être", "estudiar": "étudier", "fuego": "feu", "fuerza": "force",
+  "lado": "côté", "libro": "livre", "llena": "pleine", "lleno de": "plein de", "lo de las": "celui de",
+  "lugar de": "lieu de", "luna": "lune", "miembro": "membre", "municipio": "commune", "negro": "noir",
+  "norte": "nord", "número": "numéro", "oficio": "métier", "once": "onze", "panadero/a": "boulanger/ère",
+  "parado": "arrêté", "pareja": "couple", "pelo": "cheveux", "que hace": "qui fait", "rojo": "rouge",
+  "ruido": "bruit", "servicio": "service", "sin": "sans", "sitio": "endroit", "sueño": "sommeil",
+  "sur": "sud", "teléfono": "téléphone", "tercero": "troisième", "uno con otro": "l’un avec l’autre",
+  "zona": "zone", "último": "dernier",
+});

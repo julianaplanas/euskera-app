@@ -5053,3 +5053,20 @@ Object.assign(window.EN, {
   "¿Qué haces en Nochevieja?": "What do you do on New Year's Eve?",
   "Ceno con la familia y a medianoche como las uvas.": "I have dinner with the family and eat the grapes at midnight.",
 });
+
+// ---------- Descomposición de palabras (window.PARTS) ----------
+Object.assign(window.EN, {
+  "abundancia de": "abundance of", "actividad": "activity", "aficionado": "fan", "amarillo": "yellow",
+  "amiga": "friend (f.)", "amigo": "friend (m.)", "aparato": "device", "arena": "sand", "balón": "ball",
+  "baño": "bath", "cabeza, extremo": "head, end", "cada": "every", "cesta": "basket", "chica": "girl",
+  "chico": "boy", "comer": "to eat", "con": "with", "conjunto": "set", "cualidad": "quality",
+  "cumplirse": "completing", "de": "of", "delante": "in front", "día": "day", "entre": "between",
+  "estante": "shelf", "estar": "to be", "estudiar": "to study", "fuego": "fire", "fuerza": "strength",
+  "lado": "side", "libro": "book", "llena": "full", "lleno de": "full of", "lo de las": "the one at",
+  "lugar de": "place of", "luna": "moon", "miembro": "member", "municipio": "council", "negro": "black",
+  "norte": "north", "número": "number", "oficio": "trade", "once": "eleven", "panadero/a": "baker",
+  "parado": "stopped", "pareja": "couple", "pelo": "hair", "que hace": "who does", "rojo": "red",
+  "ruido": "noise", "servicio": "service", "sin": "without", "sitio": "place", "sueño": "sleep",
+  "sur": "south", "teléfono": "telephone", "tercero": "third", "uno con otro": "one another",
+  "zona": "area", "último": "last",
+});
