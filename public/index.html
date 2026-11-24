@@ -15,7 +15,7 @@
 <style>
 /* Euskara Praktika · sistema visual "Plaza": Bricolage Grotesque + Inter, superficies planas, una sola elevación por pantalla (la acción principal), esquinas 12 px, espaciado en múltiplos de 8. Euskera siempre como lengua meta; castellano/inglés como apoyo, pequeño. */
 :root{
-  color-scheme:light; --sab:min(env(safe-area-inset-bottom,0px),34px); --bg:#FFFFFF; --card:#F6F5F1; --ink:#161412; --muted:#6B675F; --soft:#ECEAE4; --line:rgba(22,20,18,.08); --line2:rgba(22,20,18,.22); --line-soft:rgba(22,20,18,.08);
+  color-scheme:light; --sa-top:max(var(--safe-area-inset-top,0px),env(safe-area-inset-top,0px)); --sa-right:max(var(--safe-area-inset-right,0px),env(safe-area-inset-right,0px)); --sa-bottom:max(var(--safe-area-inset-bottom,0px),env(safe-area-inset-bottom,0px)); --sa-left:max(var(--safe-area-inset-left,0px),env(safe-area-inset-left,0px)); --sab:min(var(--sa-bottom),34px); --bg:#FFFFFF; --card:#F6F5F1; --ink:#161412; --muted:#6B675F; --soft:#ECEAE4; --line:rgba(22,20,18,.08); --line2:rgba(22,20,18,.22); --line-soft:rgba(22,20,18,.08);
   --red:#C1281E; --red-deep:#A11F18; --red-soft:#F7D9D6; --green:#1A7A45; --green-deep:#0F5A2D; --green-soft:#D7EBDD;
   --ochre:#EFC23A; --ochre-soft:#FBEBB8; --ochre-ink:#8A6A00; --cream:#FFF9EC; --blue:#1F4E79; --blue-soft:#DCE7F3; --on-color:rgba(255,249,236,.85);
   --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'Inter',system-ui,-apple-system,sans-serif; --r:12px; --rs:8px; --bw:1.5px; --bw:1.5px;
@@ -27,8 +27,8 @@ body{position:fixed;inset:0;height:auto;display:flex;flex-direction:column}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
 .app{flex:1;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;display:flex;flex-direction:column;padding-bottom:28px}
 .app>*{max-width:560px;width:100%;margin-left:auto;margin-right:auto;flex:none}
-body.notabs .app{padding-bottom:0}
-.pad{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+body.notabs .app{padding-bottom:var(--sab)}
+.pad{padding-left:max(20px,var(--sa-left));padding-right:max(20px,var(--sa-right))}
 h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;line-height:1.15;letter-spacing:-.01em}
 h1{font-size:24px} h2{font-size:22px} h3{font-size:19px}
 p{margin:0}
@@ -63,7 +63,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .ic{display:inline-flex;flex:none;align-items:center;justify-content:center}
 .ic svg{width:1em;height:1em}
 /* cabecera plana */
-.head{position:relative;background:var(--bg);color:var(--ink);padding-top:calc(18px + env(safe-area-inset-top,0px));padding-bottom:6px}
+.head{position:relative;background:var(--bg);color:var(--ink);padding-top:calc(18px + var(--sa-top));padding-bottom:6px}
 .head .lb{display:none}
 .head .row{position:relative}
 .head .sub{font-size:13px;font-weight:500;color:var(--muted);line-height:1.35}
@@ -105,7 +105,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .plans{display:grid;gap:10px} .plan{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border:2px solid var(--line2);border-radius:16px;background:var(--bg);color:var(--ink);text-align:left;cursor:pointer;position:relative;font-family:var(--body)} .plan.life{border-style:dashed}
 .plan.best{border-color:var(--red)} .plan .pl-t{font-family:var(--display);font-weight:700;font-size:17px} .plan .pl-t small,.plan .pl-p small{display:block;font:500 12px/1.3 var(--body);color:var(--muted)} .plan .pl-p{text-align:right} .plan .pl-p b{font-family:var(--display);font-size:20px} .plan i{position:absolute;top:-10px;right:14px;background:var(--red);color:#fff;font:700 11px/1 var(--display);font-style:normal;padding:4px 8px;border-radius:999px}
 .towns{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0 6px;margin:0 -20px;padding-left:20px;padding-right:20px;scroll-padding-left:20px;scroll-padding-right:20px;scroll-snap-type:x proximity} .towns::-webkit-scrollbar{display:none} .towns button{flex:none;scroll-snap-align:start;border:1.5px solid var(--line2);background:var(--bg);color:var(--ink);border-radius:999px;padding:7px 12px;font:600 13px/1 var(--body);display:inline-flex;align-items:center;gap:6px;cursor:pointer} .towns button.cur{background:var(--ink);color:var(--bg);border-color:var(--ink)} .towns button.done{border-color:var(--green);color:var(--green)} .towns button.cur.done{background:var(--green);color:#fff} .towns button.locked{color:var(--muted);border-style:dashed} .towns button svg{width:13px;height:13px} .towns button small{font-weight:500;opacity:.7}
-.hona{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(74px + var(--sab));z-index:14;display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:999px;border:0;background:var(--red);color:#fff;font:700 14px/1 var(--display);box-shadow:0 6px 18px rgba(0,0,0,.18);cursor:pointer;transform:translateY(12px);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s} .hona.show{opacity:1;transform:none;pointer-events:auto} .hona svg{width:16px;height:16px}
+.hona{position:fixed;right:max(16px,var(--sa-right));bottom:calc(74px + var(--sab));z-index:14;display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:999px;border:0;background:var(--red);color:#fff;font:700 14px/1 var(--display);box-shadow:0 6px 18px rgba(0,0,0,.18);cursor:pointer;transform:translateY(12px);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s} .hona.show{opacity:1;transform:none;pointer-events:auto} .hona svg{width:16px;height:16px}
 .town .fold{display:inline-block;margin-top:6px;font:600 12px/1.2 var(--body);color:var(--green);cursor:pointer;background:var(--bg);padding:2px 10px;border-radius:999px;text-decoration:none} .town .fold.dim{color:var(--muted)} .town .fold svg{width:12px;height:12px;vertical-align:-1px}
 .town{text-align:center;position:relative} .town span{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border-radius:999px;background:var(--ink);color:var(--bg);font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.01em;box-shadow:0 4px 14px rgba(0,0,0,.14)} .town span svg{width:18px;height:18px} .town.locked span{background:var(--bg);color:var(--ink);border:2px dashed var(--line2);box-shadow:none} .town.done span{background:var(--green);color:#fff} .town .lvl{display:inline-block;vertical-align:middle;margin-left:6px;background:var(--red);color:#fff;font:800 11px/1 var(--display);padding:5px 8px;border-radius:999px;letter-spacing:.3px}.town.locked .lvl{background:var(--soft);color:var(--muted)}
 .town small{display:inline-block;font-size:13px;color:var(--ink);margin-top:7px;font-weight:600;background:var(--bg);padding:2px 10px;border-radius:999px} .town.locked small{color:var(--muted)}
@@ -135,7 +135,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .nextrow .n{width:40px;height:40px;display:grid;place-items:center;border-radius:10px;background:var(--soft);font-family:var(--display);font-size:16px;font-weight:700;flex:none}
 .nextrow .t{flex:1;min-width:0;display:flex;flex-direction:column} .nextrow .t b{font-family:var(--display);font-size:16px;font-weight:700} .nextrow .t small{font-size:13px;color:var(--muted)}
 /* pantallas internas: barra superior */
-.top{display:flex;align-items:center;gap:12px;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:12px;margin-bottom:8px}
+.top{display:flex;align-items:center;gap:12px;padding-top:calc(12px + var(--sa-top));padding-bottom:12px;margin-bottom:8px}
 .top .bar{flex:1;height:8px;overflow:hidden;background:var(--soft);border-radius:999px}
 .top .bar i{display:block;height:100%;width:0;background:var(--green);border-radius:999px;transition:width .3s}
 .top button[aria-label]{width:40px;height:40px;flex:none;border:1px solid var(--line);display:grid;place-items:center;color:var(--ink)!important;background:var(--card);border-radius:999px;font-size:0}
@@ -160,7 +160,7 @@ input.ans.ok{border-color:var(--green);box-shadow:0 0 0 4px rgba(26,122,69,.14)}
 .speak.big{width:88px;height:88px;margin:10px auto;background:var(--ochre);color:#141414;border-color:transparent}
 .speak svg{width:18px;height:18px} .speak.big svg{width:38px;height:38px}
 /* hoja de resultado */
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:20;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));padding-block:12px calc(24px + var(--sab));transform:translateY(110%);transition:transform .32s cubic-bezier(.2,.9,.3,1.05);max-height:85vh;overflow:auto;background:var(--bg);border-top:1px solid var(--line2);color:var(--ink);border-radius:20px 20px 0 0;box-shadow:var(--sh-sheet)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:20;padding-left:max(20px,var(--sa-left));padding-right:max(20px,var(--sa-right));padding-block:12px calc(24px + var(--sab));transform:translateY(110%);transition:transform .32s cubic-bezier(.2,.9,.3,1.05);max-height:85vh;overflow:auto;background:var(--bg);border-top:1px solid var(--line2);color:var(--ink);border-radius:20px 20px 0 0;box-shadow:var(--sh-sheet)}
 .sheet{visibility:hidden;transition:transform .32s cubic-bezier(.2,.9,.3,1.05),visibility 0s .32s}
 .sheet.show{transform:none;visibility:visible;transition:transform .32s cubic-bezier(.2,.9,.3,1.05),visibility 0s}
 .sheet .in{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
@@ -544,7 +544,7 @@ const LEVEL_Q=[
 function renderLevelTest(onDone){
   noTabs(); let i=0, start=1;
   const finish=()=>{ const mod=MODULES.find(x=>x.id===start)||MODULES[0];
-    app.innerHTML=`<div class="stack pad" style="padding-top:calc(60px + env(safe-area-inset-top,0px));min-height:100%;justify-content:center;align-items:center;text-align:center;gap:18px"><div>${OLEN(start>1?"happy":"wave",90)}</div><h1 style="font-size:32px">${start>1?"Primeran!":"Hasi gaitezen!"}</h1><p style="max-width:420px;font-size:17px">${start>1?T("Empiezas en TOWN (módulo N). Los módulos anteriores quedan abiertos por si quieres repasarlos.").replace("TOWN",mod.town).replace("N",start):T("Empiezas desde cero, en Baiona. En unas semanas estarás mucho más adelante.")}</p><button class="btn red" id="ok" style="max-width:360px">Ados<small>${T("Vale")}</small></button>${start>1?`<button class="link" id="lower">${T("Prefiero empezar un poco antes")}</button>`:""}</div>`;
+    app.innerHTML=`<div class="stack pad" style="padding-top:calc(60px + var(--sa-top));min-height:100%;justify-content:center;align-items:center;text-align:center;gap:18px"><div>${OLEN(start>1?"happy":"wave",90)}</div><h1 style="font-size:32px">${start>1?"Primeran!":"Hasi gaitezen!"}</h1><p style="max-width:420px;font-size:17px">${start>1?T("Empiezas en TOWN (módulo N). Los módulos anteriores quedan abiertos por si quieres repasarlos.").replace("TOWN",mod.town).replace("N",start):T("Empiezas desde cero, en Baiona. En unas semanas estarás mucho más adelante.")}</p><button class="btn red" id="ok" style="max-width:360px">Ados<small>${T("Vale")}</small></button>${start>1?`<button class="link" id="lower">${T("Prefiero empezar un poco antes")}</button>`:""}</div>`;
     document.getElementById("ok").onclick=()=>onDone(start); const lw=document.getElementById("lower"); if(lw) lw.onclick=()=>{ const idx=LEVEL_Q.findIndex(q=>q.m===start); start=idx>0?LEVEL_Q[idx-1].m:1; finish(); }; };
   const show=()=>{ if(i>=LEVEL_Q.length) return finish(); const q=LEVEL_Q[i]; const opts=shuffle([q.ok,...q.bad]);
     app.innerHTML=`<div class="top pad"><button id="back" aria-label="${T("Volver")}">${ic("back")}</button><div style="flex:1"><p class="eyebrow">Maila-proba · ${i+1}/${LEVEL_Q.length}</p><h2>${T("¿Qué significa?")}</h2></div></div>
@@ -670,7 +670,7 @@ function renderWelcome(){
     {em:`<div style="font-size:54px;line-height:1">🌱 🌿 🌳</div>`,t:"Hazia, kimua, zuhaitza",es:T("Semilla, brote, árbol"),b:T("Cada frase empieza como semilla. Cuando la estudias es un brote y vuelve a salir al día siguiente, a los 3, a los 7… Si la recuerdas cada vez, se hace árbol: firme. Si la fallas, vuelve mañana.")},
     {em:`<div style="font-size:54px;line-height:1">✍️</div>`,t:"Idatzi, ez aukeratu",es:T("Escribe, no elijas"),b:T("Casi siempre te pediré escribir la frase. Hay pista y opciones, pero cuentan menos. Escribir es lo que hace que se quede.")}
   ]; let i=0;
-  const show=()=>{ const sl=slides[i]; app.innerHTML=`<div class="stack pad" style="padding-top:calc(60px + env(safe-area-inset-top,0px));min-height:100%;justify-content:center;align-items:center;text-align:center;gap:18px"><div>${sl.em}</div><h1 style="font-size:36px">${esc(sl.t)}</h1><p class="muted" style="margin-top:-10px">${esc(sl.es)}</p><p style="max-width:420px;font-size:17px">${sl.b}</p><div class="row" style="justify-content:center;gap:8px">${slides.map((_,k)=>`<span style="width:10px;height:10px;background:${k===i?"var(--red)":"var(--line-soft)"}"></span>`).join("")}</div><button class="btn red" id="wnext" style="max-width:360px">${i<slides.length-1?`Hurrengoa<small>${T("Siguiente")}</small>`:`Hasi!<small>${T("Empezar")}</small>`}</button>${i<slides.length-1?`<button class="link" id="wskip">${T("Saltar")}</button>`:""}</div>`;
+  const show=()=>{ const sl=slides[i]; app.innerHTML=`<div class="stack pad" style="padding-top:calc(60px + var(--sa-top));min-height:100%;justify-content:center;align-items:center;text-align:center;gap:18px"><div>${sl.em}</div><h1 style="font-size:36px">${esc(sl.t)}</h1><p class="muted" style="margin-top:-10px">${esc(sl.es)}</p><p style="max-width:420px;font-size:17px">${sl.b}</p><div class="row" style="justify-content:center;gap:8px">${slides.map((_,k)=>`<span style="width:10px;height:10px;background:${k===i?"var(--red)":"var(--line-soft)"}"></span>`).join("")}</div><button class="btn red" id="wnext" style="max-width:360px">${i<slides.length-1?`Hurrengoa<small>${T("Siguiente")}</small>`:`Hasi!<small>${T("Empezar")}</small>`}</button>${i<slides.length-1?`<button class="link" id="wskip">${T("Saltar")}</button>`:""}</div>`;
     document.getElementById("wnext").onclick=()=>{ i++; i<slides.length?show():done(); }; const sk=document.getElementById("wskip"); if(sk) sk.onclick=done; };
   const done=()=>{ try{ localStorage.setItem("euskara.welcome."+P.id,"1"); }catch(e){} setTab("ikasgaiak"); };
   show();
