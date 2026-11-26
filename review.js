@@ -152,17 +152,26 @@ module.exports = function mountReview({ app, db, admin, LESSON_DATA, setting, se
     // es la MISMA ficha, pero ahora tiene algo nuevo que mirar. No se crea una ficha aparte.
     const reopen = db.prepare(`UPDATE review_items SET status = 'pending', locked_by = NULL, locked_until = NULL
       WHERE id = ? AND status = 'done' AND IFNULL(parts_hash,'') <> IFNULL(?,'')`);
+    // Una frase que entra diciendo exactamente lo que un corrector pidió que dijera no es una ficha
+    // por revisar: es el resultado de su revisión. Se marca hecha al nacer y no vuelve a la bolsa
+    // (tampoco genera veredicto, así que nadie cobra dos veces por la misma frase).
+    const fromFix = db.prepare(`UPDATE review_items SET status = 'done', locked_by = NULL, locked_until = NULL
+      WHERE present = 1 AND status = 'pending'
+        AND LOWER(TRIM(eu)) IN (SELECT LOWER(TRIM(fix_eu)) FROM review_verdicts
+                                WHERE verdict = 'fix' AND IFNULL(fix_eu,'') <> '')`);
     const before = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1").get().c;
-    let reopened = 0;
+    let reopened = 0, settled = 0;
     db.transaction(() => {
       db.prepare("UPDATE review_items SET present = 0").run();
       items.forEach(i => { reopened += reopen.run(i.id, i.parts_hash).changes; ins.run(i); });
+      settled = fromFix.run().changes;
     })();
     const after = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1").get().c;
     const gone = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 0").get().c;
     const added = db.prepare("SELECT COUNT(*) c FROM review_items WHERE present = 1 AND status = 'pending'").get().c;
     if (after !== before) console.log(`Correctores: ${after} fichas vivas (antes ${before}), ${gone} retiradas`);
-    return { total: after, pending: added, gone, reopened, diff: after - before };
+    if (settled) console.log(`Correctores: ${settled} fichas ya corregidas, fuera de la bolsa`);
+    return { total: after, pending: added, gone, reopened, settled, diff: after - before };
   }
   seed();
 
