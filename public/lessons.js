@@ -754,7 +754,7 @@ window.GRAMMAR = [
 // Las usan la ronda diaria (a veces en vez de pedir la frase tal cual), cada lección (bloque Eraldatu) y los retos.
 window.TRANSFORMS = {
   "ni ane naiz": [{ i: "Cámbialo a «tú»", to: "Zu Ane zara.", es: "Tú eres Ane." }, { i: "Dilo con «nire izena … da»", to: "Nire izena Ane da.", es: "Mi nombre es Ane." }],
-  "ni mikel naiz": [{ i: "Cámbialo a «tú»", to: "Zu Mikel zara.", es: "Tú eres Mikel." }, { i: "Dilo con «nire izena … da»", to: "Nire izena Mikel da.", es: "Mi nombre es Mikel." }],
+  "ni mikel naiz.": [{ i: "Cámbialo a «tú»", to: "Zu Mikel zara.", es: "Tú eres Mikel." }, { i: "Dilo con «nire izena … da»", to: "Nire izena Mikel da.", es: "Mi nombre es Mikel." }],
   "nire izena ane da": [{ i: "Dilo con «ni … naiz»", to: "Ni Ane naiz.", es: "Yo soy Ane." }],
   "nola duzu izena?": [{ i: "Pregúntalo con «zein da»", to: "Zein da zure izena?", es: "¿Cuál es tu nombre?" }],
   "zein da zure izena?": [{ i: "Pregúntalo con «nola»", to: "Nola duzu izena?", es: "¿Cómo te llamas?" }],
